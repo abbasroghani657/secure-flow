@@ -148,6 +148,14 @@ Beyond the web scanner, two standalone engines cover other OWASP families:
   Firebase**, plus manifest checks (debuggable, allowBackup, cleartext, exported
   components, low minSdk). The LLM module also covers **indirect prompt injection**
   (LLM08) and **misinformation** (LLM09) on top of the earlier LLM checks.
+- **OWASP Mobile Top 10 — iOS** (`app/scanner/ios_scanner.py`) — static analysis of
+  an **IPA**: hardcoded secrets, **ATS disabled / insecure-HTTP exceptions**, custom
+  **URL schemes**, and Mach-O **binary protections** (PIE/ASLR, stack canaries,
+  jailbreak detection).
+- **SCA + SBOM** (`app/scanner/sca_scanner.py`) — upload a dependency manifest
+  (`package.json`/`requirements.txt`/`go.mod`/lock files); queries the free **OSV.dev**
+  database for known CVEs in your exact versions and emits a **CycloneDX SBOM**. No
+  credentials required.
 
 > These run against apps/endpoints you own or are authorised to test. They are
 > wired as engines today; the API/UI scan types for them are the next step.

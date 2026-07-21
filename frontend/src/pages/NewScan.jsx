@@ -10,6 +10,7 @@ const SCAN_TYPES = [
   { id: "llm", label: "LLM app (AI)", desc: "Test an AI/LLM endpoint for prompt injection, jailbreak & data leakage (OWASP LLM Top 10)." },
   { id: "mobile", label: "Mobile app (APK)", desc: "Upload an Android APK for static analysis — hardcoded secrets & insecure manifest (OWASP Mobile Top 10)." },
   { id: "sca", label: "Dependencies (SCA)", desc: "Upload a package.json / requirements.txt / lock file — finds known CVEs in your dependencies (OSV database)." },
+  { id: "ios", label: "iOS app (IPA)", desc: "Upload an iOS IPA — secrets, ATS/transport security, URL schemes, and binary protections (OWASP Mobile Top 10)." },
   { id: "bola", label: "IDOR / BOLA (two accounts)", desc: "Use two accounts to test object-level authorization — can user B read user A's data? (OWASP API #1)." },
   { id: "headers", label: "Headers only", desc: "Quick check of security response headers." },
 ];
@@ -36,6 +37,7 @@ export default function NewScan() {
   const [llmRespPath, setLlmRespPath] = useState("");
   const [apkFile, setApkFile] = useState(null);
   const [depFile, setDepFile] = useState(null);
+  const [iosFile, setIosFile] = useState(null);
   const nav = useNavigate();
 
   useEffect(() => {
@@ -53,12 +55,14 @@ export default function NewScan() {
     e.preventDefault();
     setErr("");
     // File-upload scan types — no verified target needed.
-    if (type === "mobile" || type === "sca") {
-      const f = type === "mobile" ? apkFile : depFile;
-      if (!f) { setErr(type === "mobile" ? "Choose an .apk file to scan." : "Choose a dependency file to scan."); return; }
+    if (type === "mobile" || type === "sca" || type === "ios") {
+      const fileMap = { mobile: apkFile, sca: depFile, ios: iosFile };
+      const uploadMap = { mobile: api.uploadMobileScan, sca: api.uploadScaScan, ios: api.uploadIosScan };
+      const f = fileMap[type];
+      if (!f) { setErr("Choose a file to scan."); return; }
       setBusy(true);
       try {
-        const scan = type === "mobile" ? await api.uploadMobileScan(f) : await api.uploadScaScan(f);
+        const scan = await uploadMap[type](f);
         nav(`/scans/${scan.id}`);
       } catch (e2) {
         setErr(e2.message);
@@ -127,24 +131,25 @@ export default function NewScan() {
               </div>
             </div>
 
-            {type === "mobile" || type === "sca" ? (
-              /* File-upload scan (APK / dependency manifest) — no verified target needed */
+            {type === "mobile" || type === "sca" || type === "ios" ? (
+              /* File-upload scan (APK / dependency manifest / IPA) — no verified target needed */
               (() => {
-                const isSca = type === "sca";
-                const f = isSca ? depFile : apkFile;
-                const set = isSca ? setDepFile : setApkFile;
+                const cfg = {
+                  mobile: { label: "Android APK file", file: apkFile, set: setApkFile, accept: ".apk", prompt: "Click to choose an .apk file", note: "The APK is analysed for hardcoded secrets and insecure manifest settings, then deleted." },
+                  sca: { label: "Dependency file", file: depFile, set: setDepFile, accept: ".json,.txt,.lock,.mod,.sum,.xml", prompt: "Click to choose package.json / requirements.txt / lock file", note: "Your dependencies are checked against the OSV vulnerability database, then the file is deleted." },
+                  ios: { label: "iOS IPA file", file: iosFile, set: setIosFile, accept: ".ipa", prompt: "Click to choose an .ipa file", note: "The IPA is analysed for secrets, transport security, URL schemes and binary protections, then deleted." },
+                }[type];
+                const f = cfg.file;
                 return (
                   <div style={{ display: "grid", gap: 8 }}>
-                    <label style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>{isSca ? "Dependency file" : "Android APK file"}</label>
+                    <label style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>{cfg.label}</label>
                     <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "28px 20px", borderRadius: 12, border: `1.5px dashed ${f ? T.accent : T.borderStrong}`, background: f ? "rgba(0,191,99,0.06)" : "rgba(255,255,255,0.02)", cursor: "pointer", textAlign: "center" }}>
-                      <input type="file" accept={isSca ? ".json,.txt,.lock,.mod,.sum,.xml" : ".apk"} style={{ display: "none" }} onChange={(e) => set(e.target.files?.[0] || null)} />
+                      <input type="file" accept={cfg.accept} style={{ display: "none" }} onChange={(e) => cfg.set(e.target.files?.[0] || null)} />
                       <span style={{ fontSize: 14, color: f ? T.accentHi : T.muted, fontFamily: f ? T.mono : T.body }}>
-                        {f ? `${f.name} (${(f.size / 1024).toFixed(0)} KB)` : (isSca ? "Click to choose package.json / requirements.txt / lock file" : "Click to choose an .apk file")}
+                        {f ? `${f.name} (${(f.size / 1024).toFixed(0)} KB)` : cfg.prompt}
                       </span>
                     </label>
-                    <p style={{ margin: 0, fontSize: 12.5, color: T.muted }}>
-                      {isSca ? "Your dependencies are checked against the OSV vulnerability database, then the file is deleted." : "The APK is analysed for hardcoded secrets and insecure manifest settings, then deleted. No target verification needed."}
-                    </p>
+                    <p style={{ margin: 0, fontSize: 12.5, color: T.muted }}>{cfg.note}</p>
                   </div>
                 );
               })()

@@ -48,6 +48,11 @@ export const api = {
     fd.append("file", file);
     return request("/api/scans/sca", { method: "POST", body: fd, isForm: true });
   },
+  uploadIosScan: (file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return request("/api/scans/ios", { method: "POST", body: fd, isForm: true });
+  },
   listScans: () => request("/api/scans"),
   getScan: (id) => request(`/api/scans/${id}`),
   deleteScan: (id) => request(`/api/scans/${id}`, { method: "DELETE" }),

@@ -410,6 +410,32 @@ def _run_sca_scan(session: Session, scan: Scan) -> None:
             pass
 
 
+def _run_ios_scan(session: Session, scan: Scan) -> None:
+    """Static analysis of an uploaded iOS IPA, then delete the file."""
+    import os
+
+    from .ios_scanner import IOSTarget, run_ios_scan
+
+    ipa_path = os.path.join(settings.upload_dir, f"{scan.id}.ipa")
+    try:
+        findings = run_ios_scan(IOSTarget(ipa_path=ipa_path))
+        for f in findings:
+            enrich_taxonomy(f)
+        _tally_and_complete(session, scan, findings)
+    except Exception as exc:  # noqa: BLE001
+        scan.status = ScanStatus.failed
+        scan.error = f"Scan error: {exc}"
+        scan.finished_at = datetime.now(timezone.utc)
+        session.add(scan)
+        session.commit()
+    finally:
+        try:
+            if os.path.exists(ipa_path):
+                os.remove(ipa_path)
+        except OSError:
+            pass
+
+
 def run_scan(scan_id: int) -> None:
     """Entry point for the background task. Owns its own DB session."""
     with Session(db_engine) as session:
@@ -429,6 +455,10 @@ def run_scan(scan_id: int) -> None:
         # SCA scan: analyse an uploaded dependency manifest — no network target.
         if scan.scan_type == "sca":
             _run_sca_scan(session, scan)
+            return
+        # iOS scan: static analysis of an uploaded IPA — no network target.
+        if scan.scan_type == "ios":
+            _run_ios_scan(session, scan)
             return
 
         base_url = scan.target_url

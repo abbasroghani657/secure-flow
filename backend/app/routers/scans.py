@@ -119,6 +119,33 @@ async def create_mobile_scan(
     return _scan_read(scan)
 
 
+@router.post("/ios", response_model=ScanRead, status_code=status.HTTP_201_CREATED)
+async def create_ios_scan(
+    current: CurrentUser,
+    session: SessionDep,
+    file: UploadFile = File(...),
+) -> ScanRead:
+    """Upload an iOS IPA for static analysis (OWASP Mobile Top 10)."""
+    filename = file.filename or "app.ipa"
+    if not filename.lower().endswith(".ipa"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Please upload an .ipa file.")
+    data = await file.read()
+    if len(data) > settings.max_apk_mb * 1024 * 1024:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"IPA too large (max {settings.max_apk_mb} MB).")
+    if data[:2] != b"PK":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "That file is not a valid IPA.")
+
+    scan = Scan(owner_id=current.id, target_url=filename, scan_type="ios", status=ScanStatus.queued)
+    session.add(scan)
+    session.commit()
+    session.refresh(scan)
+
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    with open(os.path.join(settings.upload_dir, f"{scan.id}.ipa"), "wb") as fh:
+        fh.write(data)
+    return _scan_read(scan)
+
+
 @router.post("/sca", response_model=ScanRead, status_code=status.HTTP_201_CREATED)
 async def create_sca_scan(
     current: CurrentUser,
