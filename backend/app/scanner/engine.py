@@ -1,0 +1,352 @@
+"""Scan orchestration: fetch the target, run checks, persist findings, score."""
+
+from __future__ import annotations
+
+import ipaddress
+import json
+import socket
+from datetime import datetime, timezone
+from urllib.parse import urljoin, urlparse
+
+import httpx
+from sqlmodel import Session
+
+from ..config import settings
+from ..database import engine as db_engine
+from ..models import Finding as FindingModel
+from ..models import Scan, ScanStatus, Severity
+from ..taxonomy import enrich as enrich_taxonomy
+from .active import run_active_tests, test_host_header
+from .checks import (
+    BASE_CHECKS,
+    COMMON_DIRS,
+    SENSITIVE_PATHS,
+    Finding,
+    Probe,
+    build_path_finding,
+    check_csrf_forms,
+    check_http_methods,
+    check_js_libraries,
+    check_security_txt,
+    check_sensitive_comments,
+    check_session_in_url,
+    check_sri,
+    check_tabnabbing,
+    directory_listing_finding,
+    looks_present,
+)
+from .crawler import crawl
+from .dns_checks import run_dns_checks
+
+# Severity weights used to turn findings into a 0-100 security score.
+SEVERITY_WEIGHT = {"critical": 40, "high": 20, "medium": 8, "low": 3, "info": 0}
+
+USER_AGENT = "SecureFlow-Scanner/1.0 (+https://secureflow.app/scanner)"
+
+
+def _is_private_host(host: str) -> bool:
+    """Block scanning of localhost / private / link-local addresses (SSRF guard)."""
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return False  # can't resolve — let the HTTP request fail naturally
+    for info in infos:
+        addr = info[4][0]
+        try:
+            ip = ipaddress.ip_address(addr)
+        except ValueError:
+            continue
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            return True
+    return False
+
+
+def _probe_base(client: httpx.Client, url: str) -> Probe:
+    resp = client.get(url)
+    final = str(resp.url)
+    is_https = final.startswith("https://")
+    headers = {k.lower(): v for k, v in resp.headers.items()}
+
+    # Detect http->https redirect behaviour with a separate plain-http probe.
+    http_redirects = None
+    parsed = urlparse(final)
+    http_url = f"http://{parsed.netloc}{parsed.path or '/'}"
+    try:
+        r2 = client.get(http_url)
+        http_redirects = str(r2.url).startswith("https://")
+    except httpx.HTTPError:
+        http_redirects = None
+
+    set_cookies = resp.headers.get_list("set-cookie") if hasattr(resp.headers, "get_list") else []
+    if not set_cookies and "set-cookie" in resp.headers:
+        set_cookies = [resp.headers["set-cookie"]]
+
+    return Probe(
+        url=url,
+        final_url=final,
+        status_code=resp.status_code,
+        headers=headers,
+        raw_headers=dict(resp.headers),
+        set_cookies=set_cookies,
+        is_https=is_https,
+        http_redirects_to_https=http_redirects,
+        body_snippet=resp.text[:400000],  # enough to scan for mixed content / inline refs
+    )
+
+
+def _access_control_check(client: httpx.Client, pages: list[str]) -> list[Finding]:
+    """Authenticated scan only: re-fetch discovered pages WITHOUT the session and
+    flag any that return the same content — a forced-browsing / broken-access-control
+    candidate (the page may not actually require authentication)."""
+    findings: list[Finding] = []
+    # A fresh client with no auth headers.
+    with httpx.Client(timeout=settings.scan_http_timeout, follow_redirects=False,
+                      headers={"User-Agent": USER_AGENT}) as anon:
+        checked = 0
+        for url in pages:
+            if checked >= 8 or not urlparse(url).query and url.rstrip("/").count("/") <= 2:
+                continue  # focus on deeper/app-like pages
+            try:
+                authed = client.get(url)
+                plain = anon.get(url)
+            except httpx.HTTPError:
+                continue
+            checked += 1
+            # Authed must succeed; unauth returning the same 200 body == not protected.
+            if authed.status_code != 200 or plain.status_code != 200:
+                continue
+            a, p = authed.text, plain.text
+            if len(a) > 200 and abs(len(a) - len(p)) < 0.05 * len(a) and a[:400] == p[:400]:
+                findings.append(Finding(
+                    "broken-access-control", "Page reachable without authentication", "medium", url,
+                    description="A page found during the authenticated crawl returns identical content without the session.",
+                    impact="If this page is meant to be private, it exposes data/functions to unauthenticated users (broken access control).",
+                    evidence=f"Authenticated and anonymous requests to {url} returned the same 200 response.",
+                    remediation="Enforce server-side authorization on every protected route, not just in the UI.",
+                    compliance_ref="OWASP A01:2025",
+                ))
+                if len(findings) >= 3:
+                    break
+    return findings
+
+
+def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web",
+                      authenticated: bool = False) -> list[Finding]:
+    findings: list[Finding] = []
+    probe = _probe_base(client, base_url)
+    host = urlparse(probe.final_url).hostname or ""
+
+    # 1. Header / TLS / cookie / CORS / mixed-content checks
+    for check in BASE_CHECKS:
+        try:
+            findings.extend(check(probe))
+        except Exception as exc:  # a single bad check shouldn't kill the scan
+            findings.append(Finding(
+                f"check-error-{check.__name__}", f"Check {check.__name__} errored", "info",
+                probe.final_url, description=str(exc), passed=False,
+            ))
+
+    # 2. DNS / email-security (SPF, DMARC) + TLS certificate expiry
+    try:
+        findings.extend(run_dns_checks(host))
+    except Exception:
+        pass
+
+    # 3. Dangerous HTTP methods (OPTIONS) + Host header injection + sensitive comments
+    try:
+        opt = client.request("OPTIONS", probe.final_url)
+        findings.extend(check_http_methods(probe.final_url, opt.headers.get("allow", "")))
+    except httpx.HTTPError:
+        pass
+    try:
+        findings.extend(test_host_header(client, probe.final_url))
+    except httpx.HTTPError:
+        pass
+    findings.extend(check_sensitive_comments(probe))
+    findings.extend(check_js_libraries(probe))   # outdated JS libraries (A03)
+    findings.extend(check_sri(probe))            # missing Subresource Integrity (A08)
+    findings.extend(check_tabnabbing(probe))     # reverse tabnabbing
+
+    # 3b. GraphQL introspection exposed
+    for gp in ("/graphql", "/api/graphql", "/v1/graphql"):
+        try:
+            gr = client.post(urljoin(probe.final_url, gp),
+                             json={"query": "{__schema{queryType{name}}}"})
+            if gr.status_code == 200 and "__schema" in gr.text and "queryType" in gr.text:
+                findings.append(Finding(
+                    "graphql-introspection", "GraphQL introspection enabled", "low",
+                    urljoin(probe.final_url, gp),
+                    description="The GraphQL endpoint answers introspection queries.",
+                    impact="Introspection exposes the full API schema, easing targeted attacks.",
+                    evidence=f"__schema returned at {gp}",
+                    remediation="Disable introspection in production.",
+                    compliance_ref="OWASP A02:2025",
+                ))
+                break
+        except httpx.HTTPError:
+            continue
+
+    # 4. Exposed sensitive files. First fetch a random path to learn what a
+    #    "not found" looks like — servers that soft-404 (return 200 for anything)
+    #    would otherwise produce false positives.
+    baseline_body = None
+    try:
+        rb = client.get(urljoin(probe.final_url, "/sf-nonexistent-a7f3c9e1b2"))
+        if rb.status_code == 200:
+            baseline_body = rb.text
+    except httpx.HTTPError:
+        pass
+
+    for path, *_ in SENSITIVE_PATHS:
+        target = urljoin(probe.final_url, path)
+        try:
+            r = client.get(target)
+            if looks_present(r.status_code, r.text, path, baseline_body):
+                f = build_path_finding(probe.final_url, path, r.status_code, r.text)
+                if f:
+                    findings.append(f)
+        except httpx.HTTPError:
+            continue
+
+    # 5. Directory listing on common directories
+    for d in COMMON_DIRS:
+        try:
+            r = client.get(urljoin(probe.final_url, d))
+            f = directory_listing_finding(urljoin(probe.final_url, d), r.text)
+            if f:
+                findings.append(f)
+        except httpx.HTTPError:
+            continue
+
+    # 6. security.txt
+    try:
+        st = client.get(urljoin(probe.final_url, "/.well-known/security.txt"))
+        findings.append(check_security_txt(probe.final_url, st.status_code == 200 and "contact" in st.text.lower()))
+    except httpx.HTTPError:
+        findings.append(check_security_txt(probe.final_url, False))
+
+    # 7. Crawl the site and actively test discovered parameters/forms
+    if scan_type in ("web", "deep") and settings.crawl_enabled:
+        try:
+            result = crawl(client, probe.final_url, settings.max_crawl_pages, settings.max_crawl_depth)
+            findings.extend(check_session_in_url(result.param_urls))
+            findings.extend(check_csrf_forms(result.forms))
+            if settings.active_tests_enabled:
+                findings.extend(run_active_tests(client, result.param_urls, result.forms,
+                                                 max_urls=settings.max_active_urls))
+            # Authenticated scan: test discovered pages for missing access control.
+            if authenticated:
+                findings.extend(_access_control_check(client, result.pages + result.param_urls))
+        except Exception:
+            pass
+
+    # 8. Tag every finding with OWASP 2025 category, CWE and affected layer.
+    for f in findings:
+        enrich_taxonomy(f)
+
+    return findings
+
+
+def compute_score(findings: list[Finding]) -> int:
+    penalty = sum(SEVERITY_WEIGHT.get(f.severity, 0) for f in findings if not f.passed)
+    return max(0, min(100, 100 - penalty))
+
+
+def run_scan(scan_id: int) -> None:
+    """Entry point for the background task. Owns its own DB session."""
+    with Session(db_engine) as session:
+        scan = session.get(Scan, scan_id)
+        if scan is None:
+            return
+        scan.status = ScanStatus.running
+        scan.started_at = datetime.now(timezone.utc)
+        scan.progress = 5
+        session.add(scan)
+        session.commit()
+
+        base_url = scan.target_url
+        host = urlparse(base_url).hostname or ""
+
+        if _is_private_host(host):
+            scan.status = ScanStatus.failed
+            scan.error = "Refusing to scan a private/loopback address."
+            scan.finished_at = datetime.now(timezone.utc)
+            session.add(scan)
+            session.commit()
+            return
+
+        # Optional credentials for an authenticated scan (scan behind the login).
+        auth_headers: dict = {}
+        if scan.auth_headers:
+            try:
+                auth_headers = json.loads(scan.auth_headers)
+            except (json.JSONDecodeError, TypeError):
+                auth_headers = {}
+
+        try:
+            with httpx.Client(
+                timeout=settings.scan_http_timeout,
+                follow_redirects=True,
+                headers={"User-Agent": USER_AGENT, **auth_headers},
+                verify=True,
+            ) as client:
+                scan.progress = 20
+                session.add(scan)
+                session.commit()
+
+                findings = _collect_findings(client, base_url, scan.scan_type, authenticated=bool(auth_headers))
+
+            # Deep scan: also run the Nuclei template engine (active, but gated on
+            # verified ownership and with intrusive/DoS templates excluded).
+            if scan.scan_type == "deep":
+                scan.progress = 45
+                session.add(scan)
+                session.commit()
+                from .nuclei_runner import run_nuclei
+
+                findings.extend(run_nuclei(base_url))
+
+            scan.progress = 85
+            session.add(scan)
+            session.commit()
+
+            # Persist findings + tally counts
+            counts = {s.value: 0 for s in Severity}
+            passed = 0
+            for f in findings:
+                if f.passed:
+                    passed += 1
+                else:
+                    counts[f.severity] = counts.get(f.severity, 0) + 1
+                session.add(FindingModel(scan_id=scan.id, **f.as_dict()))
+
+            scan.critical_count = counts["critical"]
+            scan.high_count = counts["high"]
+            scan.medium_count = counts["medium"]
+            scan.low_count = counts["low"]
+            scan.info_count = counts["info"]
+            scan.passed_count = passed
+            scan.security_score = compute_score(findings)
+            scan.status = ScanStatus.completed
+            scan.progress = 100
+            scan.finished_at = datetime.now(timezone.utc)
+            session.add(scan)
+            session.commit()
+        except httpx.HTTPError as exc:
+            scan.status = ScanStatus.failed
+            scan.error = f"Could not reach target: {exc}"
+            scan.finished_at = datetime.now(timezone.utc)
+            session.add(scan)
+            session.commit()
+        except Exception as exc:  # noqa: BLE001
+            scan.status = ScanStatus.failed
+            scan.error = f"Scan error: {exc}"
+            scan.finished_at = datetime.now(timezone.utc)
+            session.add(scan)
+            session.commit()
+        finally:
+            # Never keep the user's session credentials after the scan runs.
+            if scan.auth_headers is not None:
+                scan.auth_headers = None
+                session.add(scan)
+                session.commit()

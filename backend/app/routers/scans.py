@@ -1,0 +1,95 @@
+import json
+from urllib.parse import urlparse
+
+from fastapi import APIRouter, HTTPException, status
+from sqlmodel import select
+
+from ..deps import CurrentUser, SessionDep
+from ..models import Finding, Scan, ScanStatus, Target
+from ..schemas import FindingRead, ScanCreate, ScanDetail, ScanRead
+from ..scanner.checks import normalize_url
+
+router = APIRouter(prefix="/api/scans", tags=["scans"])
+
+
+def _scan_read(scan: Scan) -> ScanRead:
+    return ScanRead.model_validate(scan, from_attributes=True)
+
+
+@router.post("", response_model=ScanRead, status_code=status.HTTP_201_CREATED)
+def create_scan(
+    data: ScanCreate,
+    current: CurrentUser,
+    session: SessionDep,
+) -> ScanRead:
+    try:
+        target_url = normalize_url(data.target_url)
+    except ValueError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid target URL")
+
+    host = urlparse(target_url).hostname
+    target = session.exec(
+        select(Target).where(Target.owner_id == current.id, Target.host == host)
+    ).first()
+    if not target:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            f"'{host}' is not one of your targets. Add and verify it first.",
+        )
+    if not target.verified:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            f"'{host}' is not verified yet. Prove ownership before scanning.",
+        )
+
+    # Optional credentials for an authenticated scan.
+    auth_headers: dict[str, str] = {}
+    if data.auth_cookie:
+        auth_headers["Cookie"] = data.auth_cookie.strip()
+    if data.auth_bearer:
+        auth_headers["Authorization"] = f"Bearer {data.auth_bearer.strip()}"
+
+    scan = Scan(
+        owner_id=current.id, target_url=target_url, scan_type=data.scan_type,
+        status=ScanStatus.queued,
+        authenticated=bool(auth_headers),
+        auth_headers=json.dumps(auth_headers) if auth_headers else None,
+    )
+    session.add(scan)
+    session.commit()
+    session.refresh(scan)
+
+    # The background worker picks up queued scans; no request-bound task.
+    return _scan_read(scan)
+
+
+@router.get("", response_model=list[ScanRead])
+def list_scans(current: CurrentUser, session: SessionDep) -> list[ScanRead]:
+    scans = session.exec(
+        select(Scan).where(Scan.owner_id == current.id).order_by(Scan.created_at.desc())
+    ).all()
+    return [_scan_read(s) for s in scans]
+
+
+@router.get("/{scan_id}", response_model=ScanDetail)
+def get_scan(scan_id: int, current: CurrentUser, session: SessionDep) -> ScanDetail:
+    scan = session.get(Scan, scan_id)
+    if not scan or scan.owner_id != current.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Scan not found")
+    findings = session.exec(
+        select(Finding).where(Finding.scan_id == scan_id)
+    ).all()
+    severity_rank = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+    findings_sorted = sorted(findings, key=lambda f: (f.passed, severity_rank.get(f.severity, 5)))
+    detail = ScanDetail.model_validate(scan, from_attributes=True)
+    detail.findings = [FindingRead.model_validate(f, from_attributes=True) for f in findings_sorted]
+    return detail
+
+
+@router.delete("/{scan_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_scan(scan_id: int, current: CurrentUser, session: SessionDep) -> None:
+    scan = session.get(Scan, scan_id)
+    if not scan or scan.owner_id != current.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Scan not found")
+    session.delete(scan)
+    session.commit()

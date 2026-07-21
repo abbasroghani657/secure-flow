@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: secureflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secureflow_dev_pw}
+      POSTGRES_DB: secureflow
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U secureflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+psycopg://secureflow:${POSTGRES_PASSWORD:-secureflow_dev_pw}@db:5432/secureflow
+      AUTO_CREATE_TABLES: "false"
+      JWT_SECRET: ${JWT_SECRET:-please_change_me_to_a_long_random_string_in_prod}
+      WORKER_IN_PROCESS: "false"
+      CORS_ORIGINS: http://localhost:8080
+      APP_BASE_URL: http://localhost:8080
+      # Optional SMTP for real email alerts:
+      # SMTP_HOST: smtp.example.com
+      # SMTP_USER: apikey
+      # SMTP_PASSWORD: ...
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8077/api/health').status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    build: ./backend
+    # Bypass the migration entrypoint — the backend service owns migrations.
+    entrypoint: ["python", "-m", "app.worker"]
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+psycopg://secureflow:${POSTGRES_PASSWORD:-secureflow_dev_pw}@db:5432/secureflow
+      AUTO_CREATE_TABLES: "false"
+      APP_BASE_URL: http://localhost:8080
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

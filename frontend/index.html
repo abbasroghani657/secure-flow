@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SecureFlow — Find vulnerabilities before hackers do</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      html { scroll-behavior: smooth; }
+      body { margin: 0; background: #0D0F0D; color: #F3F6FA; font-family: Inter, sans-serif; -webkit-font-smoothing: antialiased; }
+      * { box-sizing: border-box; }
+      a { color: #00BF63; text-decoration: none; }
+      a:hover { color: #33D98A; }
+      ::selection { background: rgba(0,191,99,0.35); }
+      :focus-visible { outline: 2px solid #00BF63; outline-offset: 2px; }
+      input::placeholder { color: #565E6A; }
+      @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+      @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+      @keyframes scanSweep { 0% { transform: translateY(-100%); } 100% { transform: translateY(420px); } }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,0 +1,146 @@
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { AppNav, primaryBtn, ghostBtn, Spinner } from "../components/ui";
+import { api } from "../api";
+import { T } from "../theme";
+
+const SCAN_TYPES = [
+  { id: "web", label: "Web application", desc: "Full passive scan: headers, TLS, cookies, exposed files." },
+  { id: "deep", label: "Deep scan (Nuclei)", desc: "Everything in Web, plus the Nuclei engine's CVE & vulnerability templates. Slower." },
+  { id: "headers", label: "Headers only", desc: "Quick check of security response headers." },
+];
+
+export default function NewScan() {
+  const loc = useLocation();
+  const [targets, setTargets] = useState(null);
+  const [selected, setSelected] = useState("");
+  const [type, setType] = useState("web");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [showAuth, setShowAuth] = useState(false);
+  const [authCookie, setAuthCookie] = useState("");
+  const [authBearer, setAuthBearer] = useState("");
+  const nav = useNavigate();
+
+  useEffect(() => {
+    api.listTargets().then((ts) => {
+      const verified = ts.filter((t) => t.verified);
+      setTargets(verified);
+      // Preselect a target matching a URL passed from the landing page, else the first.
+      const hint = loc.state?.url?.replace(/^https?:\/\//, "").split("/")[0];
+      const match = hint && verified.find((t) => t.host === hint);
+      setSelected(match ? match.url : verified[0]?.url || "");
+    }).catch((e) => setErr(e.message));
+  }, []);
+
+  async function submit(e) {
+    e.preventDefault();
+    setErr("");
+    if (!selected) { setErr("Select a verified target."); return; }
+    setBusy(true);
+    try {
+      const auth = {};
+      if (showAuth && authCookie.trim()) auth.auth_cookie = authCookie.trim();
+      if (showAuth && authBearer.trim()) auth.auth_bearer = authBearer.trim();
+      const scan = await api.createScan(selected, type, auth);
+      nav(`/scans/${scan.id}`);
+    } catch (e2) {
+      setErr(e2.message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <AppNav />
+      <main style={{ maxWidth: 680, margin: "0 auto", padding: "44px 24px 80px" }}>
+        <h1 style={{ fontFamily: T.heading, fontSize: 30, fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 6px" }}>New scan</h1>
+        <p style={{ color: T.muted, fontSize: 14.5, margin: "0 0 32px" }}>Scans run only against targets you have verified.</p>
+
+        {targets === null ? (
+          <p style={{ color: T.muted }}>Loading targets…</p>
+        ) : targets.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "56px 24px", border: `1px dashed ${T.borderStrong}`, borderRadius: 16 }}>
+            <p style={{ color: T.muted, fontSize: 15, margin: "0 0 20px" }}>
+              You have no verified targets yet. Add and verify a domain you own first.
+            </p>
+            <Link to="/targets" style={{ ...primaryBtn, display: "inline-block" }}>Go to Targets</Link>
+          </div>
+        ) : (
+          <form onSubmit={submit} style={{ display: "grid", gap: 26 }}>
+            <div style={{ display: "grid", gap: 8 }}>
+              <label style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>Target</label>
+              <div style={{ display: "grid", gap: 10 }}>
+                {targets.map((t) => {
+                  const active = selected === t.url;
+                  return (
+                    <button type="button" key={t.id} onClick={() => setSelected(t.url)} style={{ textAlign: "left", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 12, cursor: "pointer", border: `1.5px solid ${active ? T.accent : T.border}`, background: active ? "rgba(0,191,99,0.08)" : "rgba(255,255,255,0.02)", fontFamily: T.body }}>
+                      <span style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${active ? T.accent : T.borderStrong}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        {active && <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.accent }} />}
+                      </span>
+                      <span style={{ fontFamily: T.mono, fontSize: 14.5, color: T.text }}>{t.host}</span>
+                      <span style={{ marginLeft: "auto", fontSize: 11.5, color: T.accent }}>verified</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <Link to="/targets" style={{ fontSize: 12.5, color: T.muted }}>+ Add another target</Link>
+            </div>
+
+            <div style={{ display: "grid", gap: 10 }}>
+              <label style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>Scan type</label>
+              <div style={{ display: "grid", gap: 10 }}>
+                {SCAN_TYPES.map((t) => {
+                  const active = type === t.id;
+                  return (
+                    <button type="button" key={t.id} onClick={() => setType(t.id)} style={{ textAlign: "left", padding: "16px 18px", borderRadius: 12, cursor: "pointer", border: `1.5px solid ${active ? T.accent : T.border}`, background: active ? "rgba(0,191,99,0.08)" : "rgba(255,255,255,0.02)", fontFamily: T.body }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${active ? T.accent : T.borderStrong}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {active && <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.accent }} />}
+                        </span>
+                        <span style={{ fontSize: 14.5, fontWeight: 600, color: T.text }}>{t.label}</span>
+                      </div>
+                      <p style={{ margin: "8px 0 0 26px", fontSize: 13, color: T.muted }}>{t.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Optional authenticated scan */}
+            <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+              <button type="button" onClick={() => setShowAuth(!showAuth)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: "none", border: "none", cursor: "pointer", padding: "14px 16px", fontFamily: T.body, color: T.text }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>Authenticated scan <span style={{ color: T.muted, fontWeight: 400 }}>· optional, scans behind login</span></span>
+                </span>
+                <span style={{ color: T.muted, transform: showAuth ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▾</span>
+              </button>
+              {showAuth && (
+                <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
+                  <p style={{ margin: 0, fontSize: 12.5, color: T.muted, lineHeight: 1.5 }}>
+                    Paste a valid session <b style={{ color: T.text }}>Cookie</b> or <b style={{ color: T.text }}>Bearer token</b> from your logged-in session. The scanner will crawl and test pages behind the login. Credentials are used for this scan only and deleted the moment it finishes.
+                  </p>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <label style={{ fontSize: 12.5, fontWeight: 600 }}>Session cookie</label>
+                    <input value={authCookie} onChange={(e) => setAuthCookie(e.target.value)} placeholder="session=abc123; csrftoken=def456" style={{ padding: "11px 13px", borderRadius: 10, border: `1px solid ${T.borderStrong}`, background: "rgba(255,255,255,0.05)", color: T.text, fontSize: 13, fontFamily: T.mono }} />
+                  </div>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <label style={{ fontSize: 12.5, fontWeight: 600 }}>Bearer token <span style={{ color: T.faint, fontWeight: 400 }}>(without "Bearer ")</span></label>
+                    <input value={authBearer} onChange={(e) => setAuthBearer(e.target.value)} placeholder="eyJhbGciOiJIUzI1NiIs..." style={{ padding: "11px 13px", borderRadius: 10, border: `1px solid ${T.borderStrong}`, background: "rgba(255,255,255,0.05)", color: T.text, fontSize: 13, fontFamily: T.mono }} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {err && <div style={{ fontSize: 13.5, color: "#F87171", background: "rgba(220,38,38,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 10, padding: "10px 12px" }}>{err}</div>}
+
+            <button type="submit" disabled={busy} style={{ ...primaryBtn, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: busy ? 0.7 : 1 }}>
+              {busy && <Spinner />} Launch scan
+            </button>
+          </form>
+        )}
+      </main>
+    </div>
+  );
+}

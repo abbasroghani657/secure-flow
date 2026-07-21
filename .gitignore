@@ -1,0 +1,42 @@
+# ---- Secrets & local config (NEVER commit) ----
+.env
+.env.*
+!.env.example
+!.env.docker.example
+backend/.env
+frontend/.env
+.claude/settings.local.json
+
+# ---- Python / backend ----
+backend/.venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Database (dev data, may contain password hashes) ----
+*.db
+*.sqlite
+*.sqlite3
+backend/secureflow.db
+
+# ---- Security engine binaries (large; install via script) ----
+backend/bin/
+nuclei-templates/
+
+# ---- Node / frontend ----
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.log
+npm-debug.log*
+
+# ---- Editors / OS ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
