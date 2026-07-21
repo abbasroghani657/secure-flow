@@ -21,6 +21,7 @@ from .api_checks import check_cors_reflection, check_excessive_data, check_webso
 from .auth_tests import check_logout_invalidation, run_auth_tests
 from .cloud import check_cloud_buckets
 from .dom_xss import check_dom_xss
+from .dos_checks import test_redos, test_xml_expansion
 from .logic import run_logic_tests
 from .web_extra import run_web_extra
 from .checks import (
@@ -297,6 +298,9 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
                 findings.extend(run_active_tests(client, result.param_urls, result.forms,
                                                  max_urls=settings.max_active_urls))
                 findings.extend(test_xxe(client, probe.final_url, result.param_urls))
+                # Safe (bounded) DoS canaries — ReDoS timing + XML small-laughs
+                findings.extend(test_redos(client, result.param_urls))
+                findings.extend(test_xml_expansion(client, probe.final_url, result.param_urls))
                 # Automated business-logic heuristics (parameter tampering, race conditions)
                 findings.extend(run_logic_tests(client, result.param_urls, result.pages))
                 # API / auth checks

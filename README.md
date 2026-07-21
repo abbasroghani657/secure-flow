@@ -199,6 +199,15 @@ know exactly what still needs a human penetration test or code review.
 HTTP request smuggling is detected with the safe **timing-based** technique on the
 "deep" scan only (it sends one ambiguous request, never a malicious follow-up).
 
+**Non-destructive DoS detection.** DoS bugs are tested with bounded canaries, never
+the real attack: **ReDoS** is found by measuring *exponential* timing growth across
+short→longer (capped) inputs — the catastrophic backtracking reveals itself long
+before the input is big enough to hang the server, and every request has a timeout.
+**XML entity expansion (billion laughs)** is detected with a tiny "small laughs"
+payload (~1000 chars, not billions): if the parser expands it at all, it is
+vulnerable — without the damage. (Zip-bomb testing needs an upload/decompress
+endpoint and stays opt-in.)
+
 **Automating parts of "manual" testing.** Some business-logic classes *can* be
 approximated with clever black-box logic (`app/scanner/logic.py`): **parameter
 tampering** (negative/zero/huge values on price/quantity fields) and **race
