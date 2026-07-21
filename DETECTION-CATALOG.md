@@ -233,6 +233,24 @@ they require model/dataset provenance review and are not black-box testable.)*
 
 ---
 
+## 🔑 Secrets — source-code archive (GitGuardian/TruffleHog style)
+Upload a `.zip` of a repository; every text file is scanned (vendored dirs, lockfiles
+and binaries skipped). Matches are **redacted** in the report.
+| # | Vulnerability | OWASP | CWE |
+|---|---|---|---|
+| 170 | AWS access key ID / secret access key | A05 | CWE-798 |
+| 171 | GitHub token (classic / fine-grained / OAuth) | A05 | CWE-798 |
+| 172 | GitLab / npm / PyPI / Square token | A05 | CWE-798 |
+| 173 | Google API key / OAuth client secret | A05 | CWE-798 |
+| 174 | Slack token & webhook URL | A05 | CWE-798 |
+| 175 | Stripe / Twilio / SendGrid / Mailgun key | A05 | CWE-798 |
+| 176 | Private key block (RSA/EC/OpenSSH/PGP) | A05 | CWE-798 |
+| 177 | JSON Web Token (JWT) | A05 | CWE-798 |
+| 178 | Basic-auth credentials embedded in a URL | A05 | CWE-798 |
+| 179 | Hardcoded secret via high-entropy assignment | A05 | CWE-798 |
+
+---
+
 ## 🔬 Deep Scan — Nuclei engine
 Thousands of community templates: known **CVEs**, exposed panels, default credentials,
 technology/version fingerprinting, and misconfigurations — merged into the findings

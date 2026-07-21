@@ -163,6 +163,12 @@ Beyond the web scanner, two standalone engines cover other OWASP families:
   encryption at rest, over-broad **IAM `*:*`** policies, **privileged** containers,
   containers running as **root**, host-namespace/`hostPath` mounts, mounted Docker
   socket, and hardcoded secrets. Purely static — no cloud credentials required.
+- **Secrets scanning** (`app/scanner/secrets_scanner.py`) — upload a **source archive
+  (`.zip`)** and every text file is scanned for leaked credentials: AWS / GitHub /
+  GitLab / Google / Slack / Stripe / Twilio / SendGrid keys, **private-key blocks**,
+  JWTs, basic-auth-in-URL, and high-entropy hardcoded assignments. Vendored
+  directories, lock files and binaries are skipped to control false positives, and
+  every match is **redacted** in the report. Fully offline.
 
 > These run against apps/endpoints you own or are authorised to test. They are
 > wired as engines today; the API/UI scan types for them are the next step.

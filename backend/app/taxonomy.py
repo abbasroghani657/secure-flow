@@ -188,6 +188,8 @@ _PREFIX = {
     "iac-docker-": ("A05:2025", "CWE-250", "infra"),
     "iac-compose-": ("A05:2025", "CWE-250", "infra"),
     "iac-": ("A05:2025", "CWE-16", "infra"),
+    "secrets-": ("A05:2025", "CWE-798", "backend"),
+    "secret-": ("A05:2025", "CWE-798", "backend"),
     "cookie-flags-": ("A02:2025", "CWE-614", "backend"),
     "cookie-secure-": ("A02:2025", "CWE-614", "backend"),
     "banner-": ("A02:2025", "CWE-200", "infra"),
