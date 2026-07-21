@@ -91,7 +91,14 @@ scanned. This is what makes running a scan legally defensible.
   **Host header injection**, **Open Redirect**, and **Path Traversal / LFI** are
   probed with non-destructive payloads on discovered parameters and GET forms
 - **Potential DOM-based XSS** — static source→sink analysis of first-party JavaScript
+- **Stored / second-order XSS** — a marker submitted via forms, then found reflected on other pages
 - **Open (publicly listable) cloud storage buckets** referenced by the site (S3/GCS/Azure)
+- **CORS origin reflection** (arbitrary Origin echoed, worse with credentials)
+- **Excessive data exposure** — sensitive fields (password hash, tokens, PII) in JSON API responses
+- **Mass assignment** — extra privileged fields (isAdmin/role) accepted by POST endpoints
+- **Login brute-force protection** missing and **username enumeration**
+- **Weak CSP directives** (unsafe-eval, wildcards, missing object-src/base-uri)
+- **WebSocket** cross-origin handshake accepted without validation
 - **GraphQL introspection**, **verbose error / stack-trace disclosure**,
   **sensitive data in HTML comments**, and **session tokens in URLs**
 

@@ -16,7 +16,9 @@ from ..database import engine as db_engine
 from ..models import Finding as FindingModel
 from ..models import Scan, ScanStatus, Severity
 from ..taxonomy import enrich as enrich_taxonomy
-from .active import run_active_tests, test_host_header, test_xxe
+from .active import run_active_tests, test_host_header, test_stored_xss, test_xxe
+from .api_checks import check_cors_reflection, check_excessive_data, check_websocket, test_mass_assignment
+from .auth_tests import run_auth_tests
 from .cloud import check_cloud_buckets
 from .dom_xss import check_dom_xss
 from .logic import run_logic_tests
@@ -194,6 +196,14 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
         findings.extend(run_web_extra(client, probe))       # JS secrets, JWT, Firebase, client-side
     except Exception:
         pass
+    try:
+        findings.extend(check_cors_reflection(client, probe.final_url))  # CORS origin reflection
+    except Exception:
+        pass
+    try:
+        findings.extend(check_websocket(probe))              # WebSocket origin validation
+    except Exception:
+        pass
 
     # 3b. GraphQL introspection exposed
     for gp in ("/graphql", "/api/graphql", "/v1/graphql"):
@@ -265,6 +275,11 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
                 findings.extend(test_xxe(client, probe.final_url, result.param_urls))
                 # Automated business-logic heuristics (parameter tampering, race conditions)
                 findings.extend(run_logic_tests(client, result.param_urls, result.pages))
+                # API / auth checks
+                findings.extend(check_excessive_data(client, probe.final_url, result.param_urls + result.pages))
+                findings.extend(test_mass_assignment(client, result.forms))
+                findings.extend(test_stored_xss(client, result.forms, result.pages))
+                findings.extend(run_auth_tests(client, result.forms, host))
             # Authenticated scan: test discovered pages for missing access control.
             if authenticated:
                 findings.extend(_access_control_check(client, result.pages + result.param_urls))

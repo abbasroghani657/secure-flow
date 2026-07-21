@@ -341,10 +341,38 @@ def check_coop(probe: Probe) -> list[Finding]:
     )]
 
 
+def check_csp_weaknesses(probe: Probe) -> list[Finding]:
+    csp = probe.headers.get("content-security-policy", "")
+    if not csp:
+        return []  # a missing CSP is reported by check_csp
+    low = csp.lower()
+    weak = []
+    if "unsafe-eval" in low:
+        weak.append("'unsafe-eval'")
+    if re.search(r"(?:script-src|default-src)[^;]*\*(?![.\w])", low):
+        weak.append("wildcard '*' script source")
+    if re.search(r"script-src[^;]*\bdata:", low):
+        weak.append("data: in script-src")
+    if "object-src" not in low and "default-src 'none'" not in low:
+        weak.append("missing object-src 'none'")
+    if "base-uri" not in low:
+        weak.append("missing base-uri")
+    if not weak:
+        return []
+    return [Finding(
+        "csp-weak-directives", "Weak Content-Security-Policy directives", "medium", probe.final_url,
+        description="The CSP is present but has directives that weaken its XSS protection.",
+        impact="A permissive CSP can be bypassed, undermining defence-in-depth against XSS/injection.",
+        evidence="Weaknesses: " + ", ".join(weak),
+        remediation="Remove unsafe-eval/wildcards, set object-src 'none' and base-uri 'self'.",
+        compliance_ref="OWASP A05:2021",
+    )]
+
+
 BASE_CHECKS = [
     check_https, check_hsts, check_csp, check_x_frame, check_x_content_type,
     check_referrer_policy, check_permissions_policy, check_server_banner,
-    check_cors, check_cookies, check_mixed_content, check_coop,
+    check_cors, check_cookies, check_mixed_content, check_coop, check_csp_weaknesses,
 ]
 
 DANGEROUS_METHODS = {"PUT", "DELETE", "TRACE", "TRACK", "CONNECT"}

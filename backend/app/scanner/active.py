@@ -374,6 +374,42 @@ def test_xxe(client: httpx.Client, base_url: str, param_urls: list[str], max_url
     return findings
 
 
+def test_stored_xss(client: httpx.Client, forms: list[Form], pages: list[str],
+                    max_forms: int = 5, max_pages: int = 15) -> list[Finding]:
+    """Submit a unique marker through forms, then look for it reflected unescaped
+    on any page — a stored / second-order XSS signal."""
+    marker = "sfstor" + secrets.token_hex(4)
+    payload = f'"><{marker}>'
+    submitted: list[str] = []
+    for form in forms[:max_forms]:
+        data = {n: payload for n in form.inputs}
+        try:
+            if form.method == "post":
+                client.post(form.action, data=data)
+            else:
+                client.get(form.action, params=data)
+            submitted.append(form.action)
+        except httpx.HTTPError:
+            continue
+    if not submitted:
+        return []
+    for url in list(dict.fromkeys(submitted + pages))[:max_pages]:
+        try:
+            r = client.get(url)
+        except httpx.HTTPError:
+            continue
+        if f"<{marker}>" in r.text:
+            return [Finding(
+                check_id="stored-xss", title="Stored / Second-order XSS", severity="high", url=url,
+                description="A value submitted through a form is later reflected into a page without encoding.",
+                impact="Stored XSS runs for every visitor of the affected page — the most damaging XSS type.",
+                evidence=f"Submitted marker '{payload}' was reflected unescaped at {url}.",
+                remediation="Encode all stored user input on output; add a strict Content-Security-Policy.",
+                compliance_ref="OWASP A03:2021",
+            )]
+    return []
+
+
 def test_host_header(client: httpx.Client, base_url: str) -> list[Finding]:
     """Detect Host header injection — a poisoned Host reflected into the page."""
     try:
