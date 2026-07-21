@@ -190,6 +190,12 @@ _PREFIX = {
     "iac-": ("A05:2025", "CWE-16", "infra"),
     "secrets-": ("A05:2025", "CWE-798", "backend"),
     "secret-": ("A05:2025", "CWE-798", "backend"),
+    # CI/CD pipeline security (supply-chain integrity).
+    "cicd-gha-script-injection": ("A05:2025", "CWE-94", "infra"),
+    "cicd-gha-pr-target-checkout": ("A08:2025", "CWE-94", "infra"),
+    "cicd-gha-unpinned-action": ("A08:2025", "CWE-829", "infra"),
+    "cicd-gitlab-unpinned-image": ("A08:2025", "CWE-829", "infra"),
+    "cicd-": ("A08:2025", "CWE-829", "infra"),
     "cookie-flags-": ("A02:2025", "CWE-614", "backend"),
     "cookie-secure-": ("A02:2025", "CWE-614", "backend"),
     "banner-": ("A02:2025", "CWE-200", "infra"),

@@ -13,12 +13,13 @@ const SCAN_TYPES = [
   { id: "ios", label: "iOS app (IPA)", desc: "Upload an iOS IPA — secrets, ATS/transport security, URL schemes, and binary protections (OWASP Mobile Top 10)." },
   { id: "iac", label: "Infrastructure (IaC)", desc: "Upload a Terraform / CloudFormation / Kubernetes / Dockerfile — finds cloud & container misconfigurations." },
   { id: "secrets", label: "Secrets (source code)", desc: "Upload a source archive (.zip) — finds leaked API keys, tokens & private keys committed in your code." },
+  { id: "cicd", label: "CI/CD pipeline", desc: "Upload a GitHub Actions / GitLab CI workflow — finds supply-chain risks: unpinned actions, script injection, over-broad tokens." },
   { id: "bola", label: "IDOR / BOLA (two accounts)", desc: "Use two accounts to test object-level authorization — can user B read user A's data? (OWASP API #1)." },
   { id: "headers", label: "Headers only", desc: "Quick check of security response headers." },
 ];
 
 // Scan types that take a file upload instead of a verified target.
-const UPLOAD_TYPES = ["mobile", "sca", "ios", "iac", "secrets"];
+const UPLOAD_TYPES = ["mobile", "sca", "ios", "iac", "secrets", "cicd"];
 
 const inp = (T) => ({
   padding: "11px 13px", borderRadius: 10, border: `1px solid ${T.borderStrong}`,
@@ -45,6 +46,7 @@ export default function NewScan() {
   const [iosFile, setIosFile] = useState(null);
   const [iacFile, setIacFile] = useState(null);
   const [secretsFile, setSecretsFile] = useState(null);
+  const [cicdFile, setCicdFile] = useState(null);
   const nav = useNavigate();
 
   useEffect(() => {
@@ -63,8 +65,8 @@ export default function NewScan() {
     setErr("");
     // File-upload scan types — no verified target needed.
     if (UPLOAD_TYPES.includes(type)) {
-      const fileMap = { mobile: apkFile, sca: depFile, ios: iosFile, iac: iacFile, secrets: secretsFile };
-      const uploadMap = { mobile: api.uploadMobileScan, sca: api.uploadScaScan, ios: api.uploadIosScan, iac: api.uploadIacScan, secrets: api.uploadSecretsScan };
+      const fileMap = { mobile: apkFile, sca: depFile, ios: iosFile, iac: iacFile, secrets: secretsFile, cicd: cicdFile };
+      const uploadMap = { mobile: api.uploadMobileScan, sca: api.uploadScaScan, ios: api.uploadIosScan, iac: api.uploadIacScan, secrets: api.uploadSecretsScan, cicd: api.uploadCicdScan };
       const f = fileMap[type];
       if (!f) { setErr("Choose a file to scan."); return; }
       setBusy(true);
@@ -147,6 +149,7 @@ export default function NewScan() {
                   ios: { label: "iOS IPA file", file: iosFile, set: setIosFile, accept: ".ipa", prompt: "Click to choose an .ipa file", note: "The IPA is analysed for secrets, transport security, URL schemes and binary protections, then deleted." },
                   iac: { label: "IaC file", file: iacFile, set: setIacFile, accept: ".tf,.tf.json,.yaml,.yml,.json,.hcl,Dockerfile", prompt: "Click to choose a .tf / .yaml / Dockerfile / compose file", note: "The file is analysed for cloud & container misconfigurations (Terraform, CloudFormation, Kubernetes, Docker), then deleted." },
                   secrets: { label: "Source archive", file: secretsFile, set: setSecretsFile, accept: ".zip", prompt: "Click to choose a .zip of your source code", note: "Every text file is scanned for leaked API keys, tokens and private keys, then the archive is deleted. Nothing is sent anywhere." },
+                  cicd: { label: "CI/CD workflow", file: cicdFile, set: setCicdFile, accept: ".yml,.yaml,.zip", prompt: "Click to choose a workflow .yml / .gitlab-ci.yml / .zip", note: "The workflow is analysed for supply-chain and pipeline misconfigurations (GitHub Actions, GitLab CI), then deleted." },
                 }[type];
                 const f = cfg.file;
                 return (

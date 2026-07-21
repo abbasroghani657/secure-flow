@@ -225,6 +225,31 @@ async def create_secrets_scan(
     return _scan_read(scan)
 
 
+@router.post("/cicd", response_model=ScanRead, status_code=status.HTTP_201_CREATED)
+async def create_cicd_scan(
+    current: CurrentUser,
+    session: SessionDep,
+    file: UploadFile = File(...),
+) -> ScanRead:
+    """Upload a CI/CD workflow (GitHub Actions / GitLab CI) or a .zip of them."""
+    filename = file.filename or "workflow.yml"
+    data = await file.read()
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "File too large (max 10 MB).")
+    if not data:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "The uploaded file is empty.")
+
+    scan = Scan(owner_id=current.id, target_url=filename, scan_type="cicd", status=ScanStatus.queued)
+    session.add(scan)
+    session.commit()
+    session.refresh(scan)
+
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    with open(os.path.join(settings.upload_dir, f"{scan.id}.ci"), "wb") as fh:
+        fh.write(data)
+    return _scan_read(scan)
+
+
 @router.get("", response_model=list[ScanRead])
 def list_scans(current: CurrentUser, session: SessionDep) -> list[ScanRead]:
     scans = session.exec(

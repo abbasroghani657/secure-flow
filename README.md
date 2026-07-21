@@ -169,6 +169,12 @@ Beyond the web scanner, two standalone engines cover other OWASP families:
   JWTs, basic-auth-in-URL, and high-entropy hardcoded assignments. Vendored
   directories, lock files and binaries are skipped to control false positives, and
   every match is **redacted** in the report. Fully offline.
+- **CI/CD pipeline security** (`app/scanner/cicd_scanner.py`) — upload a **GitHub
+  Actions** or **GitLab CI** workflow (or a `.zip`) and detect supply-chain risks:
+  dangerous `pull_request_target` + PR checkout, **script injection** from untrusted
+  event data, third-party **actions not pinned to a commit SHA**, over-broad
+  `GITHUB_TOKEN` permissions, `curl | bash`, secrets echoed to logs, and self-hosted
+  runners. The SolarWinds/Codecov attack class — no pipeline access required.
 
 > These run against apps/endpoints you own or are authorised to test. They are
 > wired as engines today; the API/UI scan types for them are the next step.

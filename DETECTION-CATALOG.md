@@ -251,6 +251,22 @@ and binaries skipped). Matches are **redacted** in the report.
 
 ---
 
+## 🔁 CI/CD Pipeline Security (GitHub Actions / GitLab CI)
+Upload a workflow file or a `.zip` — supply-chain and pipeline misconfigurations.
+| # | Vulnerability | OWASP | CWE |
+|---|---|---|---|
+| 180 | `pull_request_target` checks out untrusted PR code | A08 | CWE-94 |
+| 181 | Script injection from untrusted event data (`${{ github.event.* }}`) | A05 | CWE-94 |
+| 182 | Third-party action not pinned to a commit SHA | A08 | CWE-829 |
+| 183 | GITHUB_TOKEN granted `write-all` / no explicit permissions | A08 | CWE-829 |
+| 184 | Remote script piped into a shell (`curl \| bash`) in CI | A08 | CWE-829 |
+| 185 | Secret printed to build logs | A08 | CWE-532 |
+| 186 | Self-hosted runner used (fork-PR risk) | A08 | CWE-829 |
+| 187 | Deprecated unsecure workflow commands enabled | A08 | CWE-829 |
+| 188 | GitLab CI image not pinned to a digest/tag | A08 | CWE-829 |
+
+---
+
 ## 🔬 Deep Scan — Nuclei engine
 Thousands of community templates: known **CVEs**, exposed panels, default credentials,
 technology/version fingerprinting, and misconfigurations — merged into the findings
