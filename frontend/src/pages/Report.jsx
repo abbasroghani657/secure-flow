@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../api";
+import { computeCompliance, FRAMEWORKS } from "../compliance";
 
 // A print-optimised, light-themed security assessment report.
 // "Print / Save as PDF" turns it into a shareable client deliverable.
@@ -49,6 +50,7 @@ export default function Report() {
 
   const compliance = {};
   for (const f of issues) (compliance[f.compliance_ref || "Unmapped"] ??= []).push(f);
+  const frameworks = computeCompliance(issues);
 
   return (
     <>
@@ -162,6 +164,40 @@ export default function Report() {
               </table>
             </>
           )}
+
+          {/* Compliance framework mapping */}
+          <div className="sec" style={{ marginBottom: 34 }}>
+            <SectionTitle>Compliance framework mapping</SectionTitle>
+            <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#6B7280" }}>
+              Findings mapped to the controls they affect in each framework. "Gaps" is the number of findings touching that framework.
+            </p>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+              <thead>
+                <tr style={{ textAlign: "left", borderBottom: "2px solid #E5E7EB" }}>
+                  <th style={{ padding: "8px 10px", color: "#6B7280", fontWeight: 600, width: 130 }}>Framework</th>
+                  <th style={{ padding: "8px 10px", color: "#6B7280", fontWeight: 600, width: 70 }}>Status</th>
+                  <th style={{ padding: "8px 10px", color: "#6B7280", fontWeight: 600 }}>Affected controls</th>
+                </tr>
+              </thead>
+              <tbody>
+                {FRAMEWORKS.map((fw) => {
+                  const d = frameworks[fw];
+                  const clean = d.gaps === 0;
+                  return (
+                    <tr key={fw} style={{ borderBottom: "1px solid #F3F4F6", verticalAlign: "top" }}>
+                      <td style={{ padding: "8px 10px", fontWeight: 600 }}>{fw}</td>
+                      <td style={{ padding: "8px 10px", fontWeight: 700, color: clean ? "#047857" : "#B91C1C", whiteSpace: "nowrap" }}>
+                        {clean ? "✓ Pass" : `${d.gaps} gap${d.gaps !== 1 ? "s" : ""}`}
+                      </td>
+                      <td style={{ padding: "8px 10px", color: "#374151" }}>
+                        {clean ? "No mapped findings" : [...d.controls].join(" · ")}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
           {/* Passed */}
           {passed.length > 0 && (
