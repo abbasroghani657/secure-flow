@@ -5,7 +5,17 @@
 !.env.docker.example
 backend/.env
 frontend/.env
-.claude/settings.local.json
+
+# ---- Local tooling / editor dirs ----
+.claude/
+.vscode/
+.idea/
+
+# ---- Original design mockups (reference only, not part of the app) ----
+*.dc.html
+support.js
+_ds/
+.thumbnail
 
 # ---- Python / backend ----
 backend/.venv/

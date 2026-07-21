@@ -1,9 +1,9 @@
 # SecureFlow
 
-A web application security scanning platform (DAST). Users register, add a target they
-own, and run a passive security scan that checks real HTTP responses for
-misconfigurations and exposures — then get prioritised, fixable findings mapped
-to OWASP / PCI DSS / ISO 27001.
+A full-stack web application security scanning platform (DAST). Users register,
+add a target they own, and run a security scan that checks real HTTP responses for
+vulnerabilities, misconfigurations and exposures — then get prioritised, fixable
+findings mapped to OWASP Top 10:2025 / CWE / PCI DSS / ISO 27001.
 
 > **Authorised use only.** SecureFlow performs passive, unauthenticated GET
 > requests. A target can only be scanned after the user has **proven ownership**
@@ -276,7 +276,7 @@ secure flow/
 │       ├── theme.js           # design tokens
 │       ├── components/ui.jsx
 │       └── pages/             # Landing, Auth, Dashboard, NewScan, ScanResults
-└── *.dc.html, _ds/            # reference files
+└── docker-compose.yml        # full stack: Postgres + backend + worker + nginx
 ```
 
 ## Roadmap (next steps toward production)
