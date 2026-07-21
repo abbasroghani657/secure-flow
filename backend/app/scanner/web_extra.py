@@ -172,12 +172,50 @@ def check_client_side(blobs: list[tuple[str, str]], base_url: str) -> list[Findi
     return out
 
 
-def run_web_extra(client: httpx.Client, probe) -> list[Finding]:
+# Serialized-object signatures that indicate a deserialization surface.
+_DESER_JAVA = re.compile(r"rO0AB[A-Za-z0-9+/=]{6,}")           # base64 of Java stream magic
+_DESER_PHP = re.compile(r'\bO:\d{1,3}:"[A-Za-z0-9_\\]{1,60}":\d+:\{')  # PHP object
+_VIEWSTATE = re.compile(r"__VIEWSTATE")                        # ASP.NET ViewState
+
+
+def check_deserialization(probe, param_urls: list[str] | None = None) -> list[Finding]:
+    """Flag user-controllable serialized objects — a common insecure-deserialization sink."""
+    haystack = getattr(probe, "body_snippet", "") or ""
+    for v in (getattr(probe, "set_cookies", []) or []):
+        haystack += " " + v
+    for u in (param_urls or []):
+        haystack += " " + u
+
+    if _DESER_JAVA.search(haystack) or _DESER_PHP.search(haystack):
+        lang = "Java" if _DESER_JAVA.search(haystack) else "PHP"
+        return [Finding(
+            "insecure-deserialization", f"Serialized {lang} object in user-controllable data", "high",
+            probe.final_url,
+            description=f"A {lang} serialized object appears in a cookie/parameter/response.",
+            impact="If the server deserializes this untrusted data, it can lead to remote code execution.",
+            evidence=f"{lang} serialized-object signature found in request/response data.",
+            remediation="Never deserialize untrusted input; use signed/whitelisted formats (JSON) and integrity checks.",
+            compliance_ref="OWASP A08:2025",
+        )]
+    if _VIEWSTATE.search(haystack):
+        return [Finding(
+            "viewstate-exposed", "ASP.NET ViewState in use", "low", probe.final_url,
+            description="__VIEWSTATE is present; if MAC validation is disabled it is a deserialization risk.",
+            impact="Unprotected ViewState can be tampered with and may enable deserialization attacks.",
+            evidence="__VIEWSTATE field detected.",
+            remediation="Ensure ViewState MAC validation is enabled and encrypt sensitive ViewState.",
+            compliance_ref="OWASP A08:2025",
+        )]
+    return []
+
+
+def run_web_extra(client: httpx.Client, probe, param_urls: list[str] | None = None) -> list[Finding]:
     findings: list[Finding] = []
     blobs = _gather_js(client, probe)
     findings.extend(check_js_secrets(blobs, probe.final_url))
     findings.extend(check_client_side(blobs, probe.final_url))
     findings.extend(check_jwt(probe))
+    findings.extend(check_deserialization(probe, param_urls))
     try:
         findings.extend(check_open_firebase(client, probe))
     except Exception:  # noqa: BLE001

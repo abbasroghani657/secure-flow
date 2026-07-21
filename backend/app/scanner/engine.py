@@ -133,11 +133,26 @@ def _access_control_check(client: httpx.Client, pages: list[str]) -> list[Findin
     return findings
 
 
+def _manual_review_advisory(url: str) -> Finding:
+    """Honest disclosure: classes no automated scanner can reliably verify."""
+    return Finding(
+        "manual-review-advisory", "Manual review recommended (out of automated scope)", "info", url,
+        description="Some vulnerability classes cannot be reliably detected by any automated scanner "
+                    "and require a human penetration tester or source-code review.",
+        impact="These remain untested by automated scanning and could still be exploitable.",
+        evidence="Out of automated scope: business-logic flaws (price/coupon abuse, race conditions), "
+                 "complex privilege-escalation and multi-step workflows, and insecure design.",
+        remediation="Commission a manual penetration test / secure code review for these categories.",
+        compliance_ref="OWASP A06:2025",
+    )
+
+
 def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web",
                       authenticated: bool = False) -> list[Finding]:
     findings: list[Finding] = []
     probe = _probe_base(client, base_url)
     host = urlparse(probe.final_url).hostname or ""
+    findings.append(_manual_review_advisory(probe.final_url))
 
     # 1. Header / TLS / cookie / CORS / mixed-content checks
     for check in BASE_CHECKS:
@@ -406,8 +421,13 @@ def run_scan(scan_id: int) -> None:
                     session.add(scan)
                     session.commit()
                     from .nuclei_runner import run_nuclei
+                    from .smuggling import check_smuggling
 
                     findings.extend(run_nuclei(base_url))
+                    try:
+                        findings.extend(check_smuggling(base_url))  # timing-based, deep scan only
+                    except Exception:  # noqa: BLE001
+                        pass
 
             scan.progress = 85
             session.add(scan)

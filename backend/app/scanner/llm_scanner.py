@@ -207,4 +207,12 @@ def run_llm_scan(target: LLMTarget, timeout: float = 30.0) -> list[Finding]:
                 continue
             if f:
                 findings.append(f)
+    findings.append(Finding(
+        "llm-manual-review-advisory", "LLM risks needing supply-chain / infra review", "info", target.endpoint,
+        description="Some OWASP LLM Top 10 categories can't be tested from the chat interface alone.",
+        impact="These remain unverified by black-box prompting.",
+        evidence="Out of automated scope: LLM03 supply chain, LLM04 data/model poisoning, LLM08 vector/embedding weaknesses.",
+        remediation="Review model/dataset provenance, training-data integrity, and RAG/vector-store access controls.",
+        compliance_ref="OWASP LLM03:2025",
+    ))
     return findings

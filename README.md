@@ -165,15 +165,17 @@ XSS/SSRF/CRLF/host-header), misconfiguration, exposed files, weak crypto/TLS,
 missing headers, email-spoofing gaps, outdated JS libraries, SRI/CSRF/tabnabbing,
 subdomain takeover, and information disclosure.
 
-It does **not** detect classes that genuinely need authentication, source code,
-or human judgement — these require the authenticated-scanning project or code
-review and are called out rather than silently missed:
-IDOR/BOLA & access-control logic, privilege escalation, mass assignment,
-insecure deserialization, business logic (price/coupon/race conditions), file
-upload abuse, MFA/session-fixation, weak password policy, and A09 logging/alerting
-gaps (which need internal/infra visibility). Some black-box classes remain on the
-roadmap too: DOM-based XSS (needs JS analysis), XXE, HTTP request smuggling,
-web cache poisoning, and open cloud-bucket enumeration.
+**Honesty over false confidence.** A scanner that *claims* to test something it
+can't reliably check is more dangerous than one that is explicit about its scope —
+false "all clear" results are what actually get people breached. So every scan
+emits a **"Manual review recommended"** advisory listing the classes automated
+scanning cannot verify (business-logic flaws, complex privilege escalation,
+insecure design), and LLM scans flag the LLM categories that need supply-chain /
+infra review (LLM03/04/08). These are surfaced, never silently skipped, so users
+know exactly what still needs a human penetration test or code review.
+
+HTTP request smuggling is detected with the safe **timing-based** technique on the
+"deep" scan only (it sends one ambiguous request, never a malicious follow-up).
 
 **Deep scan (Nuclei):** the "Deep scan" type additionally runs the bundled Nuclei
 engine against the verified target with a curated, high-signal template set

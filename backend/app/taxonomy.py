@@ -70,6 +70,11 @@ _EXACT = {
     # LLM (batch 2)
     "llm-unbounded-consumption": ("LLM10:2025", "CWE-770", "api"),
     "llm-excessive-agency": ("LLM06:2025", "CWE-250", "api"),
+    "insecure-deserialization": ("A08:2025", "CWE-502", "backend"),
+    "viewstate-exposed": ("A08:2025", "CWE-502", "backend"),
+    "http-request-smuggling": ("A05:2025", "CWE-444", "infra"),
+    "manual-review-advisory": ("A06:2025", "", ""),
+    "llm-manual-review-advisory": ("LLM03:2025", "", "api"),
     # A08 Software & Data Integrity Failures
     "missing-sri": ("A08:2025", "CWE-353", "frontend"),
     # A07 Identification & Authentication Failures
