@@ -170,6 +170,48 @@ def _xpath(client: httpx.Client, url: str, param: str, baseline: str | None) -> 
     return None
 
 
+_FRAMEWORK_RE = re.compile(r"ng-app|ng-controller|angular\.|\bv-app\b|data-v-|__vue__|vue(?:\.min)?\.js", re.I)
+
+
+def _csti(client: httpx.Client, url: str, param: str) -> Finding | None:
+    payload = "{{7*191}}"
+    r = _get(client, _with_param(url, param, payload))
+    if r is None:
+        return None
+    # Reflected verbatim (server did NOT evaluate it) into a client-side framework page.
+    if payload in r.text and "1337" not in r.text and _FRAMEWORK_RE.search(r.text):
+        return Finding(
+            check_id=f"csti-{param}", title="Client-Side Template Injection (Angular/Vue)", severity="high",
+            url=_with_param(url, param, payload),
+            description=f"The '{param}' value is reflected into a client-side template framework.",
+            impact="CSTI lets attackers run JavaScript in victims' browsers (sandbox-escape → XSS).",
+            evidence=f"Injected '{payload}' reflected verbatim into an Angular/Vue page.",
+            remediation="Never render user input inside client-side templates; treat it as text/data.",
+            compliance_ref="OWASP A03:2021",
+        )
+    return None
+
+
+def _ssi(client: httpx.Client, url: str, param: str) -> Finding | None:
+    marker = "sfssi" + secrets.token_hex(3)
+    payload = f'<!--#exec cmd="echo {marker}"-->'
+    r = _get(client, _with_param(url, param, payload))
+    if r is None:
+        return None
+    # Executed if the echo output appears but the raw directive was consumed.
+    if marker in r.text and "#exec" not in r.text:
+        return Finding(
+            check_id=f"ssi-injection-{param}", title="Server-Side Includes (SSI) Injection", severity="high",
+            url=_with_param(url, param, payload),
+            description=f"The '{param}' parameter is processed by the server's SSI engine.",
+            impact="SSI injection can read files and execute commands on the server.",
+            evidence=f"Injected an SSI #exec directive; its echo output '{marker}' appeared, directive consumed.",
+            remediation="Disable SSI exec, and never pass user input into SSI-processed pages.",
+            compliance_ref="OWASP A05:2025",
+        )
+    return None
+
+
 def _open_redirect(client: httpx.Client, url: str, param: str) -> Finding | None:
     evil = "https://evil.example.com/"
     r = _get(client, _with_param(url, param, evil), allow_redirects=False)
@@ -314,7 +356,7 @@ def test_param_url(client: httpx.Client, url: str) -> list[Finding]:
     saw_stacktrace = False
     baseline_tests = (_sqli, _nosql, _ldap, _xpath)  # these compare against the baseline response
     for p in params:
-        for test in (_xss, _sqli, _open_redirect, _traversal, _ssti, _crlf, _cmdi, _ssrf, _nosql, _ldap, _xpath):
+        for test in (_xss, _sqli, _open_redirect, _traversal, _ssti, _crlf, _cmdi, _ssrf, _nosql, _ldap, _xpath, _csti, _ssi):
             try:
                 f = test(client, url, p, baseline) if test in baseline_tests else test(client, url, p)
             except httpx.HTTPError:

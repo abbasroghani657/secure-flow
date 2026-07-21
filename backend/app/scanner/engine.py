@@ -46,6 +46,7 @@ from .checks import (
 )
 from .crawler import crawl
 from .dns_checks import run_dns_checks
+from .phase1b import check_api_inventory, check_file_upload, check_jwks_exposure, check_oauth
 from .services import check_exposed_dashboards, check_exposed_services
 from .tls_checks import check_tls
 
@@ -201,6 +202,12 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
     findings.extend(check_sensitive_comments(probe))
     findings.extend(check_internal_ip(probe))    # internal IP disclosure
     findings.extend(check_coep_corp(probe))      # missing cross-origin isolation headers
+    findings.extend(check_file_upload(probe))    # file-upload surface
+    try:
+        findings.extend(check_jwks_exposure(client, probe.final_url, probe))  # JWKS / alg-confusion surface
+        findings.extend(check_oauth(client, probe))                          # OAuth misconfig
+    except Exception:
+        pass
     findings.extend(check_js_libraries(probe))   # outdated JS libraries (A03)
     findings.extend(check_sri(probe))            # missing Subresource Integrity (A08)
     findings.extend(check_tabnabbing(probe))     # reverse tabnabbing
@@ -298,6 +305,7 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
                 findings.extend(test_stored_xss(client, result.forms, result.pages))
                 findings.extend(run_auth_tests(client, result.forms, host))
                 findings.extend(check_source_disclosure(client, result.pages))
+                findings.extend(check_api_inventory(client, probe.final_url, result.param_urls + result.pages))
             # Authenticated scan: test discovered pages for missing access control.
             if authenticated:
                 findings.extend(_access_control_check(client, result.pages + result.param_urls))

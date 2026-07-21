@@ -93,10 +93,15 @@ scanned. This is what makes running a scan legally defensible.
 **Active (crawl + injection tests — verified targets only):**
 - A same-origin **crawler** discovers pages, forms and parameterised URLs
 - **SQL Injection**, **NoSQL Injection**, **OS Command Injection**, **Reflected
-  XSS**, **Server-Side Template Injection (SSTI)**, **Server-Side Request Forgery
-  (SSRF)**, **XML External Entity (XXE)**, **CRLF / HTTP response splitting**,
-  **Host header injection**, **Open Redirect**, and **Path Traversal / LFI** are
-  probed with non-destructive payloads on discovered parameters and GET forms
+  XSS**, **Server-Side Template Injection (SSTI)**, **Client-Side Template
+  Injection (Angular/Vue)**, **Server-Side Includes (SSI) Injection**, **LDAP** &
+  **XPath Injection**, **Server-Side Request Forgery (SSRF)**, **XML External
+  Entity (XXE)**, **CRLF / HTTP response splitting**, **Host header injection**,
+  **Open Redirect**, and **Path Traversal / LFI** are probed with non-destructive
+  payloads on discovered parameters and GET forms
+- **API inventory** — exposed OpenAPI/Swagger docs and deprecated "shadow" API versions
+- **OAuth misconfig** — missing `state`, unvalidated `redirect_uri`
+- **JWKS exposure** / JWT algorithm-confusion surface, and **file-upload** surface
 - **Potential DOM-based XSS** — static source→sink analysis of first-party JavaScript
 - **Stored / second-order XSS** — a marker submitted via forms, then found reflected on other pages
 - **Open (publicly listable) cloud storage buckets** referenced by the site (S3/GCS/Azure)
