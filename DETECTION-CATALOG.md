@@ -192,6 +192,47 @@ they require model/dataset provenance review and are not black-box testable.)*
 
 ---
 
+## 🍎 Mobile — iOS IPA (OWASP Mobile Top 10:2024)
+| # | Vulnerability | OWASP | CWE |
+|---|---|---|---|
+| 148 | Hardcoded secrets in app bundle | M1 | CWE-798 |
+| 149 | App Transport Security disabled (arbitrary loads) | M5 | CWE-319 |
+| 150 | ATS per-domain insecure exception | M5 | CWE-319 |
+| 151 | Custom URL scheme(s) registered | M4 | CWE-939 |
+| 152 | Binary not compiled as PIE (ASLR) | M7 | CWE-121 |
+| 153 | No stack-smashing protection (canaries) | M7 | CWE-121 |
+| 154 | No jailbreak detection | M7 | CWE-919 |
+
+---
+
+## 📦 Dependencies — SCA + SBOM (OSV.dev)
+| # | Vulnerability | OWASP | CWE |
+|---|---|---|---|
+| 155 | Known-vulnerable dependency (CVE) — npm / PyPI / Go / RubyGems / Packagist / crates | A03 | CWE-1104 |
+| — | Emits a **CycloneDX SBOM** of every parsed component | — | — |
+
+---
+
+## ☁️ Infrastructure-as-Code (Terraform / CloudFormation / Kubernetes / Docker)
+| # | Vulnerability | OWASP | CWE |
+|---|---|---|---|
+| 156 | Public storage bucket (S3 ACL / AccessControl) | A05 | CWE-668 |
+| 157 | Security group open to 0.0.0.0/0 on a sensitive port | A05 | CWE-284 |
+| 158 | Publicly accessible database (RDS) | A05 | CWE-668 |
+| 159 | Storage without encryption at rest (EBS / RDS) | A02 | CWE-311 |
+| 160 | IAM policy grants `*` on `*` (full admin) | A01 | CWE-269 |
+| 161 | Hardcoded secret / credential in IaC | A05 | CWE-798 |
+| 162 | Privileged container (K8s / compose) | A05 | CWE-250 |
+| 163 | Container shares host namespace (hostNetwork/PID/IPC) | A05 | CWE-250 |
+| 164 | hostPath / Docker-socket volume mount | A05 | CWE-250 |
+| 165 | Container allows privilege escalation | A05 | CWE-250 |
+| 166 | Container runs as root (UID 0 / no USER) | A05 | CWE-250 |
+| 167 | Dangerous Linux capability (SYS_ADMIN/NET_ADMIN/ALL) | A05 | CWE-250 |
+| 168 | Unpinned image tag (`:latest` / no tag) | A05 | CWE-16 |
+| 169 | Dockerfile: remote script piped to shell / ADD from URL | A05 | CWE-16 |
+
+---
+
 ## 🔬 Deep Scan — Nuclei engine
 Thousands of community templates: known **CVEs**, exposed panels, default credentials,
 technology/version fingerprinting, and misconfigurations — merged into the findings

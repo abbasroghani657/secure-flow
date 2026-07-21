@@ -11,9 +11,13 @@ const SCAN_TYPES = [
   { id: "mobile", label: "Mobile app (APK)", desc: "Upload an Android APK for static analysis — hardcoded secrets & insecure manifest (OWASP Mobile Top 10)." },
   { id: "sca", label: "Dependencies (SCA)", desc: "Upload a package.json / requirements.txt / lock file — finds known CVEs in your dependencies (OSV database)." },
   { id: "ios", label: "iOS app (IPA)", desc: "Upload an iOS IPA — secrets, ATS/transport security, URL schemes, and binary protections (OWASP Mobile Top 10)." },
+  { id: "iac", label: "Infrastructure (IaC)", desc: "Upload a Terraform / CloudFormation / Kubernetes / Dockerfile — finds cloud & container misconfigurations." },
   { id: "bola", label: "IDOR / BOLA (two accounts)", desc: "Use two accounts to test object-level authorization — can user B read user A's data? (OWASP API #1)." },
   { id: "headers", label: "Headers only", desc: "Quick check of security response headers." },
 ];
+
+// Scan types that take a file upload instead of a verified target.
+const UPLOAD_TYPES = ["mobile", "sca", "ios", "iac"];
 
 const inp = (T) => ({
   padding: "11px 13px", borderRadius: 10, border: `1px solid ${T.borderStrong}`,
@@ -38,6 +42,7 @@ export default function NewScan() {
   const [apkFile, setApkFile] = useState(null);
   const [depFile, setDepFile] = useState(null);
   const [iosFile, setIosFile] = useState(null);
+  const [iacFile, setIacFile] = useState(null);
   const nav = useNavigate();
 
   useEffect(() => {
@@ -55,9 +60,9 @@ export default function NewScan() {
     e.preventDefault();
     setErr("");
     // File-upload scan types — no verified target needed.
-    if (type === "mobile" || type === "sca" || type === "ios") {
-      const fileMap = { mobile: apkFile, sca: depFile, ios: iosFile };
-      const uploadMap = { mobile: api.uploadMobileScan, sca: api.uploadScaScan, ios: api.uploadIosScan };
+    if (UPLOAD_TYPES.includes(type)) {
+      const fileMap = { mobile: apkFile, sca: depFile, ios: iosFile, iac: iacFile };
+      const uploadMap = { mobile: api.uploadMobileScan, sca: api.uploadScaScan, ios: api.uploadIosScan, iac: api.uploadIacScan };
       const f = fileMap[type];
       if (!f) { setErr("Choose a file to scan."); return; }
       setBusy(true);
@@ -131,13 +136,14 @@ export default function NewScan() {
               </div>
             </div>
 
-            {type === "mobile" || type === "sca" || type === "ios" ? (
-              /* File-upload scan (APK / dependency manifest / IPA) — no verified target needed */
+            {UPLOAD_TYPES.includes(type) ? (
+              /* File-upload scan (APK / dependency manifest / IPA / IaC) — no verified target needed */
               (() => {
                 const cfg = {
                   mobile: { label: "Android APK file", file: apkFile, set: setApkFile, accept: ".apk", prompt: "Click to choose an .apk file", note: "The APK is analysed for hardcoded secrets and insecure manifest settings, then deleted." },
                   sca: { label: "Dependency file", file: depFile, set: setDepFile, accept: ".json,.txt,.lock,.mod,.sum,.xml", prompt: "Click to choose package.json / requirements.txt / lock file", note: "Your dependencies are checked against the OSV vulnerability database, then the file is deleted." },
                   ios: { label: "iOS IPA file", file: iosFile, set: setIosFile, accept: ".ipa", prompt: "Click to choose an .ipa file", note: "The IPA is analysed for secrets, transport security, URL schemes and binary protections, then deleted." },
+                  iac: { label: "IaC file", file: iacFile, set: setIacFile, accept: ".tf,.tf.json,.yaml,.yml,.json,.hcl,Dockerfile", prompt: "Click to choose a .tf / .yaml / Dockerfile / compose file", note: "The file is analysed for cloud & container misconfigurations (Terraform, CloudFormation, Kubernetes, Docker), then deleted." },
                 }[type];
                 const f = cfg.file;
                 return (
@@ -250,7 +256,7 @@ export default function NewScan() {
 
             {err && <div style={{ fontSize: 13.5, color: "#F87171", background: "rgba(220,38,38,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 10, padding: "10px 12px" }}>{err}</div>}
 
-            <button type="submit" disabled={busy || (type !== "mobile" && targets.length === 0)} style={{ ...primaryBtn, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: (busy || (type !== "mobile" && targets.length === 0)) ? 0.6 : 1 }}>
+            <button type="submit" disabled={busy || (!UPLOAD_TYPES.includes(type) && targets.length === 0)} style={{ ...primaryBtn, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: (busy || (!UPLOAD_TYPES.includes(type) && targets.length === 0)) ? 0.6 : 1 }}>
               {busy && <Spinner />} Launch scan
             </button>
           </form>

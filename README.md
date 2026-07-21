@@ -156,6 +156,13 @@ Beyond the web scanner, two standalone engines cover other OWASP families:
   (`package.json`/`requirements.txt`/`go.mod`/lock files); queries the free **OSV.dev**
   database for known CVEs in your exact versions and emits a **CycloneDX SBOM**. No
   credentials required.
+- **Infrastructure-as-Code (IaC)** (`app/scanner/iac_scanner.py`) — upload a
+  **Terraform**, **CloudFormation**, **Kubernetes**, **Dockerfile**, or
+  **docker-compose** file and get the cloud/container misconfigurations that cause
+  most breaches: public storage, security groups open to `0.0.0.0/0`, missing
+  encryption at rest, over-broad **IAM `*:*`** policies, **privileged** containers,
+  containers running as **root**, host-namespace/`hostPath` mounts, mounted Docker
+  socket, and hardcoded secrets. Purely static — no cloud credentials required.
 
 > These run against apps/endpoints you own or are authorised to test. They are
 > wired as engines today; the API/UI scan types for them are the next step.

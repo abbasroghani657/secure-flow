@@ -173,6 +173,33 @@ async def create_sca_scan(
     return _scan_read(scan)
 
 
+@router.post("/iac", response_model=ScanRead, status_code=status.HTTP_201_CREATED)
+async def create_iac_scan(
+    current: CurrentUser,
+    session: SessionDep,
+    file: UploadFile = File(...),
+) -> ScanRead:
+    """Upload an IaC file (Terraform / CloudFormation / Kubernetes / Dockerfile / compose)."""
+    filename = file.filename or "main.tf"
+    data = await file.read()
+    if len(data) > 5 * 1024 * 1024:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "IaC file too large (max 5 MB).")
+    try:
+        data.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "That does not look like a text IaC file.")
+
+    scan = Scan(owner_id=current.id, target_url=filename, scan_type="iac", status=ScanStatus.queued)
+    session.add(scan)
+    session.commit()
+    session.refresh(scan)
+
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    with open(os.path.join(settings.upload_dir, f"{scan.id}.iac"), "wb") as fh:
+        fh.write(data)
+    return _scan_read(scan)
+
+
 @router.get("", response_model=list[ScanRead])
 def list_scans(current: CurrentUser, session: SessionDep) -> list[ScanRead]:
     scans = session.exec(
