@@ -339,7 +339,25 @@ def run_scan(scan_id: int) -> None:
                 auth_headers = {}
 
         try:
-            if scan.scan_type == "llm":
+            if scan.scan_type == "bola":
+                # BOLA/IDOR: two-session object-authorization test.
+                from .access_control import TwoSessionTarget, run_bola_scan
+
+                headers_b: dict = {}
+                if scan.auth_headers_b:
+                    try:
+                        headers_b = json.loads(scan.auth_headers_b)
+                    except (json.JSONDecodeError, TypeError):
+                        headers_b = {}
+                scan.progress = 30
+                session.add(scan)
+                session.commit()
+                findings = run_bola_scan(TwoSessionTarget(
+                    base_url=base_url, headers_a=auth_headers, headers_b=headers_b,
+                ))
+                for f in findings:
+                    enrich_taxonomy(f)
+            elif scan.scan_type == "llm":
                 # LLM app scan: probe the endpoint for OWASP LLM Top 10 issues.
                 from .llm_scanner import LLMTarget, run_llm_scan
 
@@ -397,7 +415,8 @@ def run_scan(scan_id: int) -> None:
             session.commit()
         finally:
             # Never keep the user's session credentials after the scan runs.
-            if scan.auth_headers is not None:
+            if scan.auth_headers is not None or scan.auth_headers_b is not None:
                 scan.auth_headers = None
+                scan.auth_headers_b = None
                 session.add(scan)
                 session.commit()

@@ -9,6 +9,7 @@ const SCAN_TYPES = [
   { id: "deep", label: "Deep scan (Nuclei)", desc: "Everything in Web, plus the Nuclei engine's CVE & vulnerability templates. Slower." },
   { id: "llm", label: "LLM app (AI)", desc: "Test an AI/LLM endpoint for prompt injection, jailbreak & data leakage (OWASP LLM Top 10)." },
   { id: "mobile", label: "Mobile app (APK)", desc: "Upload an Android APK for static analysis — hardcoded secrets & insecure manifest (OWASP Mobile Top 10)." },
+  { id: "bola", label: "IDOR / BOLA (two accounts)", desc: "Use two accounts to test object-level authorization — can user B read user A's data? (OWASP API #1)." },
   { id: "headers", label: "Headers only", desc: "Quick check of security response headers." },
 ];
 
@@ -27,6 +28,8 @@ export default function NewScan() {
   const [showAuth, setShowAuth] = useState(false);
   const [authCookie, setAuthCookie] = useState("");
   const [authBearer, setAuthBearer] = useState("");
+  const [authCookieB, setAuthCookieB] = useState("");
+  const [authBearerB, setAuthBearerB] = useState("");
   const [llmEndpoint, setLlmEndpoint] = useState("");
   const [llmBody, setLlmBody] = useState('{"prompt": "{{PROMPT}}"}');
   const [llmRespPath, setLlmRespPath] = useState("");
@@ -71,6 +74,15 @@ export default function NewScan() {
         extra.llm_endpoint = llmEndpoint.trim();
         extra.llm_body_template = llmBody.trim();
         extra.llm_response_path = llmRespPath.trim();
+      }
+      if (type === "bola") {
+        const hasA = authCookie.trim() || authBearer.trim();
+        const hasB = authCookieB.trim() || authBearerB.trim();
+        if (!hasA || !hasB) { setErr("BOLA needs credentials for two different accounts (A and B)."); setBusy(false); return; }
+        extra.auth_cookie = authCookie.trim();
+        extra.auth_bearer = authBearer.trim();
+        extra.auth_cookie_b = authCookieB.trim();
+        extra.auth_bearer_b = authBearerB.trim();
       }
       const scan = await api.createScan(selected, type, extra);
       nav(`/scans/${scan.id}`);
@@ -172,7 +184,25 @@ export default function NewScan() {
               </div>
             )}
 
-            {/* Optional authenticated scan */}
+            {/* BOLA/IDOR — two accounts (required) */}
+            {type === "bola" && (
+              <div style={{ display: "grid", gap: 14, padding: "16px 18px", borderRadius: 12, border: `1px solid ${T.accent}`, background: "rgba(0,191,99,0.05)" }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: T.accentHi }}>Two accounts (required)</div>
+                <p style={{ margin: 0, fontSize: 12.5, color: T.muted, lineHeight: 1.5 }}>
+                  Paste a session Cookie or Bearer token for <b style={{ color: T.text }}>two different accounts</b>. The scanner logs in as A, finds A's objects, then checks whether B can read them. Credentials are used for this scan only and deleted the moment it finishes.
+                </p>
+                {[["A", authCookie, setAuthCookie, authBearer, setAuthBearer], ["B", authCookieB, setAuthCookieB, authBearerB, setAuthBearerB]].map(([label, ck, setCk, br, setBr]) => (
+                  <div key={label} style={{ display: "grid", gap: 8, padding: "12px 14px", borderRadius: 10, border: `1px solid ${T.border}` }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: T.text }}>Account {label}</div>
+                    <input value={ck} onChange={(e) => setCk(e.target.value)} placeholder="Cookie: session=…" style={inp(T)} />
+                    <input value={br} onChange={(e) => setBr(e.target.value)} placeholder="Bearer token (optional)" style={inp(T)} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Optional authenticated scan (single session) — not shown for BOLA */}
+            {type !== "bola" && (
             <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
               <button type="button" onClick={() => setShowAuth(!showAuth)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: "none", border: "none", cursor: "pointer", padding: "14px 16px", fontFamily: T.body, color: T.text }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -197,6 +227,7 @@ export default function NewScan() {
                 </div>
               )}
             </div>
+            )}
               </>
             )}
 

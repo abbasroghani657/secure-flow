@@ -78,6 +78,9 @@ class ScanCreate(BaseModel):
     # Optional credentials for an authenticated scan (scan behind the login).
     auth_cookie: Optional[str] = None   # raw Cookie header, e.g. "session=abc; csrf=def"
     auth_bearer: Optional[str] = None   # bearer token value (without the "Bearer " prefix)
+    # Second account for BOLA/IDOR scans (scan_type == "bola").
+    auth_cookie_b: Optional[str] = None
+    auth_bearer_b: Optional[str] = None
     # LLM scan config (scan_type == "llm")
     llm_endpoint: Optional[str] = None
     llm_body_template: Optional[str] = None

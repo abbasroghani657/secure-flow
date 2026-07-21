@@ -56,17 +56,29 @@ def create_scan(
         )
 
     # Optional credentials for an authenticated scan (or LLM API auth headers).
-    auth_headers: dict[str, str] = {}
-    if data.auth_cookie:
-        auth_headers["Cookie"] = data.auth_cookie.strip()
-    if data.auth_bearer:
-        auth_headers["Authorization"] = f"Bearer {data.auth_bearer.strip()}"
+    def _build_headers(cookie: str | None, bearer: str | None) -> dict[str, str]:
+        h: dict[str, str] = {}
+        if cookie:
+            h["Cookie"] = cookie.strip()
+        if bearer:
+            h["Authorization"] = f"Bearer {bearer.strip()}"
+        return h
+
+    auth_headers = _build_headers(data.auth_cookie, data.auth_bearer)
+    auth_headers_b = _build_headers(data.auth_cookie_b, data.auth_bearer_b)
+
+    if data.scan_type == "bola" and not (auth_headers and auth_headers_b):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "A BOLA/IDOR scan needs credentials for TWO different accounts (A and B).",
+        )
 
     scan = Scan(
         owner_id=current.id, target_url=target_url, scan_type=data.scan_type,
         status=ScanStatus.queued,
         authenticated=bool(auth_headers),
         auth_headers=json.dumps(auth_headers) if auth_headers else None,
+        auth_headers_b=json.dumps(auth_headers_b) if auth_headers_b else None,
         llm_endpoint=data.llm_endpoint.strip() if data.scan_type == "llm" and data.llm_endpoint else None,
         llm_body_template=data.llm_body_template if data.scan_type == "llm" else None,
         llm_response_path=data.llm_response_path if data.scan_type == "llm" else None,

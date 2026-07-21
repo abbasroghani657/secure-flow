@@ -134,6 +134,16 @@ and **cleared from the database the moment it finishes** (never exposed via the 
 
 > Production hardening TODO: encrypt the in-flight `auth_headers` at rest.
 
+### IDOR / BOLA (two-account) testing
+
+The "IDOR / BOLA" scan type (`app/scanner/access_control.py`) takes credentials
+for **two** accounts. It crawls as user A to find object-reference URLs (paths or
+params carrying an id/uuid), then for each one compares three responses — A
+(owner), anonymous (must be blocked), and B (a different user). If **B receives
+A's object**, object-level authorization is broken (OWASP API #1, CWE-639). The
+three-way comparison keeps false positives low, and a same-account guard warns if
+the two sessions look identical. Both credential sets are cleared after the scan.
+
 ## Standards mapping (OWASP 2025 + CWE)
 
 Every finding is tagged (centrally, in `app/taxonomy.py`) with its **OWASP Top

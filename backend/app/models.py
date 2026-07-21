@@ -69,6 +69,8 @@ class Scan(SQLModel, table=True):
     # User-supplied session headers (JSON) for authenticated scanning. Sensitive:
     # cleared to NULL as soon as the scan finishes to limit exposure.
     auth_headers: Optional[str] = Field(default=None)
+    # Second identity for BOLA/IDOR two-session testing (also cleared after the scan).
+    auth_headers_b: Optional[str] = Field(default=None)
 
     # LLM scan config (scan_type == "llm")
     llm_endpoint: Optional[str] = Field(default=None)

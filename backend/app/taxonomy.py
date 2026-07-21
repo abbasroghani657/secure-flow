@@ -50,6 +50,7 @@ _EXACT = {
     "reverse-tabnabbing": ("A01:2025", "CWE-1022", "frontend"),
     "subdomain-takeover": ("A01:2025", "CWE-350", "infra"),
     "broken-access-control": ("A01:2025", "CWE-284", "backend"),
+    "bola-same-account": ("A01:2025", "CWE-639", "api"),
     # A08 Software & Data Integrity Failures
     "missing-sri": ("A08:2025", "CWE-353", "frontend"),
     # A07 Identification & Authentication Failures
@@ -85,6 +86,7 @@ _PREFIX = {
     "host-header-": ("A05:2025", "CWE-644", "backend"),
     "path-traversal-": ("A01:2025", "CWE-22", "backend"),
     "open-redirect-": ("A01:2025", "CWE-601", "backend"),
+    "bola-": ("A01:2025", "CWE-639", "api"),
     "outdated-js-": ("A03:2025", "CWE-1104", "frontend"),
     "mobile-secret-": ("M1:2024", "CWE-798", "mobile"),
     "cookie-flags-": ("A02:2025", "CWE-614", "backend"),
