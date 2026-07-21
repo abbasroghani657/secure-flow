@@ -9,8 +9,9 @@ export function setToken(t) {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
-async function request(path, { method = "GET", body, auth = true } = {}) {
-  const headers = { "Content-Type": "application/json" };
+async function request(path, { method = "GET", body, auth = true, isForm = false } = {}) {
+  const headers = {};
+  if (!isForm) headers["Content-Type"] = "application/json";
   if (auth) {
     const t = getToken();
     if (t) headers.Authorization = `Bearer ${t}`;
@@ -18,7 +19,7 @@ async function request(path, { method = "GET", body, auth = true } = {}) {
   const res = await fetch(BASE + path, {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: isForm ? body : body ? JSON.stringify(body) : undefined,
   });
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
@@ -37,6 +38,11 @@ export const api = {
   me: () => request("/api/auth/me"),
   createScan: (target_url, scan_type = "web", auth = {}) =>
     request("/api/scans", { method: "POST", body: { target_url, scan_type, ...auth } }),
+  uploadMobileScan: (file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return request("/api/scans/mobile", { method: "POST", body: fd, isForm: true });
+  },
   listScans: () => request("/api/scans"),
   getScan: (id) => request(`/api/scans/${id}`),
   deleteScan: (id) => request(`/api/scans/${id}`, { method: "DELETE" }),

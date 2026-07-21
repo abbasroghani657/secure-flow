@@ -8,6 +8,7 @@ const SCAN_TYPES = [
   { id: "web", label: "Web application", desc: "Full scan: headers, TLS, cookies, exposed files, and active injection tests." },
   { id: "deep", label: "Deep scan (Nuclei)", desc: "Everything in Web, plus the Nuclei engine's CVE & vulnerability templates. Slower." },
   { id: "llm", label: "LLM app (AI)", desc: "Test an AI/LLM endpoint for prompt injection, jailbreak & data leakage (OWASP LLM Top 10)." },
+  { id: "mobile", label: "Mobile app (APK)", desc: "Upload an Android APK for static analysis — hardcoded secrets & insecure manifest (OWASP Mobile Top 10)." },
   { id: "headers", label: "Headers only", desc: "Quick check of security response headers." },
 ];
 
@@ -29,6 +30,7 @@ export default function NewScan() {
   const [llmEndpoint, setLlmEndpoint] = useState("");
   const [llmBody, setLlmBody] = useState('{"prompt": "{{PROMPT}}"}');
   const [llmRespPath, setLlmRespPath] = useState("");
+  const [apkFile, setApkFile] = useState(null);
   const nav = useNavigate();
 
   useEffect(() => {
@@ -45,6 +47,19 @@ export default function NewScan() {
   async function submit(e) {
     e.preventDefault();
     setErr("");
+    // Mobile scan is a file upload — no verified target needed.
+    if (type === "mobile") {
+      if (!apkFile) { setErr("Choose an .apk file to scan."); return; }
+      setBusy(true);
+      try {
+        const scan = await api.uploadMobileScan(apkFile);
+        nav(`/scans/${scan.id}`);
+      } catch (e2) {
+        setErr(e2.message);
+        setBusy(false);
+      }
+      return;
+    }
     if (!selected) { setErr("Select a verified target."); return; }
     setBusy(true);
     try {
@@ -73,35 +88,10 @@ export default function NewScan() {
         <p style={{ color: T.muted, fontSize: 14.5, margin: "0 0 32px" }}>Scans run only against targets you have verified.</p>
 
         {targets === null ? (
-          <p style={{ color: T.muted }}>Loading targets…</p>
-        ) : targets.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "56px 24px", border: `1px dashed ${T.borderStrong}`, borderRadius: 16 }}>
-            <p style={{ color: T.muted, fontSize: 15, margin: "0 0 20px" }}>
-              You have no verified targets yet. Add and verify a domain you own first.
-            </p>
-            <Link to="/targets" style={{ ...primaryBtn, display: "inline-block" }}>Go to Targets</Link>
-          </div>
+          <p style={{ color: T.muted }}>Loading…</p>
         ) : (
           <form onSubmit={submit} style={{ display: "grid", gap: 26 }}>
-            <div style={{ display: "grid", gap: 8 }}>
-              <label style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>Target</label>
-              <div style={{ display: "grid", gap: 10 }}>
-                {targets.map((t) => {
-                  const active = selected === t.url;
-                  return (
-                    <button type="button" key={t.id} onClick={() => setSelected(t.url)} style={{ textAlign: "left", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 12, cursor: "pointer", border: `1.5px solid ${active ? T.accent : T.border}`, background: active ? "rgba(0,191,99,0.08)" : "rgba(255,255,255,0.02)", fontFamily: T.body }}>
-                      <span style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${active ? T.accent : T.borderStrong}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        {active && <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.accent }} />}
-                      </span>
-                      <span style={{ fontFamily: T.mono, fontSize: 14.5, color: T.text }}>{t.host}</span>
-                      <span style={{ marginLeft: "auto", fontSize: 11.5, color: T.accent }}>verified</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <Link to="/targets" style={{ fontSize: 12.5, color: T.muted }}>+ Add another target</Link>
-            </div>
-
+            {/* Scan type — always visible */}
             <div style={{ display: "grid", gap: 10 }}>
               <label style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>Scan type</label>
               <div style={{ display: "grid", gap: 10 }}>
@@ -121,6 +111,46 @@ export default function NewScan() {
                 })}
               </div>
             </div>
+
+            {type === "mobile" ? (
+              /* APK upload — no verified target needed (you uploaded the app) */
+              <div style={{ display: "grid", gap: 8 }}>
+                <label style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>Android APK file</label>
+                <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "28px 20px", borderRadius: 12, border: `1.5px dashed ${apkFile ? T.accent : T.borderStrong}`, background: apkFile ? "rgba(0,191,99,0.06)" : "rgba(255,255,255,0.02)", cursor: "pointer", textAlign: "center" }}>
+                  <input type="file" accept=".apk" style={{ display: "none" }} onChange={(e) => setApkFile(e.target.files?.[0] || null)} />
+                  <span style={{ fontSize: 14, color: apkFile ? T.accentHi : T.muted, fontFamily: apkFile ? T.mono : T.body }}>
+                    {apkFile ? `${apkFile.name} (${(apkFile.size / 1e6).toFixed(1)} MB)` : "Click to choose an .apk file"}
+                  </span>
+                </label>
+                <p style={{ margin: 0, fontSize: 12.5, color: T.muted }}>The APK is analysed for hardcoded secrets and insecure manifest settings, then deleted. No target verification needed.</p>
+              </div>
+            ) : targets.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 24px", border: `1px dashed ${T.borderStrong}`, borderRadius: 16 }}>
+                <p style={{ color: T.muted, fontSize: 14.5, margin: "0 0 18px" }}>
+                  This scan type needs a verified target. Add and verify a domain you own first.
+                </p>
+                <Link to="/targets" style={{ ...primaryBtn, display: "inline-block" }}>Go to Targets</Link>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <label style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>Target</label>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {targets.map((t) => {
+                      const active = selected === t.url;
+                      return (
+                        <button type="button" key={t.id} onClick={() => setSelected(t.url)} style={{ textAlign: "left", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 12, cursor: "pointer", border: `1.5px solid ${active ? T.accent : T.border}`, background: active ? "rgba(0,191,99,0.08)" : "rgba(255,255,255,0.02)", fontFamily: T.body }}>
+                          <span style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${active ? T.accent : T.borderStrong}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {active && <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.accent }} />}
+                          </span>
+                          <span style={{ fontFamily: T.mono, fontSize: 14.5, color: T.text }}>{t.host}</span>
+                          <span style={{ marginLeft: "auto", fontSize: 11.5, color: T.accent }}>verified</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <Link to="/targets" style={{ fontSize: 12.5, color: T.muted }}>+ Add another target</Link>
+                </div>
 
             {/* LLM endpoint config (only for LLM scans) */}
             {type === "llm" && (
@@ -167,10 +197,12 @@ export default function NewScan() {
                 </div>
               )}
             </div>
+              </>
+            )}
 
             {err && <div style={{ fontSize: 13.5, color: "#F87171", background: "rgba(220,38,38,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 10, padding: "10px 12px" }}>{err}</div>}
 
-            <button type="submit" disabled={busy} style={{ ...primaryBtn, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: busy ? 0.7 : 1 }}>
+            <button type="submit" disabled={busy || (type !== "mobile" && targets.length === 0)} style={{ ...primaryBtn, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: (busy || (type !== "mobile" && targets.length === 0)) ? 0.6 : 1 }}>
               {busy && <Spinner />} Launch scan
             </button>
           </form>

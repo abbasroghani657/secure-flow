@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     scan_http_timeout: float = 12.0
     nuclei_path: str = ""  # optional: path to nuclei binary; empty = use built-in scanner only
 
+    # Mobile APK uploads (deleted after each scan)
+    upload_dir: str = "./uploads"
+    max_apk_mb: int = 150
+
     # Crawling + active testing (only ever run against verified targets)
     crawl_enabled: bool = True
     max_crawl_pages: int = 20

@@ -252,6 +252,56 @@ def compute_score(findings: list[Finding]) -> int:
     return max(0, min(100, 100 - penalty))
 
 
+def _tally_and_complete(session: Session, scan: Scan, findings: list[Finding]) -> None:
+    """Persist findings, tally severity counts, score, and mark the scan completed."""
+    counts = {s.value: 0 for s in Severity}
+    passed = 0
+    for f in findings:
+        if f.passed:
+            passed += 1
+        else:
+            counts[f.severity] = counts.get(f.severity, 0) + 1
+        session.add(FindingModel(scan_id=scan.id, **f.as_dict()))
+    scan.critical_count = counts["critical"]
+    scan.high_count = counts["high"]
+    scan.medium_count = counts["medium"]
+    scan.low_count = counts["low"]
+    scan.info_count = counts["info"]
+    scan.passed_count = passed
+    scan.security_score = compute_score(findings)
+    scan.status = ScanStatus.completed
+    scan.progress = 100
+    scan.finished_at = datetime.now(timezone.utc)
+    session.add(scan)
+    session.commit()
+
+
+def _run_mobile_scan(session: Session, scan: Scan) -> None:
+    """Analyse the uploaded APK for this scan, then delete the file."""
+    import os
+
+    from .mobile_scanner import MobileTarget, run_mobile_scan
+
+    apk_path = os.path.join(settings.upload_dir, f"{scan.id}.apk")
+    try:
+        findings = run_mobile_scan(MobileTarget(apk_path=apk_path))
+        for f in findings:
+            enrich_taxonomy(f)
+        _tally_and_complete(session, scan, findings)
+    except Exception as exc:  # noqa: BLE001
+        scan.status = ScanStatus.failed
+        scan.error = f"Scan error: {exc}"
+        scan.finished_at = datetime.now(timezone.utc)
+        session.add(scan)
+        session.commit()
+    finally:
+        try:
+            if os.path.exists(apk_path):
+                os.remove(apk_path)  # never keep the uploaded binary
+        except OSError:
+            pass
+
+
 def run_scan(scan_id: int) -> None:
     """Entry point for the background task. Owns its own DB session."""
     with Session(db_engine) as session:
@@ -263,6 +313,11 @@ def run_scan(scan_id: int) -> None:
         scan.progress = 5
         session.add(scan)
         session.commit()
+
+        # Mobile APK scan: static analysis of an uploaded file — no network target.
+        if scan.scan_type == "mobile":
+            _run_mobile_scan(session, scan)
+            return
 
         base_url = scan.target_url
         host = urlparse(base_url).hostname or ""
@@ -327,28 +382,7 @@ def run_scan(scan_id: int) -> None:
             session.add(scan)
             session.commit()
 
-            # Persist findings + tally counts
-            counts = {s.value: 0 for s in Severity}
-            passed = 0
-            for f in findings:
-                if f.passed:
-                    passed += 1
-                else:
-                    counts[f.severity] = counts.get(f.severity, 0) + 1
-                session.add(FindingModel(scan_id=scan.id, **f.as_dict()))
-
-            scan.critical_count = counts["critical"]
-            scan.high_count = counts["high"]
-            scan.medium_count = counts["medium"]
-            scan.low_count = counts["low"]
-            scan.info_count = counts["info"]
-            scan.passed_count = passed
-            scan.security_score = compute_score(findings)
-            scan.status = ScanStatus.completed
-            scan.progress = 100
-            scan.finished_at = datetime.now(timezone.utc)
-            session.add(scan)
-            session.commit()
+            _tally_and_complete(session, scan, findings)
         except httpx.HTTPError as exc:
             scan.status = ScanStatus.failed
             scan.error = f"Could not reach target: {exc}"

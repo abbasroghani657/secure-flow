@@ -1,9 +1,11 @@
 import json
+import os
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from sqlmodel import select
 
+from ..config import settings
 from ..deps import CurrentUser, SessionDep
 from ..models import Finding, Scan, ScanStatus, Target
 from ..schemas import FindingRead, ScanCreate, ScanDetail, ScanRead
@@ -74,6 +76,34 @@ def create_scan(
     session.refresh(scan)
 
     # The background worker picks up queued scans; no request-bound task.
+    return _scan_read(scan)
+
+
+@router.post("/mobile", response_model=ScanRead, status_code=status.HTTP_201_CREATED)
+async def create_mobile_scan(
+    current: CurrentUser,
+    session: SessionDep,
+    file: UploadFile = File(...),
+) -> ScanRead:
+    """Upload an Android APK for static analysis (OWASP Mobile Top 10)."""
+    filename = file.filename or "app.apk"
+    if not filename.lower().endswith(".apk"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Please upload an .apk file.")
+    data = await file.read()
+    if len(data) > settings.max_apk_mb * 1024 * 1024:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"APK too large (max {settings.max_apk_mb} MB).")
+    if data[:2] != b"PK":  # APKs are ZIP archives
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "That file is not a valid APK.")
+
+    scan = Scan(owner_id=current.id, target_url=filename, scan_type="mobile", status=ScanStatus.queued)
+    session.add(scan)
+    session.commit()
+    session.refresh(scan)
+
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    with open(os.path.join(settings.upload_dir, f"{scan.id}.apk"), "wb") as fh:
+        fh.write(data)
+
     return _scan_read(scan)
 
 

@@ -37,6 +37,10 @@ backend/secureflow.db
 backend/bin/
 nuclei-templates/
 
+# ---- Uploaded APKs (deleted after each scan; never commit) ----
+backend/uploads/
+uploads/
+
 # ---- Node / frontend ----
 node_modules/
 frontend/dist/
