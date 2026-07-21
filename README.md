@@ -140,11 +140,14 @@ Beyond the web scanner, two standalone engines cover other OWASP families:
   bypass**, **system-prompt leakage**, **improper output handling** (HTML/XSS
   echo), and **sensitive information disclosure**. Detection is canary-based to
   keep false positives near zero.
-- **OWASP Mobile Top 10** (`app/scanner/mobile_scanner.py`) — static analysis of
-  an Android **APK** (a ZIP): scans for **hardcoded secrets** (Google/AWS/Stripe/
-  Firebase/private keys) and reads the manifest for **debuggable** builds,
-  **allowBackup**, **cleartext traffic**, **exported components**, and a low
-  **minSdkVersion**.
+- **OWASP Mobile Top 10** (`app/scanner/mobile_scanner.py`) — deep static analysis
+  of an Android **APK**: **hardcoded secrets**, **weak crypto** (ECB/DES/RC4),
+  **insecure WebView**, **missing certificate pinning** (M5), **insecure data
+  storage** (external storage / unencrypted SQLite, M9), **no root/tamper
+  detection** (M7), **excessive dangerous permissions** (M6), **publicly-readable
+  Firebase**, plus manifest checks (debuggable, allowBackup, cleartext, exported
+  components, low minSdk). The LLM module also covers **indirect prompt injection**
+  (LLM08) and **misinformation** (LLM09) on top of the earlier LLM checks.
 
 > These run against apps/endpoints you own or are authorised to test. They are
 > wired as engines today; the API/UI scan types for them are the next step.

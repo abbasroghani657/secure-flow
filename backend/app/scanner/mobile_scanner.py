@@ -53,10 +53,25 @@ class MobileTarget:
 _WEAK_CRYPTO_RE = re.compile(rb"[A-Za-z0-9]+/ECB/|\bDESede?\b|\bDES/|\bRC4\b|\bARC4\b")
 
 
+# Indicator byte-strings scanned across the app's dex files.
+_NETWORK_IND = (b"okhttp", b"Retrofit", b"HttpsURLConnection", b"Ljava/net/URL", b"volley")
+_PINNING_IND = (b"CertificatePinner", b"sha256/", b"X509TrustManager", b"network_security_config",
+                b"pin-set", b"TrustKit")
+_ROOT_IND = (b"test-keys", b"/system/xbin/su", b"/system/bin/su", b"RootBeer", b"isDeviceRooted",
+             b"isRooted", b"Superuser", b"eu.chainfire", b"/system/app/Superuser", b"magisk")
+_TAMPER_IND = (b"isDebuggerConnected", b"GET_SIGNATURES", b"signatureMatch", b"checkSignature")
+_EXT_STORAGE_IND = (b"getExternalStorage", b"getExternalFilesDir", b"getExternalCacheDir",
+                    b"EXTERNAL_STORAGE")
+
+
 def _scan_code(zf: zipfile.ZipFile) -> list[Finding]:
-    """Scan compiled code (classes*.dex) for weak crypto and insecure WebView usage."""
+    """Static analysis of classes*.dex: weak crypto, insecure WebView, and (absence-of)
+    certificate pinning / root detection / secure storage — OWASP Mobile M4/M5/M7/M9/M10."""
     out: list[Finding] = []
-    flags = {"crypto": False, "webview": False}
+    seen: dict[str, bool] = {}
+    ind = {"network": False, "pinning": False, "root": False, "tamper": False,
+           "ext_storage": False, "sqlite": False, "sqlcipher": False}
+
     for name in zf.namelist():
         if not name.endswith(".dex"):
             continue
@@ -64,8 +79,9 @@ def _scan_code(zf: zipfile.ZipFile) -> list[Finding]:
             data = zf.read(name)
         except (KeyError, RuntimeError):
             continue
-        if not flags["crypto"] and _WEAK_CRYPTO_RE.search(data):
-            flags["crypto"] = True
+
+        if not seen.get("crypto") and _WEAK_CRYPTO_RE.search(data):
+            seen["crypto"] = True
             m = _WEAK_CRYPTO_RE.search(data)
             out.append(Finding(
                 "mobile-weak-crypto", "Weak cryptography in app", "medium", name,
@@ -73,20 +89,111 @@ def _scan_code(zf: zipfile.ZipFile) -> list[Finding]:
                 impact="Weak ciphers and ECB mode leak data patterns and are practically breakable.",
                 evidence=f"Found cipher string: {m.group(0)[:24].decode('latin-1','replace')}",
                 remediation="Use AES-GCM (authenticated) with a random IV; drop DES/RC4/ECB.",
-                compliance_ref="OWASP Mobile M10:2024",
-            ))
-        if not flags["webview"] and (b"addJavascriptInterface" in data or
-                                     (b"setJavaScriptEnabled" in data and b"setAllowFileAccess" in data)):
-            flags["webview"] = True
+                compliance_ref="OWASP Mobile M10:2024"))
+        if not seen.get("webview") and (b"addJavascriptInterface" in data or
+                                        (b"setJavaScriptEnabled" in data and b"setAllowFileAccess" in data)):
+            seen["webview"] = True
             out.append(Finding(
                 "mobile-insecure-webview", "Insecure WebView configuration", "medium", name,
                 description="The app enables JavaScript with file access, or uses addJavascriptInterface.",
                 impact="A malicious page in the WebView can read local files or call app code (RCE on old Android).",
                 evidence="setJavaScriptEnabled+setAllowFileAccess or addJavascriptInterface present.",
                 remediation="Disable file access, avoid addJavascriptInterface, and load only trusted content.",
-                compliance_ref="OWASP Mobile M4:2024",
-            ))
+                compliance_ref="OWASP Mobile M4:2024"))
+
+        ind["network"] |= any(x in data for x in _NETWORK_IND)
+        ind["pinning"] |= any(x in data for x in _PINNING_IND)
+        ind["root"] |= any(x in data for x in _ROOT_IND)
+        ind["tamper"] |= any(x in data for x in _TAMPER_IND)
+        ind["ext_storage"] |= any(x in data for x in _EXT_STORAGE_IND)
+        ind["sqlite"] |= b"SQLiteDatabase" in data
+        ind["sqlcipher"] |= b"sqlcipher" in data.lower()
+
+    # M5 — missing certificate pinning (only meaningful if the app does networking)
+    if ind["network"] and not ind["pinning"]:
+        out.append(Finding(
+            "mobile-no-cert-pinning", "No TLS certificate pinning", "medium", "classes.dex",
+            description="The app makes network calls but shows no certificate-pinning implementation.",
+            impact="Without pinning, a rogue/compromised CA enables HTTPS man-in-the-middle interception.",
+            evidence="Networking libraries present; no CertificatePinner / pin-set / TrustKit found.",
+            remediation="Pin the server certificate/public key (OkHttp CertificatePinner or network-security-config).",
+            compliance_ref="OWASP Mobile M5:2024"))
+
+    # M7 — insufficient binary protection (no runtime self-defence)
+    if not ind["root"] and not ind["tamper"]:
+        out.append(Finding(
+            "mobile-no-tamper-detection", "No root / tamper detection", "low", "classes.dex",
+            description="No root-detection or anti-tampering / signature-verification logic was found.",
+            impact="The app can be run on rooted/instrumented devices and repackaged without resistance.",
+            evidence="No root-detection or signature-check indicators present.",
+            remediation="Add root/emulator detection, signature verification and (optionally) code obfuscation.",
+            compliance_ref="OWASP Mobile M7:2024"))
+
+    # M9 — insecure data storage
+    if ind["ext_storage"]:
+        out.append(Finding(
+            "mobile-external-storage", "Data written to external storage", "medium", "classes.dex",
+            description="The app reads/writes external (shared) storage.",
+            impact="Files on external storage are world-readable to other apps — sensitive data can leak.",
+            evidence="getExternalStorage/getExternalFilesDir usage found.",
+            remediation="Store sensitive data in internal storage (MODE_PRIVATE) or the EncryptedFile API.",
+            compliance_ref="OWASP Mobile M9:2024"))
+    if ind["sqlite"] and not ind["sqlcipher"]:
+        out.append(Finding(
+            "mobile-unencrypted-sqlite", "Unencrypted local database", "low", "classes.dex",
+            description="The app uses SQLite without an encryption layer (e.g. SQLCipher).",
+            impact="On a compromised device the local database is readable in plaintext.",
+            evidence="SQLiteDatabase used; no SQLCipher found.",
+            remediation="Encrypt local databases (SQLCipher / Jetpack Security).",
+            compliance_ref="OWASP Mobile M9:2024"))
     return out
+
+
+def _check_permissions(apk) -> list[Finding]:
+    try:
+        perms = set(apk.get_permissions())
+    except Exception:  # noqa: BLE001
+        return []
+    dangerous = sorted(perms & DANGEROUS_PERMISSIONS)
+    if len(dangerous) >= 4:
+        return [Finding(
+            "mobile-excessive-permissions", "Excessive dangerous permissions", "medium", "AndroidManifest.xml",
+            description=f"The app requests {len(dangerous)} dangerous permissions.",
+            impact="Broad permissions increase privacy risk and the blast radius if the app is compromised.",
+            evidence="Dangerous permissions: " + ", ".join(p.split(".")[-1] for p in dangerous),
+            remediation="Request only the permissions the app truly needs; drop the rest.",
+            compliance_ref="OWASP Mobile M6:2024")]
+    return []
+
+
+def _check_firebase(zf: zipfile.ZipFile) -> list[Finding]:
+    import re as _re
+
+    import httpx
+    dbs: set[str] = set()
+    for name in zf.namelist():
+        if not name.lower().endswith((".xml", ".json", ".dex", ".properties")):
+            continue
+        try:
+            data = zf.read(name)
+        except (KeyError, RuntimeError):
+            continue
+        for m in _re.findall(rb"https://([a-z0-9.\-]+\.firebaseio\.com)", data, _re.I):
+            dbs.add(m.decode("latin-1", "replace"))
+    for db in list(dbs)[:5]:
+        try:
+            r = httpx.get(f"https://{db}/.json", timeout=8)
+        except httpx.HTTPError:
+            continue
+        if r.status_code == 200 and "permission denied" not in r.text.lower() and r.text.strip() not in ("", "null"):
+            return [Finding(
+                "mobile-open-firebase", "Publicly readable Firebase database (from app)", "high", f"https://{db}/.json",
+                description="A Firebase database referenced by the app allows unauthenticated reads.",
+                impact="Anyone can read (often write) the app's backend data — a data breach.",
+                evidence=f"GET https://{db}/.json returned data without auth.",
+                remediation="Set Firebase security rules to require authentication.",
+                compliance_ref="OWASP Mobile M9:2024")]
+    return []
 
 
 def _scan_secrets(zf: zipfile.ZipFile) -> list[Finding]:
@@ -206,10 +313,16 @@ def run_mobile_scan(target: MobileTarget) -> list[Finding]:
     with zf:
         findings.extend(_scan_secrets(zf))
         findings.extend(_scan_code(zf))
+        try:
+            findings.extend(_check_firebase(zf))
+        except Exception:  # noqa: BLE001
+            pass
 
     if _HAS_AXML:
         try:
-            findings.extend(_manifest_findings(APK(target.apk_path)))
+            apk = APK(target.apk_path)
+            findings.extend(_manifest_findings(apk))
+            findings.extend(_check_permissions(apk))
         except Exception:  # noqa: BLE001
             pass
 
