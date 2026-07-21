@@ -52,8 +52,24 @@ _EXACT = {
     "broken-access-control": ("A01:2025", "CWE-284", "backend"),
     "bola-same-account": ("A01:2025", "CWE-639", "api"),
     "open-cloud-bucket": ("A02:2025", "CWE-668", "infra"),
+    "open-firebase-db": ("A02:2025", "CWE-668", "infra"),
     "dom-xss": ("A05:2025", "CWE-79", "frontend"),
     "xxe": ("A05:2025", "CWE-611", "backend"),
+    "missing-coop": ("A02:2025", "CWE-693", "frontend"),
+    # JWT / auth
+    "jwt-alg-none": ("A07:2025", "CWE-347", "backend"),
+    "jwt-weak-secret": ("A07:2025", "CWE-347", "backend"),
+    # client-side
+    "postmessage-no-origin": ("A08:2025", "CWE-346", "frontend"),
+    "sensitive-web-storage": ("A07:2025", "CWE-922", "frontend"),
+    "prototype-pollution": ("A08:2025", "CWE-1321", "frontend"),
+    "insecure-jsonp": ("A05:2025", "CWE-79", "frontend"),
+    # mobile (batch 2)
+    "mobile-weak-crypto": ("M10:2024", "CWE-327", "mobile"),
+    "mobile-insecure-webview": ("M4:2024", "CWE-749", "mobile"),
+    # LLM (batch 2)
+    "llm-unbounded-consumption": ("LLM10:2025", "CWE-770", "api"),
+    "llm-excessive-agency": ("LLM06:2025", "CWE-250", "api"),
     # A08 Software & Data Integrity Failures
     "missing-sri": ("A08:2025", "CWE-353", "frontend"),
     # A07 Identification & Authentication Failures
@@ -90,6 +106,9 @@ _PREFIX = {
     "path-traversal-": ("A01:2025", "CWE-22", "backend"),
     "open-redirect-": ("A01:2025", "CWE-601", "backend"),
     "bola-": ("A01:2025", "CWE-639", "api"),
+    "ldap-injection-": ("A05:2025", "CWE-90", "backend"),
+    "xpath-injection-": ("A05:2025", "CWE-643", "backend"),
+    "js-secret-": ("A05:2025", "CWE-798", "frontend"),
     "outdated-js-": ("A03:2025", "CWE-1104", "frontend"),
     "mobile-secret-": ("M1:2024", "CWE-798", "mobile"),
     "cookie-flags-": ("A02:2025", "CWE-614", "backend"),

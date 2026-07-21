@@ -54,6 +54,12 @@ CMDI_PAYLOADS = [
 NOSQL_ERRORS = re.compile(
     r"(mongoerror|mongodb|bson|casterror|couchdberror|\$where|unexpected token '\$'|"
     r"e11000|failed to parse)", re.IGNORECASE)
+LDAP_ERRORS = re.compile(
+    r"(javax\.naming\.|com\.sun\.jndi\.ldap|ldapexception|invalid dn syntax|"
+    r"not a valid ldap|nameNotFoundException|ldap_search)", re.IGNORECASE)
+XPATH_ERRORS = re.compile(
+    r"(xpathexception|xpath_eval|xmlxpatheval|invalid xpath|sxxp0003|"
+    r"MS\.Internal\.Xml|Warning: xpath|System\.Xml\.XPath)", re.IGNORECASE)
 
 # SSRF probes: (payload URL, signature that proves the server fetched it)
 SSRF_PROBES = [
@@ -125,6 +131,42 @@ def _sqli(client: httpx.Client, url: str, param: str, baseline: str | None) -> F
             remediation="Use parameterised queries / prepared statements; never concatenate user input into SQL.",
             compliance_ref="OWASP A03:2021",
         )
+    return None
+
+
+def _ldap(client: httpx.Client, url: str, param: str, baseline: str | None) -> Finding | None:
+    for payload in ("*)(&", "*))%00", "admin*)((|"):
+        r = _get(client, _with_param(url, param, payload))
+        if r is None:
+            continue
+        if LDAP_ERRORS.search(r.text) and (baseline is None or not LDAP_ERRORS.search(baseline)):
+            return Finding(
+                check_id=f"ldap-injection-{param}", title="LDAP Injection", severity="high",
+                url=_with_param(url, param, payload),
+                description=f"An LDAP error is triggered by injecting special characters into '{param}'.",
+                impact="LDAP injection can bypass authentication and read directory data.",
+                evidence=f"LDAP error signature returned for payload '{payload}'.",
+                remediation="Escape LDAP special characters and use parameterised directory queries.",
+                compliance_ref="OWASP A05:2025",
+            )
+    return None
+
+
+def _xpath(client: httpx.Client, url: str, param: str, baseline: str | None) -> Finding | None:
+    for payload in ("'", "']", "\"))"):
+        r = _get(client, _with_param(url, param, payload))
+        if r is None:
+            continue
+        if XPATH_ERRORS.search(r.text) and (baseline is None or not XPATH_ERRORS.search(baseline)):
+            return Finding(
+                check_id=f"xpath-injection-{param}", title="XPath Injection", severity="high",
+                url=_with_param(url, param, payload),
+                description=f"An XPath error is triggered by injecting into the '{param}' parameter.",
+                impact="XPath injection can bypass auth and extract data from XML documents.",
+                evidence=f"XPath error signature returned for payload '{payload}'.",
+                remediation="Use parameterised XPath queries; never concatenate user input into XPath.",
+                compliance_ref="OWASP A05:2025",
+            )
     return None
 
 
@@ -270,9 +312,9 @@ def test_param_url(client: httpx.Client, url: str) -> list[Finding]:
 
     findings: list[Finding] = []
     saw_stacktrace = False
-    baseline_tests = (_sqli, _nosql)  # these compare against the baseline response
+    baseline_tests = (_sqli, _nosql, _ldap, _xpath)  # these compare against the baseline response
     for p in params:
-        for test in (_xss, _sqli, _open_redirect, _traversal, _ssti, _crlf, _cmdi, _ssrf, _nosql):
+        for test in (_xss, _sqli, _open_redirect, _traversal, _ssti, _crlf, _cmdi, _ssrf, _nosql, _ldap, _xpath):
             try:
                 f = test(client, url, p, baseline) if test in baseline_tests else test(client, url, p)
             except httpx.HTTPError:

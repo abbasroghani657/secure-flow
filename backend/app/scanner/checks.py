@@ -328,10 +328,23 @@ def check_mixed_content(probe: Probe) -> list[Finding]:
     return []
 
 
+def check_coop(probe: Probe) -> list[Finding]:
+    if probe.headers.get("cross-origin-opener-policy"):
+        return []
+    return [Finding(
+        "missing-coop", "Missing Cross-Origin-Opener-Policy", "low", probe.final_url,
+        description="No Cross-Origin-Opener-Policy header is set.",
+        impact="Cross-origin popups share a browsing context, weakening isolation against Spectre-style attacks.",
+        evidence="Cross-Origin-Opener-Policy header absent.",
+        remediation="Add 'Cross-Origin-Opener-Policy: same-origin' (and COEP/CORP) on sensitive pages.",
+        compliance_ref="OWASP A05:2021",
+    )]
+
+
 BASE_CHECKS = [
     check_https, check_hsts, check_csp, check_x_frame, check_x_content_type,
     check_referrer_policy, check_permissions_policy, check_server_banner,
-    check_cors, check_cookies, check_mixed_content,
+    check_cors, check_cookies, check_mixed_content, check_coop,
 ]
 
 DANGEROUS_METHODS = {"PUT", "DELETE", "TRACE", "TRACK", "CONNECT"}
@@ -589,6 +602,36 @@ SENSITIVE_PATHS = [
     ("/.well-known/openid-configuration", "OIDC configuration exposed", "info",
      "OpenID configuration is published (usually expected).",
      "No action if intended.", "OWASP A05:2021"),
+    ("/actuator", "Exposed Spring Boot Actuator", "high",
+     "Spring Boot Actuator endpoints are publicly reachable and can leak config, env and health data.",
+     "Secure /actuator/** behind authentication and expose only health/info.", "OWASP A05:2021"),
+    ("/actuator/env", "Exposed Actuator env (secrets)", "critical",
+     "The Actuator /env endpoint exposes environment variables including secrets.",
+     "Disable or authenticate the env endpoint.", "OWASP A05:2021"),
+    ("/web.config", "Exposed IIS web.config", "high",
+     "The IIS web.config file is downloadable and may contain connection strings and secrets.",
+     "Block access to web.config at the server.", "OWASP A05:2021"),
+    ("/id_rsa", "Exposed SSH private key", "critical",
+     "An SSH private key is publicly downloadable.",
+     "Remove the key from the web root and rotate it immediately.", "OWASP A05:2021"),
+    ("/xmlrpc.php", "WordPress XML-RPC enabled", "medium",
+     "WordPress xmlrpc.php is reachable and enables brute-force amplification and pingback abuse.",
+     "Disable XML-RPC if unused.", "OWASP A05:2021"),
+    ("/wp-json/wp/v2/users", "WordPress user enumeration via REST", "medium",
+     "The WordPress REST API lists usernames, aiding credential attacks.",
+     "Restrict the users endpoint or require authentication.", "OWASP A07:2025"),
+    ("/composer.lock", "Exposed composer.lock", "low",
+     "PHP dependency versions are exposed, helping attackers target known CVEs.",
+     "Do not serve dependency lock files.", "OWASP A05:2021"),
+    ("/elmah.axd", "Exposed ELMAH error log", "high",
+     "The ASP.NET ELMAH error log is public and leaks stack traces and request data.",
+     "Restrict elmah.axd to admins only.", "OWASP A05:2021"),
+    ("/crossdomain.xml", "Permissive crossdomain.xml", "low",
+     "A Flash/Silverlight cross-domain policy is published; a wildcard is dangerous.",
+     "Remove crossdomain.xml or restrict allowed domains.", "OWASP A05:2021"),
+    ("/.idea/workspace.xml", "Exposed JetBrains project files", "low",
+     "IDE project files leak paths and structure.",
+     "Remove .idea/ from the web root.", "OWASP A05:2021"),
 ]
 
 
@@ -614,6 +657,16 @@ PATH_SIGNATURES = {
     "/swagger.json": re.compile(r'"swagger"|"openapi"', re.IGNORECASE),
     "/config.php.bak": re.compile(r"<\?php|define\(", re.IGNORECASE),
     "/wp-config.php.bak": re.compile(r"DB_PASSWORD|DB_NAME|<\?php", re.IGNORECASE),
+    "/actuator": re.compile(r'"_links"|"health"|"self"', re.IGNORECASE),
+    "/actuator/env": re.compile(r'"propertySources"|"activeProfiles"', re.IGNORECASE),
+    "/web.config": re.compile(r"<configuration|<system\.web", re.IGNORECASE),
+    "/id_rsa": re.compile(r"-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----"),
+    "/xmlrpc.php": re.compile(r"XML-RPC server accepts POST requests only", re.IGNORECASE),
+    "/wp-json/wp/v2/users": re.compile(r'"slug"\s*:|"id"\s*:\s*\d'),
+    "/composer.lock": re.compile(r'"packages"|"content-hash"'),
+    "/elmah.axd": re.compile(r"Error Log for|ELMAH", re.IGNORECASE),
+    "/crossdomain.xml": re.compile(r"<cross-domain-policy", re.IGNORECASE),
+    "/.idea/workspace.xml": re.compile(r"<project|<component", re.IGNORECASE),
 }
 
 

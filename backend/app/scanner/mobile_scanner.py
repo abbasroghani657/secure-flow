@@ -50,6 +50,45 @@ class MobileTarget:
     app_label: str = ""
 
 
+_WEAK_CRYPTO_RE = re.compile(rb"[A-Za-z0-9]+/ECB/|\bDESede?\b|\bDES/|\bRC4\b|\bARC4\b")
+
+
+def _scan_code(zf: zipfile.ZipFile) -> list[Finding]:
+    """Scan compiled code (classes*.dex) for weak crypto and insecure WebView usage."""
+    out: list[Finding] = []
+    flags = {"crypto": False, "webview": False}
+    for name in zf.namelist():
+        if not name.endswith(".dex"):
+            continue
+        try:
+            data = zf.read(name)
+        except (KeyError, RuntimeError):
+            continue
+        if not flags["crypto"] and _WEAK_CRYPTO_RE.search(data):
+            flags["crypto"] = True
+            m = _WEAK_CRYPTO_RE.search(data)
+            out.append(Finding(
+                "mobile-weak-crypto", "Weak cryptography in app", "medium", name,
+                description="The app uses a weak cipher or mode (ECB / DES / RC4).",
+                impact="Weak ciphers and ECB mode leak data patterns and are practically breakable.",
+                evidence=f"Found cipher string: {m.group(0)[:24].decode('latin-1','replace')}",
+                remediation="Use AES-GCM (authenticated) with a random IV; drop DES/RC4/ECB.",
+                compliance_ref="OWASP Mobile M10:2024",
+            ))
+        if not flags["webview"] and (b"addJavascriptInterface" in data or
+                                     (b"setJavaScriptEnabled" in data and b"setAllowFileAccess" in data)):
+            flags["webview"] = True
+            out.append(Finding(
+                "mobile-insecure-webview", "Insecure WebView configuration", "medium", name,
+                description="The app enables JavaScript with file access, or uses addJavascriptInterface.",
+                impact="A malicious page in the WebView can read local files or call app code (RCE on old Android).",
+                evidence="setJavaScriptEnabled+setAllowFileAccess or addJavascriptInterface present.",
+                remediation="Disable file access, avoid addJavascriptInterface, and load only trusted content.",
+                compliance_ref="OWASP Mobile M4:2024",
+            ))
+    return out
+
+
 def _scan_secrets(zf: zipfile.ZipFile) -> list[Finding]:
     findings: list[Finding] = []
     seen: set[str] = set()
@@ -166,6 +205,7 @@ def run_mobile_scan(target: MobileTarget) -> list[Finding]:
 
     with zf:
         findings.extend(_scan_secrets(zf))
+        findings.extend(_scan_code(zf))
 
     if _HAS_AXML:
         try:

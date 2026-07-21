@@ -19,6 +19,7 @@ from ..taxonomy import enrich as enrich_taxonomy
 from .active import run_active_tests, test_host_header, test_xxe
 from .cloud import check_cloud_buckets
 from .dom_xss import check_dom_xss
+from .web_extra import run_web_extra
 from .checks import (
     BASE_CHECKS,
     COMMON_DIRS,
@@ -171,6 +172,10 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
     findings.extend(check_dom_xss(client, probe))          # potential DOM-based XSS
     try:
         findings.extend(check_cloud_buckets(client, probe))  # open cloud storage buckets
+    except Exception:
+        pass
+    try:
+        findings.extend(run_web_extra(client, probe))       # JS secrets, JWT, Firebase, client-side
     except Exception:
         pass
 

@@ -97,10 +97,16 @@ scanned. This is what makes running a scan legally defensible.
 
 **Client-side & supply chain (passive):**
 - **Outdated / vulnerable JS libraries** (jQuery, AngularJS, Bootstrap, Lodash, …)
+- **Secrets in front-end JavaScript** (AWS/Stripe/Slack/private keys, generic tokens)
+- **JWT weaknesses** — `alg=none` and weak/guessable HMAC secrets
 - **Missing Subresource Integrity (SRI)** on third-party scripts/styles
-- **Missing CSRF token** on state-changing forms
-- **Reverse tabnabbing** (`target=_blank` without `rel=noopener`)
+- **Missing CSRF token** on state-changing forms; **reverse tabnabbing**
 - **Subdomain takeover** (dangling CNAMEs to unclaimed services)
+- **Client-side heuristics** — `postMessage` without origin check, secrets in
+  local/session storage, prototype pollution, insecure JSONP
+- **Open Firebase database** (publicly readable), **open cloud buckets**, and
+  extra checks: **LDAP / XPath injection**, missing COOP header, and ~30 exposed
+  sensitive paths (`.git`, `.env`, `actuator`, `web.config`, `id_rsa`, `xmlrpc.php`, …)
 
 > Active tests send crafted-but-harmless inputs (no data change, no brute force,
 > no DoS) and only run because the target's ownership was verified first.
