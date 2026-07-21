@@ -33,9 +33,12 @@ from .checks import (
     check_csrf_forms,
     check_http_methods,
     check_js_libraries,
+    check_coep_corp,
+    check_internal_ip,
     check_security_txt,
     check_sensitive_comments,
     check_session_in_url,
+    check_source_disclosure,
     check_sri,
     check_tabnabbing,
     directory_listing_finding,
@@ -43,6 +46,8 @@ from .checks import (
 )
 from .crawler import crawl
 from .dns_checks import run_dns_checks
+from .services import check_exposed_dashboards, check_exposed_services
+from .tls_checks import check_tls
 
 # Severity weights used to turn findings into a 0-100 security score.
 SEVERITY_WEIGHT = {"critical": 40, "high": 20, "medium": 8, "low": 3, "info": 0}
@@ -167,9 +172,19 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
                 probe.final_url, description=str(exc), passed=False,
             ))
 
-    # 2. DNS / email-security (SPF, DMARC) + TLS certificate expiry
+    # 2. DNS / email-security (SPF, DMARC, CAA, zone transfer) + deep TLS/crypto + exposed services
     try:
         findings.extend(run_dns_checks(host))
+    except Exception:
+        pass
+    if probe.is_https and host:
+        try:
+            findings.extend(check_tls(host))
+        except Exception:
+            pass
+    try:
+        findings.extend(check_exposed_dashboards(client, probe.final_url))
+        findings.extend(check_exposed_services(host, client))
     except Exception:
         pass
 
@@ -184,6 +199,8 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
     except httpx.HTTPError:
         pass
     findings.extend(check_sensitive_comments(probe))
+    findings.extend(check_internal_ip(probe))    # internal IP disclosure
+    findings.extend(check_coep_corp(probe))      # missing cross-origin isolation headers
     findings.extend(check_js_libraries(probe))   # outdated JS libraries (A03)
     findings.extend(check_sri(probe))            # missing Subresource Integrity (A08)
     findings.extend(check_tabnabbing(probe))     # reverse tabnabbing
@@ -280,6 +297,7 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
                 findings.extend(test_mass_assignment(client, result.forms))
                 findings.extend(test_stored_xss(client, result.forms, result.pages))
                 findings.extend(run_auth_tests(client, result.forms, host))
+                findings.extend(check_source_disclosure(client, result.pages))
             # Authenticated scan: test discovered pages for missing access control.
             if authenticated:
                 findings.extend(_access_control_check(client, result.pages + result.param_urls))

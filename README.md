@@ -68,6 +68,13 @@ scanned. This is what makes running a scan legally defensible.
 
 **Passive (headers / TLS / config):**
 - HTTPS / TLS presence, HTTP→HTTPS redirect, and **TLS certificate expiry**
+- **Deep TLS analysis** — deprecated TLS 1.0/1.1, weak ciphers (RC4/3DES/NULL),
+  SHA-1 / weak-key / self-signed / hostname-mismatch certificates
+- **Exposed admin dashboards** (phpMyAdmin, Adminer, Jenkins, Kibana, …) and
+  **unauthenticated data services** (Redis, Memcached, Elasticsearch)
+- **Source-code disclosure** via backup/swap files (`.bak`, `.old`, `~`, `.swp`)
+- **DNS**: zone transfer (AXFR) allowed, missing CAA record
+- **Internal IP disclosure**, missing COEP/CORP headers
 - HSTS, Content-Security-Policy, X-Frame-Options, X-Content-Type-Options,
   Referrer-Policy, Permissions-Policy
 - Cookie flags (Secure, HttpOnly, SameSite)

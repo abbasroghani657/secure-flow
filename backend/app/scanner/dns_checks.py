@@ -182,9 +182,56 @@ def check_subdomain_takeover(host: str) -> list[Finding]:
     return findings
 
 
+def check_caa(host: str) -> list[Finding]:
+    domain = host[4:] if host.startswith("www.") else host
+    if not _HAS_DNS:
+        return []
+    try:
+        dns.resolver.resolve(domain, "CAA", lifetime=8)
+        return []  # CAA present
+    except dns.resolver.NoAnswer:
+        pass
+    except Exception:
+        return []
+    return [Finding(
+        "missing-caa", "No CAA DNS record", "low", f"dns://{domain}",
+        description="No Certification Authority Authorization (CAA) record is set.",
+        impact="Any CA may issue certificates for the domain, widening mis-issuance risk.",
+        remediation="Publish a CAA record naming your allowed CA(s).",
+        compliance_ref="OWASP A02:2021")]
+
+
+def check_zone_transfer(host: str) -> list[Finding]:
+    domain = host[4:] if host.startswith("www.") else host
+    if not _HAS_DNS:
+        return []
+    try:
+        import dns.query
+        import dns.zone
+        ns_records = dns.resolver.resolve(domain, "NS", lifetime=8)
+    except Exception:
+        return []
+    for ns in ns_records:
+        ns_host = str(ns.target).rstrip(".")
+        try:
+            ns_ip = str(dns.resolver.resolve(ns_host, "A", lifetime=6)[0])
+            xfr = dns.zone.from_xfr(dns.query.xfr(ns_ip, domain, lifetime=8))
+            if xfr:
+                return [Finding(
+                    "dns-zone-transfer", "DNS zone transfer (AXFR) allowed", "high", f"dns://{domain}",
+                    description=f"The nameserver {ns_host} allowed a full DNS zone transfer.",
+                    impact="AXFR exposes every DNS record — subdomains, internal hosts and infrastructure.",
+                    evidence=f"AXFR from {ns_host} ({ns_ip}) returned the zone.",
+                    remediation="Restrict AXFR to authorised secondary nameservers only.",
+                    compliance_ref="OWASP A05:2021")]
+        except Exception:
+            continue
+    return []
+
+
 def run_dns_checks(host: str) -> list[Finding]:
     findings: list[Finding] = []
-    for fn in (check_spf, check_dmarc):
+    for fn in (check_spf, check_dmarc, check_caa, check_zone_transfer):
         try:
             findings.extend(fn(host))
         except Exception:

@@ -412,6 +412,70 @@ def directory_listing_finding(url: str, body: str) -> Optional[Finding]:
 
 COMMON_DIRS = ["/uploads/", "/images/", "/files/", "/backup/", "/assets/", "/static/"]
 
+_INTERNAL_IP_RE = re.compile(
+    r"\b(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|"
+    r"172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})\b")
+_SOURCE_MARKERS = re.compile(r"<\?php|<%[@=]?|import java|package main|require\(|def \w+\(|#!/usr/bin", re.I)
+_BACKUP_SUFFIXES = [".bak", ".old", "~", ".swp", ".save", ".orig", ".txt"]
+_SOURCE_EXT = (".php", ".asp", ".aspx", ".jsp", ".py", ".rb", ".js", ".config", ".inc")
+
+
+def check_internal_ip(probe: Probe) -> list[Finding]:
+    blob = (probe.body_snippet or "")
+    for v in probe.raw_headers.values():
+        blob += " " + str(v)
+    m = _INTERNAL_IP_RE.search(blob)
+    if m:
+        return [Finding(
+            "internal-ip-disclosure", "Internal IP / hostname disclosure", "low", probe.final_url,
+            description="A private (RFC 1918) IP address is exposed in the response.",
+            impact="Internal addressing helps attackers map the internal network.",
+            evidence=f"Found internal IP {m.group(0)}",
+            remediation="Strip internal IPs/hostnames from responses, errors and headers.",
+            compliance_ref="OWASP A01:2025")]
+    return []
+
+
+def check_coep_corp(probe: Probe) -> list[Finding]:
+    h = probe.headers
+    missing = [n for n, k in (("Cross-Origin-Embedder-Policy", "cross-origin-embedder-policy"),
+                              ("Cross-Origin-Resource-Policy", "cross-origin-resource-policy")) if not h.get(k)]
+    if len(missing) == 2:
+        return [Finding(
+            "missing-coep-corp", "Missing cross-origin isolation headers (COEP/CORP)", "low", probe.final_url,
+            description="Neither Cross-Origin-Embedder-Policy nor Cross-Origin-Resource-Policy is set.",
+            impact="Weaker isolation against cross-origin resource leaks and Spectre-style attacks.",
+            evidence="COEP and CORP headers both absent.",
+            remediation="Set Cross-Origin-Resource-Policy: same-origin and COEP: require-corp where feasible.",
+            compliance_ref="OWASP A05:2021")]
+    return []
+
+
+def check_source_disclosure(client: httpx.Client, pages: list[str], max_pages: int = 12) -> list[Finding]:
+    tested = 0
+    for page in pages:
+        if tested >= max_pages:
+            break
+        low = urlparse(page).path.lower()
+        if not low.endswith(_SOURCE_EXT):
+            continue
+        tested += 1
+        for suf in _BACKUP_SUFFIXES:
+            try:
+                r = client.get(page + suf)
+            except httpx.HTTPError:
+                continue
+            ct = r.headers.get("content-type", "")
+            if r.status_code == 200 and ("text/plain" in ct or _SOURCE_MARKERS.search(r.text[:4000])):
+                return [Finding(
+                    "source-code-disclosure", "Source code disclosure via backup file", "high", page + suf,
+                    description="A backup/temporary copy of a script returns its raw source code.",
+                    impact="Exposed source reveals logic, credentials and vulnerabilities to attackers.",
+                    evidence=f"{page + suf} returned raw source (content-type {ct or 'n/a'}).",
+                    remediation="Remove editor/backup files from the web root and block these extensions.",
+                    compliance_ref="OWASP A05:2021")]
+    return []
+
 _COMMENT_RE = re.compile(r"<!--(.*?)-->", re.DOTALL)
 _SECRET_HINTS = re.compile(
     r"\b(password|passwd|secret|api[_-]?key|todo|fixme|hack|bug|username|"
