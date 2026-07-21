@@ -382,6 +382,34 @@ def _run_mobile_scan(session: Session, scan: Scan) -> None:
             pass
 
 
+def _run_sca_scan(session: Session, scan: Scan) -> None:
+    """Scan the uploaded dependency manifest for known-vulnerable packages."""
+    import os
+
+    from .sca_scanner import run_sca_scan
+
+    path = os.path.join(settings.upload_dir, f"{scan.id}.dep")
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            content = fh.read()
+        findings, _sbom, _n = run_sca_scan(scan.target_url, content)
+        for f in findings:
+            enrich_taxonomy(f)
+        _tally_and_complete(session, scan, findings)
+    except Exception as exc:  # noqa: BLE001
+        scan.status = ScanStatus.failed
+        scan.error = f"Scan error: {exc}"
+        scan.finished_at = datetime.now(timezone.utc)
+        session.add(scan)
+        session.commit()
+    finally:
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except OSError:
+            pass
+
+
 def run_scan(scan_id: int) -> None:
     """Entry point for the background task. Owns its own DB session."""
     with Session(db_engine) as session:
@@ -397,6 +425,10 @@ def run_scan(scan_id: int) -> None:
         # Mobile APK scan: static analysis of an uploaded file — no network target.
         if scan.scan_type == "mobile":
             _run_mobile_scan(session, scan)
+            return
+        # SCA scan: analyse an uploaded dependency manifest — no network target.
+        if scan.scan_type == "sca":
+            _run_sca_scan(session, scan)
             return
 
         base_url = scan.target_url

@@ -9,6 +9,7 @@ const SCAN_TYPES = [
   { id: "deep", label: "Deep scan (Nuclei)", desc: "Everything in Web, plus the Nuclei engine's CVE & vulnerability templates. Slower." },
   { id: "llm", label: "LLM app (AI)", desc: "Test an AI/LLM endpoint for prompt injection, jailbreak & data leakage (OWASP LLM Top 10)." },
   { id: "mobile", label: "Mobile app (APK)", desc: "Upload an Android APK for static analysis — hardcoded secrets & insecure manifest (OWASP Mobile Top 10)." },
+  { id: "sca", label: "Dependencies (SCA)", desc: "Upload a package.json / requirements.txt / lock file — finds known CVEs in your dependencies (OSV database)." },
   { id: "bola", label: "IDOR / BOLA (two accounts)", desc: "Use two accounts to test object-level authorization — can user B read user A's data? (OWASP API #1)." },
   { id: "headers", label: "Headers only", desc: "Quick check of security response headers." },
 ];
@@ -34,6 +35,7 @@ export default function NewScan() {
   const [llmBody, setLlmBody] = useState('{"prompt": "{{PROMPT}}"}');
   const [llmRespPath, setLlmRespPath] = useState("");
   const [apkFile, setApkFile] = useState(null);
+  const [depFile, setDepFile] = useState(null);
   const nav = useNavigate();
 
   useEffect(() => {
@@ -50,12 +52,13 @@ export default function NewScan() {
   async function submit(e) {
     e.preventDefault();
     setErr("");
-    // Mobile scan is a file upload — no verified target needed.
-    if (type === "mobile") {
-      if (!apkFile) { setErr("Choose an .apk file to scan."); return; }
+    // File-upload scan types — no verified target needed.
+    if (type === "mobile" || type === "sca") {
+      const f = type === "mobile" ? apkFile : depFile;
+      if (!f) { setErr(type === "mobile" ? "Choose an .apk file to scan." : "Choose a dependency file to scan."); return; }
       setBusy(true);
       try {
-        const scan = await api.uploadMobileScan(apkFile);
+        const scan = type === "mobile" ? await api.uploadMobileScan(f) : await api.uploadScaScan(f);
         nav(`/scans/${scan.id}`);
       } catch (e2) {
         setErr(e2.message);
@@ -124,18 +127,27 @@ export default function NewScan() {
               </div>
             </div>
 
-            {type === "mobile" ? (
-              /* APK upload — no verified target needed (you uploaded the app) */
-              <div style={{ display: "grid", gap: 8 }}>
-                <label style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>Android APK file</label>
-                <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "28px 20px", borderRadius: 12, border: `1.5px dashed ${apkFile ? T.accent : T.borderStrong}`, background: apkFile ? "rgba(0,191,99,0.06)" : "rgba(255,255,255,0.02)", cursor: "pointer", textAlign: "center" }}>
-                  <input type="file" accept=".apk" style={{ display: "none" }} onChange={(e) => setApkFile(e.target.files?.[0] || null)} />
-                  <span style={{ fontSize: 14, color: apkFile ? T.accentHi : T.muted, fontFamily: apkFile ? T.mono : T.body }}>
-                    {apkFile ? `${apkFile.name} (${(apkFile.size / 1e6).toFixed(1)} MB)` : "Click to choose an .apk file"}
-                  </span>
-                </label>
-                <p style={{ margin: 0, fontSize: 12.5, color: T.muted }}>The APK is analysed for hardcoded secrets and insecure manifest settings, then deleted. No target verification needed.</p>
-              </div>
+            {type === "mobile" || type === "sca" ? (
+              /* File-upload scan (APK / dependency manifest) — no verified target needed */
+              (() => {
+                const isSca = type === "sca";
+                const f = isSca ? depFile : apkFile;
+                const set = isSca ? setDepFile : setApkFile;
+                return (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <label style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>{isSca ? "Dependency file" : "Android APK file"}</label>
+                    <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "28px 20px", borderRadius: 12, border: `1.5px dashed ${f ? T.accent : T.borderStrong}`, background: f ? "rgba(0,191,99,0.06)" : "rgba(255,255,255,0.02)", cursor: "pointer", textAlign: "center" }}>
+                      <input type="file" accept={isSca ? ".json,.txt,.lock,.mod,.sum,.xml" : ".apk"} style={{ display: "none" }} onChange={(e) => set(e.target.files?.[0] || null)} />
+                      <span style={{ fontSize: 14, color: f ? T.accentHi : T.muted, fontFamily: f ? T.mono : T.body }}>
+                        {f ? `${f.name} (${(f.size / 1024).toFixed(0)} KB)` : (isSca ? "Click to choose package.json / requirements.txt / lock file" : "Click to choose an .apk file")}
+                      </span>
+                    </label>
+                    <p style={{ margin: 0, fontSize: 12.5, color: T.muted }}>
+                      {isSca ? "Your dependencies are checked against the OSV vulnerability database, then the file is deleted." : "The APK is analysed for hardcoded secrets and insecure manifest settings, then deleted. No target verification needed."}
+                    </p>
+                  </div>
+                );
+              })()
             ) : targets.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 24px", border: `1px dashed ${T.borderStrong}`, borderRadius: 16 }}>
                 <p style={{ color: T.muted, fontSize: 14.5, margin: "0 0 18px" }}>

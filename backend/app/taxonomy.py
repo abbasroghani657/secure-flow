@@ -166,6 +166,7 @@ _PREFIX = {
     "exposed-dashboard-": ("A02:2025", "CWE-668", "infra"),
     "outdated-js-": ("A03:2025", "CWE-1104", "frontend"),
     "mobile-secret-": ("M1:2024", "CWE-798", "mobile"),
+    "sca-": ("A03:2025", "CWE-1104", "backend"),
     "cookie-flags-": ("A02:2025", "CWE-614", "backend"),
     "cookie-secure-": ("A02:2025", "CWE-614", "backend"),
     "banner-": ("A02:2025", "CWE-200", "infra"),
