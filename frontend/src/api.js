@@ -73,6 +73,7 @@ export const api = {
     fd.append("file", file);
     return request("/api/scans/sast", { method: "POST", body: fd, isForm: true });
   },
+  createCspmScan: (body) => request("/api/scans/cspm", { method: "POST", body }),
   listScans: () => request("/api/scans"),
   getScan: (id) => request(`/api/scans/${id}`),
   deleteScan: (id) => request(`/api/scans/${id}`, { method: "DELETE" }),

@@ -182,6 +182,12 @@ Beyond the web scanner, two standalone engines cover other OWASP families:
   dangerous-sink ruleset: code/command/SQL injection, insecure deserialization,
   SSTI, XSS sinks, file inclusion, weak crypto, and disabled TLS verification. No
   external scanner dependency.
+- **CSPM — cloud posture (AWS)** (`app/scanner/cspm_scanner.py`) — scan an AWS
+  account with **read-only** credentials (SecurityAudit/ReadOnlyAccess): public S3
+  buckets, security groups open to `0.0.0.0/0`, unencrypted EBS/RDS/S3, publicly
+  accessible RDS, IAM users without MFA, stale access keys, weak password policy,
+  and disabled CloudTrail. Credentials are used only for the scan and **wiped the
+  moment it finishes** (never returned by the API). Verified against mocked AWS.
 
 > These run against apps/endpoints you own or are authorised to test. They are
 > wired as engines today; the API/UI scan types for them are the next step.

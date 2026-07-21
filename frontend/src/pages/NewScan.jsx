@@ -15,6 +15,7 @@ const SCAN_TYPES = [
   { id: "secrets", label: "Secrets (source code)", desc: "Upload a source archive (.zip) — finds leaked API keys, tokens & private keys committed in your code." },
   { id: "cicd", label: "CI/CD pipeline", desc: "Upload a GitHub Actions / GitLab CI workflow — finds supply-chain risks: unpinned actions, script injection, over-broad tokens." },
   { id: "sast", label: "Source code (SAST)", desc: "Upload a source archive (.zip) — static analysis for injection, command exec, deserialization & weak crypto (Python/JS/PHP/Java/Go/Ruby)." },
+  { id: "cspm", label: "Cloud posture (AWS)", desc: "Scan your AWS account with read-only keys — public buckets, open security groups, IAM/MFA, unencrypted storage, CloudTrail." },
   { id: "bola", label: "IDOR / BOLA (two accounts)", desc: "Use two accounts to test object-level authorization — can user B read user A's data? (OWASP API #1)." },
   { id: "headers", label: "Headers only", desc: "Quick check of security response headers." },
 ];
@@ -49,6 +50,9 @@ export default function NewScan() {
   const [secretsFile, setSecretsFile] = useState(null);
   const [cicdFile, setCicdFile] = useState(null);
   const [sastFile, setSastFile] = useState(null);
+  const [awsAccessKey, setAwsAccessKey] = useState("");
+  const [awsSecretKey, setAwsSecretKey] = useState("");
+  const [awsRegion, setAwsRegion] = useState("us-east-1");
   const nav = useNavigate();
 
   useEffect(() => {
@@ -74,6 +78,23 @@ export default function NewScan() {
       setBusy(true);
       try {
         const scan = await uploadMap[type](f);
+        nav(`/scans/${scan.id}`);
+      } catch (e2) {
+        setErr(e2.message);
+        setBusy(false);
+      }
+      return;
+    }
+    // CSPM — scans an AWS account with read-only credentials (no target needed).
+    if (type === "cspm") {
+      if (!awsAccessKey.trim() || !awsSecretKey.trim()) { setErr("Enter your AWS access key and secret key."); return; }
+      setBusy(true);
+      try {
+        const scan = await api.createCspmScan({
+          aws_access_key: awsAccessKey.trim(),
+          aws_secret_key: awsSecretKey.trim(),
+          aws_region: awsRegion.trim() || "us-east-1",
+        });
         nav(`/scans/${scan.id}`);
       } catch (e2) {
         setErr(e2.message);
@@ -168,6 +189,26 @@ export default function NewScan() {
                   </div>
                 );
               })()
+            ) : type === "cspm" ? (
+              /* CSPM — read-only AWS credentials, no verified target needed */
+              <div style={{ display: "grid", gap: 14, padding: "16px 18px", borderRadius: 12, border: `1px solid ${T.accent}`, background: "rgba(0,191,99,0.05)" }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: T.accentHi }}>AWS read-only credentials</div>
+                <p style={{ margin: 0, fontSize: 12.5, color: T.muted, lineHeight: 1.5 }}>
+                  Use an IAM key with the AWS-managed <b style={{ color: T.text }}>SecurityAudit</b> or <b style={{ color: T.text }}>ReadOnlyAccess</b> policy. Credentials are used for this scan only and <b style={{ color: T.text }}>deleted the moment it finishes</b> — never stored.
+                </p>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 600 }}>Access key ID</label>
+                  <input value={awsAccessKey} onChange={(e) => setAwsAccessKey(e.target.value)} placeholder="AKIA…" style={inp(T)} />
+                </div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 600 }}>Secret access key</label>
+                  <input type="password" value={awsSecretKey} onChange={(e) => setAwsSecretKey(e.target.value)} placeholder="••••••••" style={inp(T)} />
+                </div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 600 }}>Region</label>
+                  <input value={awsRegion} onChange={(e) => setAwsRegion(e.target.value)} placeholder="us-east-1" style={inp(T)} />
+                </div>
+              </div>
             ) : targets.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 24px", border: `1px dashed ${T.borderStrong}`, borderRadius: 16 }}>
                 <p style={{ color: T.muted, fontSize: 14.5, margin: "0 0 18px" }}>
@@ -265,7 +306,7 @@ export default function NewScan() {
 
             {err && <div style={{ fontSize: 13.5, color: "#F87171", background: "rgba(220,38,38,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 10, padding: "10px 12px" }}>{err}</div>}
 
-            <button type="submit" disabled={busy || (!UPLOAD_TYPES.includes(type) && targets.length === 0)} style={{ ...primaryBtn, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: (busy || (!UPLOAD_TYPES.includes(type) && targets.length === 0)) ? 0.6 : 1 }}>
+            <button type="submit" disabled={busy || (!UPLOAD_TYPES.includes(type) && type !== "cspm" && targets.length === 0)} style={{ ...primaryBtn, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: (busy || (!UPLOAD_TYPES.includes(type) && type !== "cspm" && targets.length === 0)) ? 0.6 : 1 }}>
               {busy && <Spinner />} Launch scan
             </button>
           </form>

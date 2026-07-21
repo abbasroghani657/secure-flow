@@ -548,6 +548,37 @@ def _run_sast_scan(session: Session, scan: Scan) -> None:
             pass
 
 
+def _run_cspm_scan(session: Session, scan: Scan) -> None:
+    """Cloud posture scan of the owner's AWS account; credentials are wiped after."""
+    import json
+
+    from .cspm_scanner import CSPMTarget, run_cspm_scan
+
+    try:
+        creds = json.loads(scan.auth_headers or "{}")
+        target = CSPMTarget(
+            access_key=creds.get("aws_access_key", ""),
+            secret_key=creds.get("aws_secret_key", ""),
+            region=creds.get("aws_region", "us-east-1"),
+            session_token=creds.get("aws_session_token"),
+        )
+        findings = run_cspm_scan(target)
+        for f in findings:
+            enrich_taxonomy(f)
+        _tally_and_complete(session, scan, findings)
+    except Exception as exc:  # noqa: BLE001
+        scan.status = ScanStatus.failed
+        scan.error = f"Scan error: {exc}"
+        scan.finished_at = datetime.now(timezone.utc)
+        session.add(scan)
+        session.commit()
+    finally:
+        # Never keep cloud credentials after the scan.
+        scan.auth_headers = None
+        session.add(scan)
+        session.commit()
+
+
 def run_scan(scan_id: int) -> None:
     """Entry point for the background task. Owns its own DB session."""
     with Session(db_engine) as session:
@@ -587,6 +618,10 @@ def run_scan(scan_id: int) -> None:
         # SAST scan: static analysis of an uploaded source archive — no network target.
         if scan.scan_type == "sast":
             _run_sast_scan(session, scan)
+            return
+        # CSPM scan: query the owner's AWS account with their read-only credentials.
+        if scan.scan_type == "cspm":
+            _run_cspm_scan(session, scan)
             return
 
         base_url = scan.target_url

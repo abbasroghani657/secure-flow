@@ -287,6 +287,25 @@ languages with a curated dangerous-sink ruleset.
 
 ---
 
+## ☁️ CSPM — Cloud Security Posture (AWS)
+Scan an AWS account with **read-only** credentials (used only for the scan, then
+wiped). Prowler / ScoutSuite category.
+| # | Vulnerability | OWASP | CWE |
+|---|---|---|---|
+| 201 | S3 bucket publicly accessible | A05 | CWE-668 |
+| 202 | S3 bucket without Block Public Access | A05 | CWE-668 |
+| 203 | S3 bucket without default encryption | A02 | CWE-311 |
+| 204 | Security group open to 0.0.0.0/0 on a sensitive port | A05 | CWE-284 |
+| 205 | EBS volume not encrypted | A02 | CWE-311 |
+| 206 | IAM user without MFA | A07 | CWE-308 |
+| 207 | IAM access key not rotated (>90 days) | A07 | CWE-521 |
+| 208 | Weak / missing IAM password policy | A07 | CWE-521 |
+| 209 | RDS instance publicly accessible | A05 | CWE-668 |
+| 210 | RDS storage not encrypted | A02 | CWE-311 |
+| 211 | CloudTrail audit logging not enabled | A09 | CWE-778 |
+
+---
+
 ## 🔬 Deep Scan — Nuclei engine
 Thousands of community templates: known **CVEs**, exposed panels, default credentials,
 technology/version fingerprinting, and misconfigurations — merged into the findings

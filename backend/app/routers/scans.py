@@ -8,7 +8,7 @@ from sqlmodel import select
 from ..config import settings
 from ..deps import CurrentUser, SessionDep
 from ..models import Finding, Scan, ScanStatus, Target
-from ..schemas import FindingRead, ScanCreate, ScanDetail, ScanRead
+from ..schemas import CSPMScanCreate, FindingRead, ScanCreate, ScanDetail, ScanRead
 from ..scanner.checks import normalize_url
 
 router = APIRouter(prefix="/api/scans", tags=["scans"])
@@ -272,6 +272,38 @@ async def create_sast_scan(
     os.makedirs(settings.upload_dir, exist_ok=True)
     with open(os.path.join(settings.upload_dir, f"{scan.id}.sast"), "wb") as fh:
         fh.write(data)
+    return _scan_read(scan)
+
+
+@router.post("/cspm", response_model=ScanRead, status_code=status.HTTP_201_CREATED)
+def create_cspm_scan(
+    data: CSPMScanCreate,
+    current: CurrentUser,
+    session: SessionDep,
+) -> ScanRead:
+    """Run a cloud posture scan against the caller's own AWS account.
+
+    Ownership is proven by possessing valid credentials, so no separate target
+    verification is required. Credentials are stored only until the scan runs and
+    are wiped from the record the moment it finishes.
+    """
+    if not data.aws_access_key.strip() or not data.aws_secret_key.strip():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "AWS access key and secret key are required.")
+
+    creds = json.dumps({
+        "aws_access_key": data.aws_access_key.strip(),
+        "aws_secret_key": data.aws_secret_key.strip(),
+        "aws_region": (data.aws_region or "us-east-1").strip(),
+        "aws_session_token": (data.aws_session_token or "").strip() or None,
+    })
+    scan = Scan(
+        owner_id=current.id, target_url=f"aws:{(data.aws_region or 'us-east-1').strip()}",
+        scan_type="cspm", status=ScanStatus.queued,
+        authenticated=True, auth_headers=creds,
+    )
+    session.add(scan)
+    session.commit()
+    session.refresh(scan)
     return _scan_read(scan)
 
 

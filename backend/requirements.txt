@@ -13,3 +13,6 @@ slowapi==0.1.9
 psycopg[binary]==3.2.3
 beautifulsoup4==4.12.3
 pyaxmlparser==0.3.31
+
+# Cloud posture scanning (CSPM)
+boto3==1.43.53

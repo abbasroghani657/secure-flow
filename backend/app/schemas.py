@@ -87,6 +87,18 @@ class ScanCreate(BaseModel):
     llm_response_path: Optional[str] = None
 
 
+class CSPMScanCreate(BaseModel):
+    """Read-only AWS credentials for a cloud posture scan (scan_type == 'cspm').
+
+    Supplied by the account owner, used only for the scan, and cleared from the
+    scan record the moment it finishes.
+    """
+    aws_access_key: str
+    aws_secret_key: str
+    aws_region: str = "us-east-1"
+    aws_session_token: Optional[str] = None
+
+
 class FindingRead(BaseModel):
     id: int
     check_id: str
