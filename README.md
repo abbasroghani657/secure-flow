@@ -164,7 +164,7 @@ and **cleared from the database the moment it finishes** (never exposed via the 
 
 > Production hardening TODO: encrypt the in-flight `auth_headers` at rest.
 
-### IDOR / BOLA (two-account) testing
+### IDOR / BOLA / BFLA (two-account) testing
 
 The "IDOR / BOLA" scan type (`app/scanner/access_control.py`) takes credentials
 for **two** accounts. It crawls as user A to find object-reference URLs (paths or

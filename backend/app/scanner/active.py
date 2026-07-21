@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import re
 import secrets
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
 
 import httpx
 
@@ -449,6 +449,60 @@ def test_stored_xss(client: httpx.Client, forms: list[Form], pages: list[str],
                 remediation="Encode all stored user input on output; add a strict Content-Security-Policy.",
                 compliance_ref="OWASP A03:2021",
             )]
+    return []
+
+
+_FILE_FIELD_RE = re.compile(r"file|upload|image|photo|attach|document|avatar|picture|logo|media", re.I)
+_UPLOAD_DIRS = ["/uploads/", "/files/", "/media/", "/images/", "/upload/", "/attachments/", "/documents/", "/img/"]
+
+
+def test_file_upload(client: httpx.Client, forms: list[Form], base_url: str, max_forms: int = 4) -> list[Finding]:
+    """Upload a BENIGN marker file to upload forms, then test whether it is stored and
+    (worse) executed as code. The payload only echoes a marker — it is not a real shell."""
+    token = secrets.token_hex(4)
+    marker = f"SFUP{token}"
+    content = f"SFPHP<?php echo '{marker}';?>".encode()
+    for form in forms[:max_forms]:
+        if form.method != "post":
+            continue
+        file_field = next((n for n in form.inputs if _FILE_FIELD_RE.search(n)), None)
+        if not file_field:
+            continue
+        data = {n: "test" for n in form.inputs if n != file_field}
+        files = {file_field: (f"sf{token}.php", content, "image/jpeg")}
+        try:
+            r = client.post(form.action, data=data, files=files)
+        except httpx.HTTPError:
+            continue
+        if r.status_code >= 400:
+            continue
+        candidates: list[str] = []
+        m = re.search(r"[\w./\-]*sf" + token + r"[\w./\-]*\.php", r.text)
+        if m:
+            candidates.append(urljoin(base_url, m.group(0)))
+        candidates += [urljoin(base_url, d + f"sf{token}.php") for d in _UPLOAD_DIRS]
+        for url in dict.fromkeys(candidates):
+            try:
+                g = client.get(url)
+            except httpx.HTTPError:
+                continue
+            if g.status_code == 200 and marker in g.text:
+                if "<?php" not in g.text:  # PHP was executed → remote code execution
+                    return [Finding(
+                        "webshell-upload", "Unrestricted upload leading to code execution (webshell)",
+                        "critical", url,
+                        description="An uploaded .php file was stored and executed by the server.",
+                        impact="Attackers can upload a webshell and run arbitrary commands — full server compromise.",
+                        evidence=f"Uploaded a benign PHP file that executed (echoed {marker}) at {url}.",
+                        remediation="Validate type/extension, store outside the web root, and never execute uploads.",
+                        compliance_ref="OWASP A04:2025")]
+                return [Finding(
+                    "unrestricted-file-upload", "Unrestricted file upload", "high", url,
+                    description="An arbitrary file type was uploaded and is publicly served.",
+                    impact="Uploading arbitrary files enables stored XSS (SVG/HTML), malware hosting or later RCE.",
+                    evidence=f"Uploaded sf{token}.php was stored and served at {url}.",
+                    remediation="Allow-list safe types, rename files, store outside the web root, and scan uploads.",
+                    compliance_ref="OWASP A04:2025")]
     return []
 
 

@@ -42,10 +42,21 @@ class TwoSessionTarget:
     headers_b: dict = field(default_factory=dict)
 
 
+_PRIVILEGED_RE = re.compile(
+    r"/(admin|administrator|manage(?:ment)?|internal|config(?:uration)?|dashboard|"
+    r"users?|accounts?|roles?|permissions?|delete|ban|promote|grant|approve|"
+    r"moderat|superuser|backend|staff|console)(/|$|\?|-)", re.I)
+
+
 def has_object_ref(url: str) -> bool:
     """True if the URL addresses a specific object by id/uuid (path or query)."""
     p = urlparse(url)
     return bool(_NUM_PATH_RE.search(p.path) or _UUID_RE.search(p.path) or _ID_PARAM_RE.search(p.query))
+
+
+def has_privileged_ref(url: str) -> bool:
+    """True if the URL looks like a privileged/admin function endpoint."""
+    return bool(_PRIVILEGED_RE.search(urlparse(url).path))
 
 
 def _similarity(a: str, b: str) -> float:
@@ -121,5 +132,40 @@ def run_bola_scan(target: TwoSessionTarget, max_candidates: int = 20, timeout: f
                     compliance_ref="OWASP API1:2023",
                 ))
                 if len(findings) >= 10:
+                    break
+
+        # --- BFLA / vertical privilege escalation ---
+        # Privileged/admin function endpoints A can reach: can the (lower-priv) B reach them too?
+        priv_seen: set[str] = set()
+        priv = []
+        for u in ((result.pages + result.param_urls) if result else []):
+            if u not in priv_seen and has_privileged_ref(u):
+                priv_seen.add(u)
+                priv.append(u)
+        for url in priv[:max_candidates]:
+            ra = _get(ca, url)
+            if ra is None or ra.status_code != 200 or len(ra.text) < 80:
+                continue
+            ranon = _get(canon, url)
+            # Must actually be privileged: anonymous access should be denied.
+            if ranon is not None and ranon.status_code == 200 and _similarity(ranon.text, ra.text) > 0.9:
+                continue
+            rb = _get(cb, url)
+            if rb is None or rb.status_code != 200:
+                continue  # B denied — function-level authorization works here
+            sim_ba = _similarity(rb.text, ra.text)
+            sim_banon = _similarity(rb.text, ranon.text) if ranon is not None else 0.0
+            if sim_ba > 0.85 and sim_ba >= sim_banon:
+                findings.append(Finding(
+                    check_id=f"bfla-{urlparse(url).path.strip('/').replace('/', '-')[:40] or 'root'}",
+                    title="Broken Function-Level Authorization / Privilege Escalation", severity="high", url=url,
+                    description="A second (lower-privileged) account can access a privileged/admin function endpoint.",
+                    impact="A normal user can invoke admin-only functionality — full privilege escalation.",
+                    evidence=f"Account B reached the privileged endpoint {url} (response similarity {sim_ba:.0%}). "
+                             "Verify B is less privileged than A.",
+                    remediation="Enforce role/function checks server-side on every privileged endpoint.",
+                    compliance_ref="OWASP API5:2023",
+                ))
+                if len([f for f in findings if f.check_id.startswith("bfla-")]) >= 5:
                     break
     return findings

@@ -7,11 +7,16 @@ Both need a login form, which we detect by field names. Requests are bounded
 from __future__ import annotations
 
 import difflib
+import re
+from urllib.parse import urljoin, urlparse
 
 import httpx
 
 from .checks import Finding
 from .crawler import Form
+
+_LOGOUT_RE = re.compile(r"/(logout|signout|sign-out|log-out|logoff|log-off)", re.I)
+_LOGGEDIN_RE = re.compile(r"log\s?out|sign\s?out|my account|my profile|dashboard", re.I)
 
 _USER_FIELDS = {"username", "user", "email", "login", "user_login", "userid", "user_name", "j_username"}
 _PASS_FIELDS = {"password", "passwd", "pass", "pwd", "j_password"}
@@ -40,6 +45,45 @@ def _submit(client: httpx.Client, form: Form, user: str, pw: str):
         return client.get(form.action, params=data)
     except httpx.HTTPError:
         return None
+
+
+def check_logout_invalidation(client: httpx.Client, base_url: str, pages: list[str]) -> list[Finding]:
+    """Authenticated only: after hitting logout, does the same session still work?"""
+    logout_url = next((u for u in pages if _LOGOUT_RE.search(urlparse(u).path)), None)
+    if not logout_url:
+        for guess in ("/logout", "/signout", "/account/logout", "/users/sign_out"):
+            try:
+                r = client.get(urljoin(base_url, guess), follow_redirects=False)
+            except httpx.HTTPError:
+                continue
+            if r.status_code in (200, 302, 303):
+                logout_url = urljoin(base_url, guess)
+                break
+    if not logout_url:
+        return []
+
+    try:
+        before = client.get(base_url)
+    except httpx.HTTPError:
+        return []
+    if before is None or not _LOGGEDIN_RE.search(before.text):
+        return []  # can't confirm we're logged in — skip
+
+    try:
+        client.get(logout_url)                      # invalidate the session
+        after = client.get(base_url)                # reuse the SAME session cookie
+    except httpx.HTTPError:
+        return []
+    if after is not None and after.status_code == 200 and _LOGGEDIN_RE.search(after.text) and \
+            difflib.SequenceMatcher(None, before.text[:3000], after.text[:3000]).ratio() > 0.9:
+        return [Finding(
+            "session-not-invalidated", "Session not invalidated on logout", "medium", base_url,
+            description="After calling logout, the same session token still returns authenticated content.",
+            impact="A stolen/logged-out session token stays valid, enabling session hijacking after logout.",
+            evidence="The session still showed logged-in content after hitting the logout endpoint.",
+            remediation="Destroy the server-side session on logout and rotate/clear the session cookie.",
+            compliance_ref="OWASP A07:2025")]
+    return []
 
 
 def run_auth_tests(client: httpx.Client, forms: list[Form], host: str) -> list[Finding]:

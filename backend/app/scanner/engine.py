@@ -16,9 +16,9 @@ from ..database import engine as db_engine
 from ..models import Finding as FindingModel
 from ..models import Scan, ScanStatus, Severity
 from ..taxonomy import enrich as enrich_taxonomy
-from .active import run_active_tests, test_host_header, test_stored_xss, test_xxe
+from .active import run_active_tests, test_file_upload, test_host_header, test_stored_xss, test_xxe
 from .api_checks import check_cors_reflection, check_excessive_data, check_websocket, test_mass_assignment
-from .auth_tests import run_auth_tests
+from .auth_tests import check_logout_invalidation, run_auth_tests
 from .cloud import check_cloud_buckets
 from .dom_xss import check_dom_xss
 from .logic import run_logic_tests
@@ -306,6 +306,10 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
                 findings.extend(run_auth_tests(client, result.forms, host))
                 findings.extend(check_source_disclosure(client, result.pages))
                 findings.extend(check_api_inventory(client, probe.final_url, result.param_urls + result.pages))
+                findings.extend(test_file_upload(client, result.forms, probe.final_url))
+                # Session lifecycle (logout invalidation) needs an authenticated session.
+                if authenticated:
+                    findings.extend(check_logout_invalidation(client, probe.final_url, result.pages))
             # Authenticated scan: test discovered pages for missing access control.
             if authenticated:
                 findings.extend(_access_control_check(client, result.pages + result.param_urls))
