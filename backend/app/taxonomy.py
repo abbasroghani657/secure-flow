@@ -51,6 +51,9 @@ _EXACT = {
     "subdomain-takeover": ("A01:2025", "CWE-350", "infra"),
     "broken-access-control": ("A01:2025", "CWE-284", "backend"),
     "bola-same-account": ("A01:2025", "CWE-639", "api"),
+    "open-cloud-bucket": ("A02:2025", "CWE-668", "infra"),
+    "dom-xss": ("A05:2025", "CWE-79", "frontend"),
+    "xxe": ("A05:2025", "CWE-611", "backend"),
     # A08 Software & Data Integrity Failures
     "missing-sri": ("A08:2025", "CWE-353", "frontend"),
     # A07 Identification & Authentication Failures

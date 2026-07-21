@@ -16,7 +16,9 @@ from ..database import engine as db_engine
 from ..models import Finding as FindingModel
 from ..models import Scan, ScanStatus, Severity
 from ..taxonomy import enrich as enrich_taxonomy
-from .active import run_active_tests, test_host_header
+from .active import run_active_tests, test_host_header, test_xxe
+from .cloud import check_cloud_buckets
+from .dom_xss import check_dom_xss
 from .checks import (
     BASE_CHECKS,
     COMMON_DIRS,
@@ -166,6 +168,11 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
     findings.extend(check_js_libraries(probe))   # outdated JS libraries (A03)
     findings.extend(check_sri(probe))            # missing Subresource Integrity (A08)
     findings.extend(check_tabnabbing(probe))     # reverse tabnabbing
+    findings.extend(check_dom_xss(client, probe))          # potential DOM-based XSS
+    try:
+        findings.extend(check_cloud_buckets(client, probe))  # open cloud storage buckets
+    except Exception:
+        pass
 
     # 3b. GraphQL introspection exposed
     for gp in ("/graphql", "/api/graphql", "/v1/graphql"):
@@ -234,6 +241,7 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
             if settings.active_tests_enabled:
                 findings.extend(run_active_tests(client, result.param_urls, result.forms,
                                                  max_urls=settings.max_active_urls))
+                findings.extend(test_xxe(client, probe.final_url, result.param_urls))
             # Authenticated scan: test discovered pages for missing access control.
             if authenticated:
                 findings.extend(_access_control_check(client, result.pages + result.param_urls))

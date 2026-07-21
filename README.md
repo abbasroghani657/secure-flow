@@ -87,9 +87,11 @@ scanned. This is what makes running a scan legally defensible.
 - A same-origin **crawler** discovers pages, forms and parameterised URLs
 - **SQL Injection**, **NoSQL Injection**, **OS Command Injection**, **Reflected
   XSS**, **Server-Side Template Injection (SSTI)**, **Server-Side Request Forgery
-  (SSRF)**, **CRLF / HTTP response splitting**, **Host header injection**,
-  **Open Redirect**, and **Path Traversal / LFI** are probed with non-destructive
-  payloads on discovered parameters and GET forms
+  (SSRF)**, **XML External Entity (XXE)**, **CRLF / HTTP response splitting**,
+  **Host header injection**, **Open Redirect**, and **Path Traversal / LFI** are
+  probed with non-destructive payloads on discovered parameters and GET forms
+- **Potential DOM-based XSS** — static source→sink analysis of first-party JavaScript
+- **Open (publicly listable) cloud storage buckets** referenced by the site (S3/GCS/Azure)
 - **GraphQL introspection**, **verbose error / stack-trace disclosure**,
   **sensitive data in HTML comments**, and **session tokens in URLs**
 
