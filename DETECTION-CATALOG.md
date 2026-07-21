@@ -267,6 +267,26 @@ Upload a workflow file or a `.zip` — supply-chain and pipeline misconfiguratio
 
 ---
 
+## 🧬 SAST — source code (Python AST + JS/PHP/Java/Go/Ruby rules)
+Upload a source `.zip`; Python is analysed with the real `ast` module, other
+languages with a curated dangerous-sink ruleset.
+| # | Vulnerability | OWASP | CWE |
+|---|---|---|---|
+| 189 | Code injection — `eval`/`exec`/`Function` on dynamic input | A05 | CWE-94 |
+| 190 | OS command injection — `system`/`exec`/`shell=True` | A05 | CWE-78 |
+| 191 | SQL injection — query built by f-string / concat / format | A05 | CWE-89 |
+| 192 | Insecure deserialization — `pickle`/`ObjectInputStream`/`unserialize` | A08 | CWE-502 |
+| 193 | Unsafe `yaml.load()` without SafeLoader | A08 | CWE-502 |
+| 194 | Server-side template injection (`render_template_string`) | A05 | CWE-1336 |
+| 195 | DOM XSS / reflected XSS sink (`innerHTML`, `echo $_GET`) | A05 | CWE-79 |
+| 196 | Remote/local file inclusion (`include $_GET`) | A05 | CWE-98 |
+| 197 | Weak hash (MD5/SHA-1) / weak cipher (DES/ECB) | A02 | CWE-327 |
+| 198 | Insecure randomness for security tokens | A02 | CWE-330 |
+| 199 | TLS verification disabled (`verify=False`, `InsecureSkipVerify`, trust-all) | A02 | CWE-295 |
+| 200 | Flask `debug=True` / insecure temp file | A05 | CWE-489 |
+
+---
+
 ## 🔬 Deep Scan — Nuclei engine
 Thousands of community templates: known **CVEs**, exposed panels, default credentials,
 technology/version fingerprinting, and misconfigurations — merged into the findings

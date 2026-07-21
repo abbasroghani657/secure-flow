@@ -210,9 +210,38 @@ _PREFIX = {
 }
 
 
+# SAST check_ids are "sast-<lang>-<class>"; the security class (the suffix) drives
+# the OWASP/CWE mapping regardless of language.
+_SAST_SUFFIX = {
+    "command-injection": ("A05:2025", "CWE-78", "backend"),
+    "code-injection": ("A05:2025", "CWE-94", "backend"),
+    "sql-injection": ("A05:2025", "CWE-89", "database"),
+    "insecure-deserialization": ("A08:2025", "CWE-502", "backend"),
+    "object-injection": ("A08:2025", "CWE-502", "backend"),
+    "unsafe-yaml": ("A08:2025", "CWE-502", "backend"),
+    "ssti": ("A05:2025", "CWE-1336", "backend"),
+    "dom-xss": ("A05:2025", "CWE-79", "frontend"),
+    "xss": ("A05:2025", "CWE-79", "frontend"),
+    "file-inclusion": ("A05:2025", "CWE-98", "backend"),
+    "weak-hash": ("A02:2025", "CWE-327", "backend"),
+    "weak-crypto": ("A02:2025", "CWE-327", "backend"),
+    "weak-random": ("A02:2025", "CWE-330", "backend"),
+    "tls-verify-disabled": ("A02:2025", "CWE-295", "backend"),
+    "tls-skip-verify": ("A02:2025", "CWE-295", "backend"),
+    "trust-all-certs": ("A02:2025", "CWE-295", "backend"),
+    "debug-enabled": ("A05:2025", "CWE-489", "backend"),
+    "insecure-tempfile": ("A01:2025", "CWE-377", "backend"),
+}
+
+
 def classify(check_id: str) -> tuple[str, str, str]:
     if check_id in _EXACT:
         return _EXACT[check_id]
+    if check_id.startswith("sast-"):
+        for suffix, val in _SAST_SUFFIX.items():
+            if check_id.endswith(suffix):
+                return val
+        return ("A05:2025", "CWE-94", "backend")  # generic SAST fallback
     for prefix, val in _PREFIX.items():
         if check_id.startswith(prefix):
             return val

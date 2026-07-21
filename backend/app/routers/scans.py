@@ -250,6 +250,31 @@ async def create_cicd_scan(
     return _scan_read(scan)
 
 
+@router.post("/sast", response_model=ScanRead, status_code=status.HTTP_201_CREATED)
+async def create_sast_scan(
+    current: CurrentUser,
+    session: SessionDep,
+    file: UploadFile = File(...),
+) -> ScanRead:
+    """Upload a source archive (.zip) or a single file for static code analysis (SAST)."""
+    filename = file.filename or "source.zip"
+    data = await file.read()
+    if len(data) > 20 * 1024 * 1024:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Archive too large (max 20 MB).")
+    if not data:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "The uploaded file is empty.")
+
+    scan = Scan(owner_id=current.id, target_url=filename, scan_type="sast", status=ScanStatus.queued)
+    session.add(scan)
+    session.commit()
+    session.refresh(scan)
+
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    with open(os.path.join(settings.upload_dir, f"{scan.id}.sast"), "wb") as fh:
+        fh.write(data)
+    return _scan_read(scan)
+
+
 @router.get("", response_model=list[ScanRead])
 def list_scans(current: CurrentUser, session: SessionDep) -> list[ScanRead]:
     scans = session.exec(

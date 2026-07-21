@@ -68,6 +68,11 @@ export const api = {
     fd.append("file", file);
     return request("/api/scans/cicd", { method: "POST", body: fd, isForm: true });
   },
+  uploadSastScan: (file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return request("/api/scans/sast", { method: "POST", body: fd, isForm: true });
+  },
   listScans: () => request("/api/scans"),
   getScan: (id) => request(`/api/scans/${id}`),
   deleteScan: (id) => request(`/api/scans/${id}`, { method: "DELETE" }),

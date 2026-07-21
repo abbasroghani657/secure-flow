@@ -175,6 +175,13 @@ Beyond the web scanner, two standalone engines cover other OWASP families:
   event data, third-party **actions not pinned to a commit SHA**, over-broad
   `GITHUB_TOKEN` permissions, `curl | bash`, secrets echoed to logs, and self-hosted
   runners. The SolarWinds/Codecov attack class — no pipeline access required.
+- **SAST — static code analysis** (`app/scanner/sast_scanner.py`) — upload a source
+  `.zip`; **Python** is analysed with the real `ast` module (structural, low
+  false-positive — parameterised queries and list-form `subprocess` are correctly
+  treated as safe), while **JS/TS, PHP, Java, Go and Ruby** use a curated
+  dangerous-sink ruleset: code/command/SQL injection, insecure deserialization,
+  SSTI, XSS sinks, file inclusion, weak crypto, and disabled TLS verification. No
+  external scanner dependency.
 
 > These run against apps/endpoints you own or are authorised to test. They are
 > wired as engines today; the API/UI scan types for them are the next step.

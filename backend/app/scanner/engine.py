@@ -520,6 +520,34 @@ def _run_cicd_scan(session: Session, scan: Scan) -> None:
             pass
 
 
+def _run_sast_scan(session: Session, scan: Scan) -> None:
+    """Static analysis of an uploaded source archive for dangerous code patterns."""
+    import os
+
+    from .sast_scanner import run_sast_scan
+
+    path = os.path.join(settings.upload_dir, f"{scan.id}.sast")
+    try:
+        with open(path, "rb") as fh:
+            data = fh.read()
+        findings = run_sast_scan(scan.target_url, data)
+        for f in findings:
+            enrich_taxonomy(f)
+        _tally_and_complete(session, scan, findings)
+    except Exception as exc:  # noqa: BLE001
+        scan.status = ScanStatus.failed
+        scan.error = f"Scan error: {exc}"
+        scan.finished_at = datetime.now(timezone.utc)
+        session.add(scan)
+        session.commit()
+    finally:
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except OSError:
+            pass
+
+
 def run_scan(scan_id: int) -> None:
     """Entry point for the background task. Owns its own DB session."""
     with Session(db_engine) as session:
@@ -555,6 +583,10 @@ def run_scan(scan_id: int) -> None:
         # CI/CD scan: analyse an uploaded workflow file — no network target.
         if scan.scan_type == "cicd":
             _run_cicd_scan(session, scan)
+            return
+        # SAST scan: static analysis of an uploaded source archive — no network target.
+        if scan.scan_type == "sast":
+            _run_sast_scan(session, scan)
             return
 
         base_url = scan.target_url
