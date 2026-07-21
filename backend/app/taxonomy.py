@@ -59,6 +59,18 @@ _EXACT = {
     # informational / passed
     "security-txt-present": ("A09:2025", "CWE-778", "infra"),
     "missing-security-txt": ("A09:2025", "CWE-778", "infra"),
+    # OWASP LLM Top 10:2025 (AI/LLM applications)
+    "llm-prompt-injection": ("LLM01:2025", "CWE-1427", "api"),
+    "llm-jailbreak": ("LLM01:2025", "CWE-1427", "api"),
+    "llm-system-prompt-leak": ("LLM07:2025", "CWE-200", "api"),
+    "llm-insecure-output": ("LLM05:2025", "CWE-79", "api"),
+    "llm-sensitive-disclosure": ("LLM02:2025", "CWE-200", "api"),
+    # OWASP Mobile Top 10:2024 (Android APK static analysis)
+    "mobile-debuggable": ("M8:2024", "CWE-489", "mobile"),
+    "mobile-allow-backup": ("M9:2024", "CWE-530", "mobile"),
+    "mobile-cleartext": ("M5:2024", "CWE-319", "mobile"),
+    "mobile-exported-component": ("M8:2024", "CWE-926", "mobile"),
+    "mobile-low-min-sdk": ("M8:2024", "CWE-1104", "mobile"),
 }
 
 # check_id prefix -> (owasp, cwe, layer). Checked when no exact match.
@@ -74,6 +86,7 @@ _PREFIX = {
     "path-traversal-": ("A01:2025", "CWE-22", "backend"),
     "open-redirect-": ("A01:2025", "CWE-601", "backend"),
     "outdated-js-": ("A03:2025", "CWE-1104", "frontend"),
+    "mobile-secret-": ("M1:2024", "CWE-798", "mobile"),
     "cookie-flags-": ("A02:2025", "CWE-614", "backend"),
     "cookie-secure-": ("A02:2025", "CWE-614", "backend"),
     "banner-": ("A02:2025", "CWE-200", "infra"),

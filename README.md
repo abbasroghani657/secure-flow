@@ -103,6 +103,25 @@ scanned. This is what makes running a scan legally defensible.
 > Active tests send crafted-but-harmless inputs (no data change, no brute force,
 > no DoS) and only run because the target's ownership was verified first.
 
+## AI/LLM and Mobile scanning (modules)
+
+Beyond the web scanner, two standalone engines cover other OWASP families:
+
+- **OWASP LLM Top 10** (`app/scanner/llm_scanner.py`) — probes a live LLM app
+  endpoint (you supply the URL, a JSON body template with `{{PROMPT}}`, headers,
+  and the response field path) for **prompt injection**, **jailbreak / guardrail
+  bypass**, **system-prompt leakage**, **improper output handling** (HTML/XSS
+  echo), and **sensitive information disclosure**. Detection is canary-based to
+  keep false positives near zero.
+- **OWASP Mobile Top 10** (`app/scanner/mobile_scanner.py`) — static analysis of
+  an Android **APK** (a ZIP): scans for **hardcoded secrets** (Google/AWS/Stripe/
+  Firebase/private keys) and reads the manifest for **debuggable** builds,
+  **allowBackup**, **cleartext traffic**, **exported components**, and a low
+  **minSdkVersion**.
+
+> These run against apps/endpoints you own or are authorised to test. They are
+> wired as engines today; the API/UI scan types for them are the next step.
+
 ## Authenticated scanning
 
 A scan can optionally carry a **session cookie or bearer token** from a logged-in

@@ -12,3 +12,4 @@ alembic==1.14.0
 slowapi==0.1.9
 psycopg[binary]==3.2.3
 beautifulsoup4==4.12.3
+pyaxmlparser==0.3.31
