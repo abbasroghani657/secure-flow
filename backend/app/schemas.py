@@ -78,6 +78,10 @@ class ScanCreate(BaseModel):
     # Optional credentials for an authenticated scan (scan behind the login).
     auth_cookie: Optional[str] = None   # raw Cookie header, e.g. "session=abc; csrf=def"
     auth_bearer: Optional[str] = None   # bearer token value (without the "Bearer " prefix)
+    # LLM scan config (scan_type == "llm")
+    llm_endpoint: Optional[str] = None
+    llm_body_template: Optional[str] = None
+    llm_response_path: Optional[str] = None
 
 
 class FindingRead(BaseModel):
@@ -114,6 +118,7 @@ class ScanRead(BaseModel):
     trigger: str = "manual"
     new_findings_count: int = 0
     authenticated: bool = False
+    llm_endpoint: Optional[str] = None
     error: Optional[str]
     created_at: datetime
     started_at: Optional[datetime]

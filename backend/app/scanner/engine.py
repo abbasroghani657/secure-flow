@@ -284,27 +284,44 @@ def run_scan(scan_id: int) -> None:
                 auth_headers = {}
 
         try:
-            with httpx.Client(
-                timeout=settings.scan_http_timeout,
-                follow_redirects=True,
-                headers={"User-Agent": USER_AGENT, **auth_headers},
-                verify=True,
-            ) as client:
-                scan.progress = 20
+            if scan.scan_type == "llm":
+                # LLM app scan: probe the endpoint for OWASP LLM Top 10 issues.
+                from .llm_scanner import LLMTarget, run_llm_scan
+
+                scan.progress = 30
                 session.add(scan)
                 session.commit()
+                llm_target = LLMTarget(
+                    endpoint=scan.llm_endpoint or base_url,
+                    body_template=scan.llm_body_template or '{"prompt": "{{PROMPT}}"}',
+                    response_path=scan.llm_response_path or "",
+                    headers=auth_headers,
+                )
+                findings = run_llm_scan(llm_target)
+                for f in findings:
+                    enrich_taxonomy(f)
+            else:
+                with httpx.Client(
+                    timeout=settings.scan_http_timeout,
+                    follow_redirects=True,
+                    headers={"User-Agent": USER_AGENT, **auth_headers},
+                    verify=True,
+                ) as client:
+                    scan.progress = 20
+                    session.add(scan)
+                    session.commit()
 
-                findings = _collect_findings(client, base_url, scan.scan_type, authenticated=bool(auth_headers))
+                    findings = _collect_findings(client, base_url, scan.scan_type, authenticated=bool(auth_headers))
 
-            # Deep scan: also run the Nuclei template engine (active, but gated on
-            # verified ownership and with intrusive/DoS templates excluded).
-            if scan.scan_type == "deep":
-                scan.progress = 45
-                session.add(scan)
-                session.commit()
-                from .nuclei_runner import run_nuclei
+                # Deep scan: also run the Nuclei template engine (active, but gated on
+                # verified ownership and with intrusive/DoS templates excluded).
+                if scan.scan_type == "deep":
+                    scan.progress = 45
+                    session.add(scan)
+                    session.commit()
+                    from .nuclei_runner import run_nuclei
 
-                findings.extend(run_nuclei(base_url))
+                    findings.extend(run_nuclei(base_url))
 
             scan.progress = 85
             session.add(scan)

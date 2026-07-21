@@ -22,12 +22,23 @@ def create_scan(
     current: CurrentUser,
     session: SessionDep,
 ) -> ScanRead:
-    try:
-        target_url = normalize_url(data.target_url)
-    except ValueError:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid target URL")
+    # For an LLM scan the "target" is the LLM endpoint; otherwise it's the URL.
+    if data.scan_type == "llm":
+        if not data.llm_endpoint:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "An LLM endpoint URL is required.")
+        endpoint = data.llm_endpoint.strip()
+        parsed = urlparse(endpoint if "://" in endpoint else "https://" + endpoint)
+        host = parsed.hostname
+        if not host:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Could not parse a host from the LLM endpoint.")
+        target_url = endpoint
+    else:
+        try:
+            target_url = normalize_url(data.target_url)
+        except ValueError:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid target URL")
+        host = urlparse(target_url).hostname
 
-    host = urlparse(target_url).hostname
     target = session.exec(
         select(Target).where(Target.owner_id == current.id, Target.host == host)
     ).first()
@@ -42,7 +53,7 @@ def create_scan(
             f"'{host}' is not verified yet. Prove ownership before scanning.",
         )
 
-    # Optional credentials for an authenticated scan.
+    # Optional credentials for an authenticated scan (or LLM API auth headers).
     auth_headers: dict[str, str] = {}
     if data.auth_cookie:
         auth_headers["Cookie"] = data.auth_cookie.strip()
@@ -54,6 +65,9 @@ def create_scan(
         status=ScanStatus.queued,
         authenticated=bool(auth_headers),
         auth_headers=json.dumps(auth_headers) if auth_headers else None,
+        llm_endpoint=data.llm_endpoint.strip() if data.scan_type == "llm" and data.llm_endpoint else None,
+        llm_body_template=data.llm_body_template if data.scan_type == "llm" else None,
+        llm_response_path=data.llm_response_path if data.scan_type == "llm" else None,
     )
     session.add(scan)
     session.commit()

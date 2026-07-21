@@ -70,6 +70,11 @@ class Scan(SQLModel, table=True):
     # cleared to NULL as soon as the scan finishes to limit exposure.
     auth_headers: Optional[str] = Field(default=None)
 
+    # LLM scan config (scan_type == "llm")
+    llm_endpoint: Optional[str] = Field(default=None)
+    llm_body_template: Optional[str] = Field(default=None)  # JSON with {{PROMPT}}
+    llm_response_path: Optional[str] = Field(default=None)  # dot-path into JSON response
+
     critical_count: int = Field(default=0)
     high_count: int = Field(default=0)
     medium_count: int = Field(default=0)

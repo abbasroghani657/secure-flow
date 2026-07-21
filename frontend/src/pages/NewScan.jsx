@@ -5,10 +5,16 @@ import { api } from "../api";
 import { T } from "../theme";
 
 const SCAN_TYPES = [
-  { id: "web", label: "Web application", desc: "Full passive scan: headers, TLS, cookies, exposed files." },
+  { id: "web", label: "Web application", desc: "Full scan: headers, TLS, cookies, exposed files, and active injection tests." },
   { id: "deep", label: "Deep scan (Nuclei)", desc: "Everything in Web, plus the Nuclei engine's CVE & vulnerability templates. Slower." },
+  { id: "llm", label: "LLM app (AI)", desc: "Test an AI/LLM endpoint for prompt injection, jailbreak & data leakage (OWASP LLM Top 10)." },
   { id: "headers", label: "Headers only", desc: "Quick check of security response headers." },
 ];
+
+const inp = (T) => ({
+  padding: "11px 13px", borderRadius: 10, border: `1px solid ${T.borderStrong}`,
+  background: "rgba(255,255,255,0.05)", color: T.text, fontSize: 13, fontFamily: T.mono, width: "100%", boxSizing: "border-box",
+});
 
 export default function NewScan() {
   const loc = useLocation();
@@ -20,6 +26,9 @@ export default function NewScan() {
   const [showAuth, setShowAuth] = useState(false);
   const [authCookie, setAuthCookie] = useState("");
   const [authBearer, setAuthBearer] = useState("");
+  const [llmEndpoint, setLlmEndpoint] = useState("");
+  const [llmBody, setLlmBody] = useState('{"prompt": "{{PROMPT}}"}');
+  const [llmRespPath, setLlmRespPath] = useState("");
   const nav = useNavigate();
 
   useEffect(() => {
@@ -39,10 +48,16 @@ export default function NewScan() {
     if (!selected) { setErr("Select a verified target."); return; }
     setBusy(true);
     try {
-      const auth = {};
-      if (showAuth && authCookie.trim()) auth.auth_cookie = authCookie.trim();
-      if (showAuth && authBearer.trim()) auth.auth_bearer = authBearer.trim();
-      const scan = await api.createScan(selected, type, auth);
+      const extra = {};
+      if (showAuth && authCookie.trim()) extra.auth_cookie = authCookie.trim();
+      if (showAuth && authBearer.trim()) extra.auth_bearer = authBearer.trim();
+      if (type === "llm") {
+        if (!llmEndpoint.trim()) { setErr("Enter the LLM endpoint URL."); setBusy(false); return; }
+        extra.llm_endpoint = llmEndpoint.trim();
+        extra.llm_body_template = llmBody.trim();
+        extra.llm_response_path = llmRespPath.trim();
+      }
+      const scan = await api.createScan(selected, type, extra);
       nav(`/scans/${scan.id}`);
     } catch (e2) {
       setErr(e2.message);
@@ -106,6 +121,26 @@ export default function NewScan() {
                 })}
               </div>
             </div>
+
+            {/* LLM endpoint config (only for LLM scans) */}
+            {type === "llm" && (
+              <div style={{ display: "grid", gap: 14, padding: "16px 18px", borderRadius: 12, border: `1px solid ${T.accent}`, background: "rgba(0,191,99,0.05)" }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: T.accentHi }}>LLM endpoint configuration</div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 600 }}>Endpoint URL <span style={{ color: T.faint, fontWeight: 400 }}>(must be on a verified target)</span></label>
+                  <input value={llmEndpoint} onChange={(e) => setLlmEndpoint(e.target.value)} placeholder="https://your-app.com/api/chat" style={inp(T)} />
+                </div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 600 }}>Request body template <span style={{ color: T.faint, fontWeight: 400 }}>(use {"{{PROMPT}}"} where the user message goes)</span></label>
+                  <textarea value={llmBody} onChange={(e) => setLlmBody(e.target.value)} rows={3} style={{ ...inp(T), resize: "vertical" }} />
+                </div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 600 }}>Response field path <span style={{ color: T.faint, fontWeight: 400 }}>(optional, e.g. choices.0.message.content)</span></label>
+                  <input value={llmRespPath} onChange={(e) => setLlmRespPath(e.target.value)} placeholder="choices.0.message.content" style={inp(T)} />
+                </div>
+                <p style={{ margin: 0, fontSize: 12, color: T.muted }}>Add an API key under "Authenticated scan" below (Bearer token) if your endpoint needs auth.</p>
+              </div>
+            )}
 
             {/* Optional authenticated scan */}
             <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
