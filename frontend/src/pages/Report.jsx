@@ -49,7 +49,7 @@ export default function Report() {
   const counts = { critical: scan.critical_count, high: scan.high_count, medium: scan.medium_count, low: scan.low_count, info: scan.info_count };
 
   const compliance = {};
-  for (const f of issues) (compliance[f.compliance_ref || "Unmapped"] ??= []).push(f);
+  for (const f of issues) (compliance[(f.owasp ? `OWASP ${f.owasp}` : f.compliance_ref) || "Unmapped"] ??= []).push(f);
   const frameworks = computeCompliance(issues);
 
   return (
@@ -128,7 +128,7 @@ export default function Report() {
                   <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", padding: "3px 8px", borderRadius: 4, color: SEV[f.severity].color, background: SEV[f.severity].bg }}>{SEV[f.severity].label}</span>
                     <span style={{ fontWeight: 600, fontSize: 14.5 }}>{i + 1}. {f.title}</span>
-                    <span style={{ marginLeft: "auto", fontSize: 11.5, color: "#6B7280", fontFamily: "'JetBrains Mono', monospace" }}>{f.compliance_ref}</span>
+                    <span style={{ marginLeft: "auto", fontSize: 11.5, color: "#6B7280", fontFamily: "'JetBrains Mono', monospace" }}>{[f.owasp, f.cwe].filter(Boolean).join(" · ") || f.compliance_ref}</span>
                   </div>
                   <div style={{ padding: "14px 16px", display: "grid", gap: 10, fontSize: 13 }}>
                     <Row label="Affected">{f.url}</Row>
