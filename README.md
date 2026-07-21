@@ -177,6 +177,16 @@ know exactly what still needs a human penetration test or code review.
 HTTP request smuggling is detected with the safe **timing-based** technique on the
 "deep" scan only (it sends one ambiguous request, never a malicious follow-up).
 
+**Automating parts of "manual" testing.** Some business-logic classes *can* be
+approximated with clever black-box logic (`app/scanner/logic.py`): **parameter
+tampering** (negative/zero/huge values on price/quantity fields) and **race
+conditions** (many parallel requests to single-use action endpoints). These are
+reported as *potential* findings — honest about confidence, since a scanner can't
+know the app's intended rules the way a human can. The next frontier is an
+**AI-reasoning layer** (an LLM that inspects the app and generates targeted logic
+tests like a pentester) — powerful but AI-*assisted*, needing a key, budget and
+human triage.
+
 **Deep scan (Nuclei):** the "Deep scan" type additionally runs the bundled Nuclei
 engine against the verified target with a curated, high-signal template set
 (`ssl,tech,misconfiguration,exposure,exposed-panels,default-login,cve`), with

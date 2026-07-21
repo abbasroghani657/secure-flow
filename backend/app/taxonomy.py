@@ -73,6 +73,7 @@ _EXACT = {
     "insecure-deserialization": ("A08:2025", "CWE-502", "backend"),
     "viewstate-exposed": ("A08:2025", "CWE-502", "backend"),
     "http-request-smuggling": ("A05:2025", "CWE-444", "infra"),
+    "race-condition": ("A04:2025", "CWE-362", "backend"),
     "manual-review-advisory": ("A06:2025", "", ""),
     "llm-manual-review-advisory": ("LLM03:2025", "", "api"),
     # A08 Software & Data Integrity Failures
@@ -114,6 +115,7 @@ _PREFIX = {
     "ldap-injection-": ("A05:2025", "CWE-90", "backend"),
     "xpath-injection-": ("A05:2025", "CWE-643", "backend"),
     "js-secret-": ("A05:2025", "CWE-798", "frontend"),
+    "business-logic-": ("A04:2025", "CWE-840", "backend"),
     "outdated-js-": ("A03:2025", "CWE-1104", "frontend"),
     "mobile-secret-": ("M1:2024", "CWE-798", "mobile"),
     "cookie-flags-": ("A02:2025", "CWE-614", "backend"),

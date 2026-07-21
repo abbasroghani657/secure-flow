@@ -19,6 +19,7 @@ from ..taxonomy import enrich as enrich_taxonomy
 from .active import run_active_tests, test_host_header, test_xxe
 from .cloud import check_cloud_buckets
 from .dom_xss import check_dom_xss
+from .logic import run_logic_tests
 from .web_extra import run_web_extra
 from .checks import (
     BASE_CHECKS,
@@ -262,6 +263,8 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
                 findings.extend(run_active_tests(client, result.param_urls, result.forms,
                                                  max_urls=settings.max_active_urls))
                 findings.extend(test_xxe(client, probe.final_url, result.param_urls))
+                # Automated business-logic heuristics (parameter tampering, race conditions)
+                findings.extend(run_logic_tests(client, result.param_urls, result.pages))
             # Authenticated scan: test discovered pages for missing access control.
             if authenticated:
                 findings.extend(_access_control_check(client, result.pages + result.param_urls))
