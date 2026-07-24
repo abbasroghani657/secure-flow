@@ -223,6 +223,8 @@ _PREFIX = {
     "graphql-introspection": ("A02:2025", "CWE-200", "api"),
     "cookie-flags-": ("A02:2025", "CWE-614", "backend"),
     "cookie-secure-": ("A02:2025", "CWE-614", "backend"),
+    "cookie-samesite-none-insecure-": ("A02:2025", "CWE-1275", "backend"),
+    "cookie-prefix-": ("A02:2025", "CWE-614", "backend"),
     "banner-": ("A02:2025", "CWE-200", "infra"),
     "exposed-": ("A02:2025", "CWE-538", "infra"),
     "nuclei-CVE-": ("A03:2025", "", "infra"),   # known CVE → supply chain
@@ -232,6 +234,10 @@ _PREFIX = {
     "cert-": ("A04:2025", "CWE-295", "infra"),
     "spf-": ("A02:2025", "CWE-16", "infra"),
     "dmarc-": ("A02:2025", "CWE-16", "infra"),
+    "missing-mta-sts": ("A02:2025", "CWE-319", "infra"),
+    "missing-tls-rpt": ("A02:2025", "CWE-16", "infra"),
+    "missing-bimi": ("A02:2025", "CWE-16", "infra"),
+    "missing-dnssec": ("A02:2025", "CWE-350", "infra"),
 }
 
 

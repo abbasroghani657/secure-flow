@@ -79,6 +79,73 @@ def check_dmarc(host: str) -> list[Finding]:
     )]
 
 
+def _has_a(name: str) -> bool:
+    if not _HAS_DNS:
+        return False
+    try:
+        dns.resolver.resolve(name, "A", lifetime=6)
+        return True
+    except Exception:
+        return False
+
+
+def check_email_hardening(host: str) -> list[Finding]:
+    """MTA-STS, TLS-RPT and BIMI — the modern email-security layer beyond SPF/DMARC.
+    Only advises when the domain actually sends/receives mail (has an MX record)."""
+    domain = host[4:] if host.startswith("www.") else host
+    if not _HAS_DNS:
+        return []
+    try:
+        dns.resolver.resolve(domain, "MX", lifetime=6)
+    except Exception:
+        return []   # not a mail domain — these records are not expected
+
+    findings: list[Finding] = []
+    if not any("v=STSv1" in r for r in _txt_records(f"_mta-sts.{domain}")):
+        findings.append(Finding(
+            "missing-mta-sts", "No MTA-STS policy", "low", f"dns://_mta-sts.{domain}",
+            description="No MTA-STS (SMTP MTA Strict Transport Security) policy is published.",
+            impact="Without MTA-STS, inbound mail can be downgraded to cleartext via an active attacker.",
+            remediation="Publish a _mta-sts TXT record and an mta-sts.txt policy enforcing TLS.",
+            compliance_ref="Email security"))
+    if not any("v=TLSRPTv1" in r for r in _txt_records(f"_smtp._tls.{domain}")):
+        findings.append(Finding(
+            "missing-tls-rpt", "No TLS-RPT (SMTP TLS reporting)", "info", f"dns://_smtp._tls.{domain}",
+            description="No SMTP TLS-RPT record is published, so TLS delivery failures go unreported.",
+            impact="You get no visibility into downgrade/interception attempts against your mail.",
+            remediation="Publish a _smtp._tls TXT record with 'v=TLSRPTv1; rua=mailto:you@domain'.",
+            compliance_ref="Email security"))
+    if not any("v=BIMI1" in r for r in _txt_records(f"default._bimi.{domain}")):
+        findings.append(Finding(
+            "missing-bimi", "No BIMI record", "info", f"dns://default._bimi.{domain}",
+            description="No BIMI record is published (brand logo in supporting mail clients).",
+            impact="Minor: no brand indicator; BIMI also signals strong DMARC enforcement.",
+            remediation="Publish a BIMI record once DMARC is at enforcement (p=quarantine/reject).",
+            compliance_ref="Email security"))
+    return findings
+
+
+def check_dnssec(host: str) -> list[Finding]:
+    """DNSSEC — is the zone signed? An unsigned zone is open to DNS spoofing."""
+    domain = host[4:] if host.startswith("www.") else host
+    if not _HAS_DNS:
+        return []
+    try:
+        dns.resolver.resolve(domain, "DNSKEY", lifetime=6)
+        return []   # signed
+    except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
+        pass
+    except Exception:
+        return []
+    return [Finding(
+        "missing-dnssec", "DNSSEC not enabled", "low", f"dns://{domain}",
+        description="The domain has no DNSKEY record — the DNS zone is not signed with DNSSEC.",
+        impact="Unsigned DNS can be spoofed/poisoned, redirecting users or enabling domain takeover.",
+        evidence="No DNSKEY record found.",
+        remediation="Enable DNSSEC at your DNS provider and add the DS record at the registrar.",
+        compliance_ref="OWASP A02:2025")]
+
+
 def check_tls_certificate(host: str, port: int = 443) -> list[Finding]:
     ctx = ssl.create_default_context()
     try:
@@ -231,7 +298,8 @@ def check_zone_transfer(host: str) -> list[Finding]:
 
 def run_dns_checks(host: str) -> list[Finding]:
     findings: list[Finding] = []
-    for fn in (check_spf, check_dmarc, check_caa, check_zone_transfer):
+    for fn in (check_spf, check_dmarc, check_caa, check_zone_transfer,
+               check_email_hardening, check_dnssec):
         try:
             findings.extend(fn(host))
         except Exception:

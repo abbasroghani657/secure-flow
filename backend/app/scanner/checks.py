@@ -288,12 +288,21 @@ def check_cookies(probe: Probe) -> list[Finding]:
     for raw in probe.set_cookies:
         name = raw.split("=", 1)[0].strip()
         low = raw.lower()
+        # Parse only the ATTRIBUTES (after the first ';'), so a cookie *named*
+        # "__Secure-x" isn't mistaken for having the Secure attribute.
+        attrs = [a.strip().lower() for a in raw.split(";")[1:]]
+        has_httponly = "httponly" in attrs
+        has_secure = "secure" in attrs
+        has_samesite = any(a.startswith("samesite") for a in attrs)
+        samesite_none = any(a.replace(" ", "") == "samesite=none" for a in attrs)
+        has_domain = any(a.startswith("domain=") for a in attrs)
+        path_root = any(a.replace(" ", "") == "path=/" for a in attrs)
         problems = []
-        if "httponly" not in low:
+        if not has_httponly:
             problems.append("HttpOnly")
-        if probe.is_https and "secure" not in low:
+        if probe.is_https and not has_secure:
             problems.append("Secure")
-        if "samesite" not in low:
+        if not has_samesite:
             problems.append("SameSite")
         if problems:
             findings.append(Finding(
@@ -311,6 +320,36 @@ def check_cookies(probe: Probe) -> list[Finding]:
                 description=f"Cookie '{name}' carries the recommended security attributes.",
                 remediation="No action needed.", compliance_ref="OWASP A05:2021", passed=True,
             ))
+
+        # SameSite=None without Secure — a cross-site cookie sent over any channel.
+        if samesite_none and not has_secure:
+            findings.append(Finding(
+                f"cookie-samesite-none-insecure-{name}", f"Cookie '{name}' is SameSite=None without Secure",
+                "medium", probe.final_url,
+                description=f"Cookie '{name}' uses SameSite=None but is not marked Secure.",
+                impact="A cross-site cookie without Secure can be sent over HTTP and intercepted, and enables CSRF.",
+                evidence=raw[:160],
+                remediation="Any SameSite=None cookie must also be Secure.",
+                compliance_ref="OWASP A05:2021"))
+        # __Host-/__Secure- prefix requirements (browsers reject violations).
+        if name.startswith("__Host-") and (not has_secure or has_domain or not path_root):
+            findings.append(Finding(
+                f"cookie-prefix-host-{name}", f"'__Host-' cookie '{name}' violates prefix rules", "low",
+                probe.final_url,
+                description="A __Host- cookie must be Secure, have no Domain, and Path=/.",
+                impact="Browsers reject non-conforming __Host- cookies, or the intended hardening is lost.",
+                evidence=raw[:160],
+                remediation="Set Secure, omit Domain, and use Path=/ for __Host- cookies.",
+                compliance_ref="OWASP A05:2021"))
+        elif name.startswith("__Secure-") and not has_secure:
+            findings.append(Finding(
+                f"cookie-prefix-secure-{name}", f"'__Secure-' cookie '{name}' is not Secure", "low",
+                probe.final_url,
+                description="A __Secure- cookie must carry the Secure attribute.",
+                impact="Browsers reject non-Secure __Secure- cookies; the intended protection is lost.",
+                evidence=raw[:160],
+                remediation="Add the Secure attribute to __Secure- cookies.",
+                compliance_ref="OWASP A05:2021"))
     return findings
 
 
