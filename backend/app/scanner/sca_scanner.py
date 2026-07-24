@@ -35,6 +35,10 @@ def _ecosystem(filename: str) -> str | None:
         return "Packagist"
     if f == "cargo.lock":
         return "crates.io"
+    if f == "pom.xml" or f.endswith("build.gradle") or f.endswith("build.gradle.kts"):
+        return "Maven"
+    if f == "packages.config" or f.endswith(".csproj") or f.endswith(".props") or f.endswith("packages.lock.json"):
+        return "NuGet"
     return None
 
 
@@ -81,6 +85,26 @@ def parse_dependencies(filename: str, content: str) -> list[tuple[str, str, str]
             for pkg in (data.get("packages", []) + data.get("packages-dev", [])):
                 if pkg.get("name") and pkg.get("version"):
                     out.append(("Packagist", pkg["name"], pkg["version"].lstrip("v")))
+        elif eco == "Maven":
+            if f == "pom.xml":
+                # <dependency><groupId>g</groupId><artifactId>a</artifactId><version>v</version></dependency>
+                for dep in re.finditer(r"<dependency>(.*?)</dependency>", content, re.DOTALL):
+                    body = dep.group(1)
+                    g = re.search(r"<groupId>\s*([^<${}]+?)\s*</groupId>", body)
+                    a = re.search(r"<artifactId>\s*([^<${}]+?)\s*</artifactId>", body)
+                    v = re.search(r"<version>\s*([0-9][^<${}]*?)\s*</version>", body)
+                    if g and a and v:
+                        out.append(("Maven", f"{g.group(1)}:{a.group(1)}", v.group(1)))
+            else:  # build.gradle / .kts — implementation 'group:artifact:version'
+                for m in re.finditer(r"""['"]([\w.\-]+):([\w.\-]+):([0-9][\w.\-]*)['"]""", content):
+                    out.append(("Maven", f"{m.group(1)}:{m.group(2)}", m.group(3)))
+        elif eco == "NuGet":
+            if f == "packages.config":
+                for m in re.finditer(r'<package\s+id="([^"]+)"\s+version="([0-9][^"]*)"', content):
+                    out.append(("NuGet", m.group(1), m.group(2)))
+            else:  # .csproj / .props — <PackageReference Include="X" Version="Y" />
+                for m in re.finditer(r'<PackageReference\s+Include="([^"]+)"\s+Version="([0-9][^"]*)"', content):
+                    out.append(("NuGet", m.group(1), m.group(2)))
     except (json.JSONDecodeError, ValueError):
         return []
     # de-dupe
