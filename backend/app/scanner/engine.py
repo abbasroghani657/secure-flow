@@ -287,6 +287,13 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
             pass
         break
 
+    # 3c. CMS-specific checks (WordPress / Drupal / Joomla)
+    try:
+        from .cms import check_cms
+        findings.extend(check_cms(client, probe.final_url, probe.body_snippet or ""))
+    except Exception:  # noqa: BLE001 - a CMS probe must not kill the scan
+        pass
+
     # 4. Exposed sensitive files. First fetch a random path to learn what a
     #    "not found" looks like — servers that soft-404 (return 200 for anything)
     #    would otherwise produce false positives.

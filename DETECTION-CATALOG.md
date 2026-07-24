@@ -86,6 +86,16 @@ Top 10:2025** category, a **CWE ID**, the affected layer, evidence, and a fix.
 | 50f | Database port reachable — PostgreSQL | CWE-668 |
 | 51–70 | **~20 exposed sensitive files** — `.git`, `.env`(.local), `.svn`, `.hg`, SQL dumps, `.aws/credentials`, `.htpasswd`, config/WP backups, `docker-compose.yml`, `.npmrc`, `actuator`(+`/env`), `web.config`, `id_rsa`, `xmlrpc.php`, `wp-json` users, `elmah.axd`, `crossdomain.xml`, `.idea`, `phpinfo.php`, `server-status`, `.DS_Store` | CWE-538 |
 
+### CMS — WordPress / Drupal / Joomla (OWASP A02/A05/A07)
+| # | Vulnerability | CWE |
+|---|---|---|
+| 70a | WordPress detected + version disclosure (readme.html / generator) | CWE-200 |
+| 70b | WordPress user enumeration (REST API `/wp-json/wp/v2/users`) | CWE-204 |
+| 70c | WordPress XML-RPC enabled (brute-force / pingback DDoS) | CWE-16 |
+| 70d | Exposed wp-config backup — **DB credentials leak** | CWE-538 |
+| 70e | Exposed WordPress `debug.log` | CWE-532 |
+| 70f | Drupal / Joomla version disclosure | CWE-200 |
+
 ### Cryptographic Failures (OWASP A04)
 | # | Vulnerability | CWE |
 |---|---|---|
