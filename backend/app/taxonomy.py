@@ -226,6 +226,7 @@ _PREFIX = {
 _SAST_SUFFIX = {
     "command-injection": ("A05:2025", "CWE-78", "backend"),
     "code-injection": ("A05:2025", "CWE-94", "backend"),
+    "nosql-injection": ("A05:2025", "CWE-943", "database"),
     "sql-injection": ("A05:2025", "CWE-89", "database"),
     "insecure-deserialization": ("A08:2025", "CWE-502", "backend"),
     "object-injection": ("A08:2025", "CWE-502", "backend"),
@@ -234,6 +235,15 @@ _SAST_SUFFIX = {
     "dom-xss": ("A05:2025", "CWE-79", "frontend"),
     "xss": ("A05:2025", "CWE-79", "frontend"),
     "file-inclusion": ("A05:2025", "CWE-98", "backend"),
+    "path-traversal": ("A01:2025", "CWE-22", "backend"),
+    "ssrf": ("A01:2025", "CWE-918", "backend"),
+    "open-redirect": ("A01:2025", "CWE-601", "backend"),
+    "prototype-pollution": ("A08:2025", "CWE-1321", "backend"),
+    "weak-jwt": ("A07:2025", "CWE-347", "backend"),
+    "cors-misconfig": ("A02:2025", "CWE-942", "backend"),
+    "insecure-cookie": ("A02:2025", "CWE-614", "backend"),
+    "redos": ("A06:2025", "CWE-1333", "backend"),
+    "sensitive-logging": ("A09:2025", "CWE-532", "backend"),
     "weak-hash": ("A02:2025", "CWE-327", "backend"),
     "weak-crypto": ("A02:2025", "CWE-327", "backend"),
     "weak-random": ("A02:2025", "CWE-330", "backend"),
@@ -249,9 +259,10 @@ def classify(check_id: str) -> tuple[str, str, str]:
     if check_id in _EXACT:
         return _EXACT[check_id]
     if check_id.startswith("sast-"):
-        for suffix, val in _SAST_SUFFIX.items():
+        # Longest suffix first so e.g. "nosql-injection" wins over "sql-injection".
+        for suffix in sorted(_SAST_SUFFIX, key=len, reverse=True):
             if check_id.endswith(suffix):
-                return val
+                return _SAST_SUFFIX[suffix]
         return ("A05:2025", "CWE-94", "backend")  # generic SAST fallback
     for prefix, val in _PREFIX.items():
         if check_id.startswith(prefix):

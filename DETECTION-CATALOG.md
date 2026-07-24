@@ -279,23 +279,39 @@ Upload a workflow file or a `.zip` — supply-chain and pipeline misconfiguratio
 
 ---
 
-## 🧬 SAST — source code (Python AST + JS/PHP/Java/Go/Ruby rules)
+## 🧬 SAST — source code (Python AST + JS/TS/PHP/Java/Go/Ruby rules)
 Upload a source `.zip`; Python is analysed with the real `ast` module, other
 languages with a curated dangerous-sink ruleset.
 | # | Vulnerability | OWASP | CWE |
 |---|---|---|---|
-| 189 | Code injection — `eval`/`exec`/`Function` on dynamic input | A05 | CWE-94 |
-| 190 | OS command injection — `system`/`exec`/`shell=True` | A05 | CWE-78 |
+| 189 | Code injection — `eval`/`exec`/`Function`/`vm`/timer-string | A05 | CWE-94 |
+| 190 | OS command injection — `system`/`exec`/`shell=True`/`child_process` | A05 | CWE-78 |
 | 191 | SQL injection — query built by f-string / concat / format | A05 | CWE-89 |
 | 192 | Insecure deserialization — `pickle`/`ObjectInputStream`/`unserialize` | A08 | CWE-502 |
 | 193 | Unsafe `yaml.load()` without SafeLoader | A08 | CWE-502 |
 | 194 | Server-side template injection (`render_template_string`) | A05 | CWE-1336 |
-| 195 | DOM XSS / reflected XSS sink (`innerHTML`, `echo $_GET`) | A05 | CWE-79 |
+| 195 | DOM XSS / reflected XSS sink (`innerHTML`, `dangerouslySetInnerHTML`, `echo $_GET`) | A05 | CWE-79 |
 | 196 | Remote/local file inclusion (`include $_GET`) | A05 | CWE-98 |
-| 197 | Weak hash (MD5/SHA-1) / weak cipher (DES/ECB) | A02 | CWE-327 |
+| 197 | Weak hash (MD5/SHA-1) / weak cipher (DES/ECB/createCipher) | A02 | CWE-327 |
 | 198 | Insecure randomness for security tokens | A02 | CWE-330 |
-| 199 | TLS verification disabled (`verify=False`, `InsecureSkipVerify`, trust-all) | A02 | CWE-295 |
+| 199 | TLS verification disabled (`verify=False`, `rejectUnauthorized:false`, trust-all) | A02 | CWE-295 |
 | 200 | Flask `debug=True` / insecure temp file | A05 | CWE-489 |
+
+### 🟦 JavaScript / TypeScript — deep coverage (Node · Express · React · Angular · Vue · NestJS)
+Applies to `.js` `.jsx` `.ts` `.tsx` `.mjs` — the same 22-rule set runs on TypeScript.
+| # | Vulnerability | OWASP | CWE |
+|---|---|---|---|
+| 201 | **NoSQL injection** — request input in a Mongo query / `$where` | A05 | CWE-943 |
+| 202 | **SSRF** — `axios`/`fetch`/`http.get` with a request-derived URL | A01 | CWE-918 |
+| 203 | **Path traversal** — `fs.readFile`/`sendFile` with request input | A01 | CWE-22 |
+| 204 | **Open redirect** — `res.redirect(req.*)` | A01 | CWE-601 |
+| 205 | **Prototype pollution** — `__proto__` / user-keyed assignment | A08 | CWE-1321 |
+| 206 | **Angular** `bypassSecurityTrust*` / **Vue** `v-html` XSS | A05 | CWE-79 |
+| 207 | **Insecure JWT** — `algorithms:['none']` / hardcoded signing secret | A07 | CWE-347 |
+| 208 | **Permissive CORS** — `origin: '*'` | A02 | CWE-942 |
+| 209 | Cookie flag disabled (`httpOnly:false`/`secure:false`) | A02 | CWE-614 |
+| 210 | Dynamic `RegExp` from input (ReDoS) | A06 | CWE-1333 |
+| 211 | Secret written to logs (`console.log(password)`) | A09 | CWE-532 |
 
 ---
 
