@@ -55,6 +55,60 @@ def _probe_tcp(host: str, port: int, send: bytes, expect: bytes, timeout: float 
         return False
 
 
+# MongoDB legacy OP_QUERY {isMaster:1} on admin.$cmd — replies with server topology.
+_MONGO_ISMASTER = (
+    b"\x3a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xd4\x07\x00\x00"
+    b"\x00\x00\x00\x00admin.$cmd\x00\x00\x00\x00\x00\x01\x00\x00\x00"
+    b"\x13\x00\x00\x00\x10ismaster\x00\x01\x00\x00\x00\x00"
+)
+_MONGO_SIGS = (b"ismaster", b"isWritablePrimary", b"maxBsonObjectSize", b"maxWireVersion")
+
+
+def _mongo_exposed(host: str, port: int = 27017, timeout: float = 3.0) -> bool:
+    try:
+        with socket.create_connection((host, port), timeout=timeout) as s:
+            s.settimeout(timeout)
+            s.sendall(_MONGO_ISMASTER)
+            data = s.recv(512)
+        return any(sig in data for sig in _MONGO_SIGS)
+    except OSError:
+        return False
+
+
+def _mysql_exposed(host: str, port: int = 3306, timeout: float = 3.0) -> bool:
+    # MySQL/MariaDB send a handshake greeting immediately on connect.
+    try:
+        with socket.create_connection((host, port), timeout=timeout) as s:
+            s.settimeout(timeout)
+            data = s.recv(256)
+        return b"mysql_native_password" in data or b"caching_sha2_password" in data or b"mariadb" in data.lower()
+    except OSError:
+        return False
+
+
+def _postgres_exposed(host: str, port: int = 5432, timeout: float = 3.0) -> bool:
+    # A protocol-3 StartupMessage draws an auth-request ('R') or error ('E') reply.
+    body = b"\x00\x03\x00\x00user\x00scan\x00database\x00scan\x00\x00"
+    msg = (len(body) + 4).to_bytes(4, "big") + body
+    try:
+        with socket.create_connection((host, port), timeout=timeout) as s:
+            s.settimeout(timeout)
+            s.sendall(msg)
+            data = s.recv(64)
+        return len(data) > 0 and data[:1] in (b"R", b"E")
+    except OSError:
+        return False
+
+
+def _http_service(client: httpx.Client, host: str, port: int, path: str, sig: str,
+                  scheme: str = "http", timeout: float = 5.0) -> bool:
+    try:
+        r = client.get(f"{scheme}://{host}:{port}{path}", timeout=timeout)
+    except httpx.HTTPError:
+        return False
+    return r.status_code in (200, 401) and sig.lower() in r.text.lower()
+
+
 def check_exposed_services(host: str, client: httpx.Client) -> list[Finding]:
     """Check the target host for unauthenticated data services on well-known ports."""
     findings: list[Finding] = []
@@ -91,4 +145,58 @@ def check_exposed_services(host: str, client: httpx.Client) -> list[Finding]:
                 remediation="Enable Elasticsearch security/auth and firewall the port.",
                 compliance_ref="OWASP A05:2021"))
         break
+
+    if _mongo_exposed(host):
+        findings.append(Finding(
+            "exposed-mongodb", "Unauthenticated MongoDB exposed", "critical", f"{host}:27017",
+            description="A MongoDB server on port 27017 answered isMaster without authentication.",
+            impact="Anyone can read, modify or drop every database on the server.",
+            evidence="MongoDB returned server topology to an unauthenticated isMaster query.",
+            remediation="Enable authorization, bind to localhost, and firewall port 27017.",
+            compliance_ref="OWASP A05:2021"))
+
+    if _http_service(client, host, 2375, "/version", "ApiVersion"):
+        findings.append(Finding(
+            "exposed-docker-api", "Unauthenticated Docker Engine API exposed", "critical", f"{host}:2375",
+            description="The Docker Engine API on port 2375 is reachable without TLS/authentication.",
+            impact="An attacker can start containers and mount the host filesystem — full host takeover (RCE).",
+            evidence="GET :2375/version returned the Docker API version.",
+            remediation="Never expose the Docker socket/API; require mTLS and firewall the port.",
+            compliance_ref="OWASP A05:2021"))
+
+    if _http_service(client, host, 2379, "/version", "etcdserver"):
+        findings.append(Finding(
+            "exposed-etcd", "Unauthenticated etcd exposed", "high", f"{host}:2379",
+            description="An etcd key-value store on port 2379 is reachable without authentication.",
+            impact="etcd holds Kubernetes cluster state and secrets — full cluster compromise.",
+            evidence="GET :2379/version returned etcd server info.",
+            remediation="Enable client cert auth and firewall etcd to the control plane only.",
+            compliance_ref="OWASP A05:2021"))
+
+    if _http_service(client, host, 15672, "/", "RabbitMQ"):
+        findings.append(Finding(
+            "exposed-rabbitmq", "RabbitMQ management interface exposed", "medium", f"{host}:15672",
+            description="The RabbitMQ management console on port 15672 is reachable.",
+            impact="Default/weak credentials give access to all queues and message contents.",
+            evidence="RabbitMQ management interface responded on :15672.",
+            remediation="Restrict the management interface to a VPN/allow-list and use strong credentials.",
+            compliance_ref="OWASP A05:2021"))
+
+    if _mysql_exposed(host):
+        findings.append(Finding(
+            "exposed-mysql", "Database port reachable from the internet (MySQL)", "medium", f"{host}:3306",
+            description="A MySQL/MariaDB server on port 3306 is reachable from outside.",
+            impact="An internet-exposed database port is continuously brute-forced and attacked.",
+            evidence="MySQL sent its handshake greeting on port 3306.",
+            remediation="Bind the database to the app's private network and firewall port 3306.",
+            compliance_ref="OWASP A05:2021"))
+
+    if _postgres_exposed(host):
+        findings.append(Finding(
+            "exposed-postgres", "Database port reachable from the internet (PostgreSQL)", "medium", f"{host}:5432",
+            description="A PostgreSQL server on port 5432 is reachable from outside.",
+            impact="An internet-exposed database port is continuously brute-forced and attacked.",
+            evidence="PostgreSQL replied to a startup message on port 5432.",
+            remediation="Bind the database to the app's private network and firewall port 5432.",
+            compliance_ref="OWASP A05:2021"))
     return findings

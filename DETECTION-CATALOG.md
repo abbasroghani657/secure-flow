@@ -72,6 +72,12 @@ Top 10:2025** category, a **CWE ID**, the affected layer, evidence, and a fix.
 | 48 | Unauthenticated Redis exposed | CWE-668 |
 | 49 | Unauthenticated Memcached exposed | CWE-668 |
 | 50 | Unauthenticated Elasticsearch exposed | CWE-668 |
+| 50a | Unauthenticated MongoDB exposed | CWE-668 |
+| 50b | Unauthenticated Docker Engine API exposed (RCE) | CWE-668 |
+| 50c | Unauthenticated etcd exposed | CWE-668 |
+| 50d | RabbitMQ management interface exposed | CWE-668 |
+| 50e | Database port reachable — MySQL/MariaDB | CWE-668 |
+| 50f | Database port reachable — PostgreSQL | CWE-668 |
 | 51–70 | **~20 exposed sensitive files** — `.git`, `.env`(.local), `.svn`, `.hg`, SQL dumps, `.aws/credentials`, `.htpasswd`, config/WP backups, `docker-compose.yml`, `.npmrc`, `actuator`(+`/env`), `web.config`, `id_rsa`, `xmlrpc.php`, `wp-json` users, `elmah.axd`, `crossdomain.xml`, `.idea`, `phpinfo.php`, `server-status`, `.DS_Store` | CWE-538 |
 
 ### Cryptographic Failures (OWASP A04)
