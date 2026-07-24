@@ -162,7 +162,9 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
     findings: list[Finding] = []
     probe = _probe_base(client, base_url)
     host = urlparse(probe.final_url).hostname or ""
+    from .playbooks import playbook_findings
     findings.append(_manual_review_advisory(probe.final_url))
+    findings.extend(playbook_findings(probe.final_url))
 
     # 1. Header / TLS / cookie / CORS / mixed-content checks
     for check in BASE_CHECKS:

@@ -36,7 +36,7 @@ _CONFIRMED_PREFIXES = (
 # Heuristic / needs-a-human: static source→sink, design flaws, timing-only
 # smuggling, fingerprint guesses, and every explicit manual-review advisory.
 _TENTATIVE_SUBSTR = (
-    "-advisory", "manual-review", "dom-xss", "business-logic", "deserialization",
+    "-advisory", "manual-review", "playbook-", "dom-xss", "business-logic", "deserialization",
     "smuggling", "subdomain-takeover", "mass-assignment", "prototype-pollution",
     "excessive-data-exposure", "shadow-api", "js-libraries",
 )

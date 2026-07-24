@@ -355,8 +355,20 @@ with the same severity/OWASP/CWE tagging.
 
 ---
 
-## 🧭 Honest scope (what still needs a human)
-Every scan surfaces a **"manual review recommended"** advisory for classes no automated
-scanner can reliably verify: complex business-logic flaws, deep authorization logic,
-insecure design, and (for LLMs) supply-chain / model-poisoning risks. These are called
-out explicitly rather than silently missed — honest scope beats false confidence.
+## 🧭 Honest scope — guided manual-test playbooks
+The highest-paying bug-bounty classes can't be reliably auto-confirmed by any scanner.
+Rather than fake it or stay silent, every web/deep scan ships **9 guided playbooks** —
+each with a concrete, step-by-step **test recipe** in the report, so it teaches, not just scans:
+| Playbook | OWASP | CWE |
+|---|---|---|
+| Payment & business-logic manipulation (price/coupon/refund/workflow) | A04 | CWE-840 |
+| Race conditions — single-packet / TOCTOU | A04 | CWE-362 |
+| Account-takeover chains (reset poisoning, IDOR email-change) | A07 | CWE-287 |
+| OAuth / OIDC / SSO takeover (redirect_uri, pre-ATO, PKCE) | A07 | CWE-287 |
+| Web cache poisoning & deception | A05 | CWE-524 |
+| Server-side prototype pollution (Node.js) | A08 | CWE-1321 |
+| Deserialization gadget chains (Java/.NET/PHP/Python) | A08 | CWE-502 |
+| SSRF → cloud metadata / internal RCE | A01 | CWE-918 |
+| GraphQL authorization & batching abuse | A01 | CWE-285 |
+
+Honest scope beats false confidence — the report names what needs a human and shows how to test it.
