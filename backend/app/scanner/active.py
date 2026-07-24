@@ -10,8 +10,10 @@ and path traversal / local file inclusion.
 
 from __future__ import annotations
 
+import difflib
 import re
 import secrets
+import time
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
 
 import httpx
@@ -131,6 +133,90 @@ def _sqli(client: httpx.Client, url: str, param: str, baseline: str | None) -> F
             remediation="Use parameterised queries / prepared statements; never concatenate user input into SQL.",
             compliance_ref="OWASP A03:2021",
         )
+    return None
+
+
+def _sim(a: str, b: str) -> float:
+    """Response-body similarity in [0,1] (bounded for speed)."""
+    return difflib.SequenceMatcher(None, a[:4000], b[:4000]).ratio()
+
+
+def _timed_get(client: httpx.Client, url: str, timeout: float):
+    """GET returning (response, elapsed_seconds); (None, None) on error."""
+    start = time.perf_counter()
+    try:
+        r = client.get(url, follow_redirects=True, timeout=timeout)
+    except httpx.HTTPError:
+        return None, None
+    return r, time.perf_counter() - start
+
+
+# Boolean pairs: (TRUE_a, FALSE_a, TRUE_b, FALSE_b). A genuinely injectable
+# parameter makes TRUE≠FALSE while the two TRUEs (and two FALSEs) stay alike.
+_BOOL_PAIRS = [
+    ("1' AND '1'='1", "1' AND '1'='2", "1' AND '7'='7", "1' AND '7'='8"),   # single-quote string context
+    ("1 AND 1=1", "1 AND 1=2", "1 AND 7=7", "1 AND 7=8"),                    # numeric context
+    ('1" AND "1"="1', '1" AND "1"="2', '1" AND "7"="7', '1" AND "7"="8'),    # double-quote string context
+]
+
+# Time-delay payloads across engines; {d} = seconds. SLEEP(0) is the control.
+_TIME_PAYLOADS = [
+    "1' AND SLEEP({d})-- -", "1 AND SLEEP({d})", "1' AND SLEEP({d}) AND '1'='1",
+    "1'; WAITFOR DELAY '0:0:{d}'-- -", "1' AND pg_sleep({d})-- -", "1); SELECT pg_sleep({d})-- -",
+]
+
+
+def _blind_sqli(client: httpx.Client, url: str, param: str) -> Finding | None:
+    """Blind SQL injection — boolean-based (content diff) and time-based (timing)."""
+    # ---- Boolean-based: TRUE vs FALSE must differ, TRUE vs TRUE must match ----
+    for t1, f1, t2, f2 in _BOOL_PAIRS:
+        rt1 = _get(client, _with_param(url, param, t1))
+        rf1 = _get(client, _with_param(url, param, f1))
+        if rt1 is None or rf1 is None or rt1.status_code >= 500 or rf1.status_code >= 500:
+            continue
+        if _sim(rt1.text, rf1.text) >= 0.95:
+            continue  # TRUE and FALSE look identical → not boolean-injectable here
+        rt2 = _get(client, _with_param(url, param, t2))
+        rf2 = _get(client, _with_param(url, param, f2))
+        if rt2 is None or rf2 is None:
+            continue
+        # Confirm: the two TRUE responses agree, the two FALSE responses agree,
+        # and TRUE clearly differs from FALSE — rules out reflection/randomness.
+        if (_sim(rt1.text, rt2.text) > 0.95 and _sim(rf1.text, rf2.text) > 0.95
+                and _sim(rt1.text, rf1.text) < 0.9):
+            return Finding(
+                check_id=f"sqli-blind-boolean-{param}", title="Blind SQL Injection (boolean-based)",
+                severity="critical", url=_with_param(url, param, t1),
+                description=f"The '{param}' parameter is injectable: a TRUE condition (AND 1=1) and a FALSE "
+                            f"condition (AND 1=2) produce reliably different responses.",
+                impact="Blind SQLi lets an attacker extract the database one boolean at a time — no error needed.",
+                evidence=f"sim(TRUE,FALSE)={_sim(rt1.text, rf1.text):.2f} while sim(TRUE,TRUE)>{0.95}.",
+                remediation="Use parameterised queries / prepared statements; never concatenate input into SQL.",
+                compliance_ref="OWASP A03:2021",
+            )
+
+    # ---- Time-based: a SLEEP payload delays the response, SLEEP(0) does not ----
+    delay = 4
+    _, base_t = _timed_get(client, _with_param(url, param, "1"), timeout=delay + 8)
+    if base_t is None:
+        return None
+    for tpl in _TIME_PAYLOADS:
+        _, hi_t = _timed_get(client, _with_param(url, param, tpl.format(d=delay)), timeout=delay + 10)
+        if hi_t is None or hi_t < base_t + (delay - 1):
+            continue  # no clear delay
+        # Control: same payload with a 0-second sleep must return fast.
+        _, lo_t = _timed_get(client, _with_param(url, param, tpl.format(d=0)), timeout=delay + 8)
+        if lo_t is not None and lo_t < base_t + (delay - 2):
+            return Finding(
+                check_id=f"sqli-blind-time-{param}", title="Blind SQL Injection (time-based)",
+                severity="critical", url=_with_param(url, param, tpl.format(d=delay)),
+                description=f"Injecting a time-delay payload into '{param}' makes the server pause ~{delay}s, "
+                            f"while the same payload with a 0-second delay returns immediately.",
+                impact="Time-based blind SQLi confirms code execution in the database even with no visible output.",
+                evidence=f"delay-payload={hi_t:.1f}s vs baseline={base_t:.1f}s and 0s-control={lo_t:.1f}s.",
+                remediation="Use parameterised queries / prepared statements; never concatenate input into SQL.",
+                compliance_ref="OWASP A03:2021",
+            )
     return None
 
 
@@ -356,7 +442,7 @@ def test_param_url(client: httpx.Client, url: str) -> list[Finding]:
     saw_stacktrace = False
     baseline_tests = (_sqli, _nosql, _ldap, _xpath)  # these compare against the baseline response
     for p in params:
-        for test in (_xss, _sqli, _open_redirect, _traversal, _ssti, _crlf, _cmdi, _ssrf, _nosql, _ldap, _xpath, _csti, _ssi):
+        for test in (_xss, _sqli, _blind_sqli, _open_redirect, _traversal, _ssti, _crlf, _cmdi, _ssrf, _nosql, _ldap, _xpath, _csti, _ssi):
             try:
                 f = test(client, url, p, baseline) if test in baseline_tests else test(client, url, p)
             except httpx.HTTPError:

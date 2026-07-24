@@ -12,7 +12,9 @@ Top 10:2025** category, a **CWE ID**, the affected layer, evidence, and a fix.
 ### Injection (OWASP A05)
 | # | Vulnerability | CWE |
 |---|---|---|
-| 1 | SQL Injection | CWE-89 |
+| 1 | SQL Injection (error-based) | CWE-89 |
+| 1b | Blind SQL Injection — boolean-based | CWE-89 |
+| 1c | Blind SQL Injection — time-based | CWE-89 |
 | 2 | NoSQL Injection | CWE-943 |
 | 3 | OS Command Injection | CWE-78 |
 | 4 | LDAP Injection | CWE-90 |
