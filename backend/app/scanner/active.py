@@ -618,24 +618,51 @@ def test_file_upload(client: httpx.Client, forms: list[Form], base_url: str, max
     return []
 
 
+_CACHE_HINT_HEADERS = ("x-cache", "cf-cache-status", "x-cache-hits", "age", "x-served-by", "x-varnish")
+
+
 def test_host_header(client: httpx.Client, base_url: str) -> list[Finding]:
-    """Detect Host header injection — a poisoned Host reflected into the page."""
-    try:
-        r = client.get(base_url, headers={"Host": "evil.sf-test.example"}, follow_redirects=False)
-    except httpx.HTTPError:
-        return []
-    loc = r.headers.get("location", "")
-    if "evil.sf-test.example" in loc or "evil.sf-test.example" in r.text:
-        return [Finding(
-            check_id="host-header-injection", title="Host Header Injection",
-            severity="medium", url=base_url,
-            description="A user-supplied Host header is reflected into responses or redirects.",
-            impact="Enables password-reset poisoning, cache poisoning and phishing.",
-            evidence="Injected Host 'evil.sf-test.example' was reflected back.",
-            remediation="Validate the Host header against an allow-list of expected hostnames.",
-            compliance_ref="OWASP A05:2025",
-        )]
-    return []
+    """Host-header injection + web-cache poisoning via reflected unkeyed headers."""
+    findings: list[Finding] = []
+    marker = f"evil-{secrets.token_hex(3)}.sf-test.example"
+    for hdr in ("Host", "X-Forwarded-Host", "X-Forwarded-Server", "X-Host"):
+        try:
+            r = client.get(base_url, headers={hdr: marker}, follow_redirects=False)
+        except httpx.HTTPError:
+            continue
+        loc = r.headers.get("location", "")
+        in_link = f"://{marker}" in r.text or f"://{marker}" in loc  # reflected into an absolute URL
+        if not (marker in loc or marker in r.text):
+            continue
+
+        if not any(f.check_id == "host-header-injection" for f in findings):
+            findings.append(Finding(
+                check_id="host-header-injection", title="Host Header Injection",
+                severity="high" if in_link else "medium", url=base_url,
+                description=f"A user-supplied '{hdr}' header is reflected into responses/redirects"
+                            f"{' as an absolute link' if in_link else ''}.",
+                impact="Enables password-reset poisoning (attacker-controlled reset links), cache poisoning and phishing.",
+                evidence=f"Injected {hdr}: {marker} was reflected back.",
+                remediation="Ignore host-override headers; validate Host against an allow-list of expected hostnames.",
+                compliance_ref="OWASP A05:2025",
+            ))
+
+        # Web cache poisoning: an UNKEYED header reflected into a cacheable response.
+        cc = r.headers.get("cache-control", "").lower()
+        cacheable = (("public" in cc or "max-age" in cc) and "no-store" not in cc and "private" not in cc) \
+            or any(h in r.headers for h in _CACHE_HINT_HEADERS)
+        if hdr != "Host" and cacheable and not any(f.check_id == "web-cache-poisoning" for f in findings):
+            findings.append(Finding(
+                check_id="web-cache-poisoning", title="Web Cache Poisoning (unkeyed header)",
+                severity="high", url=base_url,
+                description=f"The unkeyed '{hdr}' header is reflected into a cacheable response.",
+                impact="An attacker can poison the shared cache so every user is served the injected content "
+                       "(stored XSS, redirect, or defacement).",
+                evidence=f"'{hdr}: {marker}' reflected; response is cacheable (Cache-Control/CDN headers present).",
+                remediation="Add reflected request headers to the cache key, or don't reflect them; set Cache-Control: private on personalised responses.",
+                compliance_ref="OWASP A05:2025",
+            ))
+    return findings
 
 
 def test_form(client: httpx.Client, form: Form) -> list[Finding]:

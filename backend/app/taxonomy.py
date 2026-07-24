@@ -172,6 +172,7 @@ _PREFIX = {
     "exposed-dashboard-": ("A02:2025", "CWE-668", "infra"),
     "outdated-js-": ("A03:2025", "CWE-1104", "frontend"),
     "mobile-secret-": ("M1:2024", "CWE-798", "mobile"),
+    "sca-dependency-confusion": ("A03:2025", "CWE-427", "backend"),
     "sca-": ("A03:2025", "CWE-1104", "backend"),
     "ios-secret-": ("M1:2024", "CWE-798", "mobile"),
     # IaC misconfigurations (specific prefixes before the generic "iac-" catch-all).
@@ -209,6 +210,10 @@ _PREFIX = {
     "cspm-": ("A05:2025", "CWE-16", "infra"),
     "jwt-": ("A07:2025", "CWE-347", "backend"),
     "csv-formula-injection": ("A05:2025", "CWE-1236", "backend"),
+    "web-cache-poisoning": ("A05:2025", "CWE-524", "backend"),
+    "graphql-batching-abuse": ("A04:2025", "CWE-770", "api"),
+    "graphql-field-suggestions": ("A02:2025", "CWE-200", "api"),
+    "graphql-introspection": ("A02:2025", "CWE-200", "api"),
     "cookie-flags-": ("A02:2025", "CWE-614", "backend"),
     "cookie-secure-": ("A02:2025", "CWE-614", "backend"),
     "banner-": ("A02:2025", "CWE-200", "infra"),

@@ -180,6 +180,53 @@ def generate_sbom(deps: list[tuple[str, str, str]]) -> dict:
     }
 
 
+# Public registry existence endpoints for dependency-confusion checks.
+_REGISTRY = {
+    "npm": "https://registry.npmjs.org/{name}",
+    "PyPI": "https://pypi.org/pypi/{name}/json",
+}
+
+
+def check_dependency_confusion(client: httpx.Client, deps: list[tuple[str, str, str]],
+                               max_checks: int = 120) -> list[Finding]:
+    """Flag manifest packages that do NOT exist on the public registry.
+
+    If a build can fall back to the public registry, an attacker can publish a
+    malicious package under that internal name — the dependency-confusion attack.
+    """
+    out: list[Finding] = []
+    seen: set[str] = set()
+    checked = 0
+    for eco, name, _version in deps:
+        url_tmpl = _REGISTRY.get(eco)
+        if not url_tmpl or name in seen:
+            continue
+        seen.add(name)
+        checked += 1
+        if checked > max_checks:
+            break
+        try:
+            r = client.get(url_tmpl.format(name=name), timeout=10)
+        except httpx.HTTPError:
+            continue
+        if r.status_code == 404:
+            scoped = name.startswith("@")
+            out.append(Finding(
+                check_id=f"sca-dependency-confusion-{name}".lower(),
+                title=f"Dependency confusion risk: {name}", severity="medium",
+                url=f"{eco}:{name}",
+                description=f"'{name}' is required but is not published on the public {eco} registry"
+                            f"{' (unclaimed scope)' if scoped else ''}.",
+                impact="If your build can resolve from the public registry, an attacker can publish a malicious "
+                       "package under this name and have it pulled into your builds (supply-chain compromise).",
+                evidence=f"GET public {eco} registry for '{name}' returned 404 (not found).",
+                remediation="Pin the package to your private registry with scope/namespace protection; reserve "
+                            "the name on the public registry, and disable public fallback for internal scopes.",
+                compliance_ref="OWASP A06:2021",
+            ))
+    return out
+
+
 def run_sca_scan(filename: str, content: str) -> tuple[list[Finding], dict, int]:
     deps = parse_dependencies(filename, content)
     if not deps:
@@ -189,6 +236,7 @@ def run_sca_scan(filename: str, content: str) -> tuple[list[Finding], dict, int]
                          compliance_ref="OWASP A06:2021", passed=True)], {}, 0)
     with httpx.Client(headers={"User-Agent": "SecureFlow-SCA/1.0"}) as client:
         findings = query_osv(client, deps)
+        findings.extend(check_dependency_confusion(client, deps))
     if not findings:
         findings.append(Finding("sca-clean", f"No known-vulnerable dependencies ({len(deps)} scanned)", "info",
                                 filename, description="All parsed dependencies passed the OSV vulnerability check.",

@@ -232,24 +232,60 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
     except Exception:
         pass
 
-    # 3b. GraphQL introspection exposed
-    for gp in ("/graphql", "/api/graphql", "/v1/graphql"):
+    # 3b. GraphQL — introspection, alias-batching (rate-limit bypass), field suggestions
+    for gp in ("/graphql", "/api/graphql", "/v1/graphql", "/query"):
+        ep = urljoin(probe.final_url, gp)
         try:
-            gr = client.post(urljoin(probe.final_url, gp),
-                             json={"query": "{__schema{queryType{name}}}"})
-            if gr.status_code == 200 and "__schema" in gr.text and "queryType" in gr.text:
-                findings.append(Finding(
-                    "graphql-introspection", "GraphQL introspection enabled", "low",
-                    urljoin(probe.final_url, gp),
-                    description="The GraphQL endpoint answers introspection queries.",
-                    impact="Introspection exposes the full API schema, easing targeted attacks.",
-                    evidence=f"__schema returned at {gp}",
-                    remediation="Disable introspection in production.",
-                    compliance_ref="OWASP A02:2025",
-                ))
-                break
+            gr = client.post(ep, json={"query": "{__schema{queryType{name}}}"})
         except httpx.HTTPError:
             continue
+        introspects = gr.status_code == 200 and "__schema" in gr.text and "queryType" in gr.text
+        # Confirm it is really a GraphQL endpoint (introspection may be off).
+        is_graphql = introspects
+        if not is_graphql:
+            try:
+                tp = client.post(ep, json={"query": "{__typename}"})
+                is_graphql = tp.status_code in (200, 400) and "__typename" in tp.text
+            except httpx.HTTPError:
+                is_graphql = False
+        if not is_graphql:
+            continue
+
+        if introspects:
+            findings.append(Finding(
+                "graphql-introspection", "GraphQL introspection enabled", "low", ep,
+                description="The GraphQL endpoint answers introspection queries.",
+                impact="Introspection exposes the full API schema, easing targeted attacks.",
+                evidence=f"__schema returned at {gp}",
+                remediation="Disable introspection in production.",
+                compliance_ref="OWASP A02:2025"))
+        # Alias-based batching → run a rate-limited op (login/OTP) N times in one request.
+        try:
+            ab = client.post(ep, json={"query": "{a:__typename b:__typename c:__typename}"})
+            if ab.status_code == 200 and '"a"' in ab.text and '"b"' in ab.text and '"c"' in ab.text:
+                findings.append(Finding(
+                    "graphql-batching-abuse", "GraphQL alias-based batching (rate-limit bypass)", "medium", ep,
+                    description="The endpoint executes many aliased operations in a single request.",
+                    impact="An attacker aliases a login/OTP mutation hundreds of times per request to bypass rate limits (brute force).",
+                    evidence="Three aliased fields (a/b/c) all resolved in one query.",
+                    remediation="Reject or cap aliased/batched operations; apply rate limiting per operation, not per request.",
+                    compliance_ref="OWASP A04:2025"))
+        except httpx.HTTPError:
+            pass
+        # Field suggestions leak schema even when introspection is disabled.
+        try:
+            sg = client.post(ep, json={"query": "{__typenamex}"})
+            if "did you mean" in sg.text.lower():
+                findings.append(Finding(
+                    "graphql-field-suggestions", "GraphQL field suggestions enabled", "low", ep,
+                    description="The endpoint returns 'Did you mean …' suggestions for unknown fields.",
+                    impact="Suggestions let an attacker map the schema field-by-field even with introspection off.",
+                    evidence="A misspelled field returned a 'Did you mean' suggestion.",
+                    remediation="Disable field suggestions in production (e.g. GraphQL server 'suggestions' option).",
+                    compliance_ref="OWASP A02:2025"))
+        except httpx.HTTPError:
+            pass
+        break
 
     # 4. Exposed sensitive files. First fetch a random path to learn what a
     #    "not found" looks like — servers that soft-404 (return 200 for anything)

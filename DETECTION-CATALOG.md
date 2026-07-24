@@ -63,6 +63,10 @@ Top 10:2025** category, a **CWE ID**, the affected layer, evidence, and a fix.
 | 38 | Dangerous HTTP methods (PUT/DELETE/TRACE) | CWE-650 |
 | 39 | Directory listing enabled | CWE-548 |
 | 40 | GraphQL introspection exposed | CWE-200 |
+| 40a | GraphQL alias-batching (rate-limit bypass) | CWE-770 |
+| 40b | GraphQL field suggestions (schema harvesting) | CWE-200 |
+| 40c | Web cache poisoning via unkeyed header | CWE-524 |
+| 40d | Host-header reset-poisoning (reflected absolute link) | CWE-644 |
 | 41 | Sensitive data in HTML comments | CWE-615 |
 | 42 | Exposed API documentation (Swagger/OpenAPI) | CWE-668 |
 | 43 | Deprecated "shadow" API versions | CWE-1059 |
@@ -222,6 +226,7 @@ they require model/dataset provenance review and are not black-box testable.)*
 | # | Vulnerability | OWASP | CWE |
 |---|---|---|---|
 | 155 | Known-vulnerable dependency (CVE) — npm / PyPI / Go / RubyGems / Packagist / crates | A03 | CWE-1104 |
+| 155a | **Dependency confusion** — package not on the public registry (attacker can claim it) | A03 | CWE-427 |
 | — | Emits a **CycloneDX SBOM** of every parsed component | — | — |
 
 ---
