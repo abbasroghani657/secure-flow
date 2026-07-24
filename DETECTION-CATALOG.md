@@ -29,6 +29,7 @@ Top 10:2025** category, a **CWE ID**, the affected layer, evidence, and a fix.
 | 13 | CRLF / HTTP Response Splitting | CWE-113 |
 | 14 | Host Header Injection | CWE-644 |
 | 14a | CSV / Formula Injection (spreadsheet export) | CWE-1236 |
+| 14b | HTTP Parameter Pollution (duplicate-param merge) | CWE-235 |
 
 ### Broken Access Control (OWASP A01)
 | # | Vulnerability | CWE |
@@ -331,6 +332,8 @@ Applies to `.js` `.jsx` `.ts` `.tsx` `.mjs` — the **same 29-class ruleset runs
 | 218 | **Reflected XSS** — `res.send(req.*)` | A05 | CWE-79 |
 | 219 | **Timing-unsafe secret comparison** — `token === userToken` | A02 | CWE-208 |
 | 220 | **Zip Slip** — archive entry path used as a write path | A01 | CWE-22 |
+| 221 | **postMessage handler without origin check** | A05 | CWE-346 |
+| 222 | **CSS injection** — style built from input | A05 | CWE-79 |
 
 ---
 

@@ -363,6 +363,16 @@ _JS_RULES = [
       r"(createWriteStream|writeFile|writeFileSync|mkdirSync?)\s*\([^)]*(entry\.(path|fileName)|\.entryName|header\.name)",
       "An archive entry name is used as an output path — a crafted entry can escape the target dir.",
       "Resolve each entry path and verify it stays within the extraction directory."),
+    # --- Client-side: postMessage without origin verification ---
+    R("sast-js-postmessage-origin", "postMessage handler without an origin check", "medium",
+      r"addEventListener\s*\(\s*[`'\"]message[`'\"](?![\s\S]{0,300}\.origin)",
+      "A window 'message' handler does not verify event.origin.",
+      "Check event.origin against an allow-list before trusting event.data."),
+    # --- Client-side: CSS injection ---
+    R("sast-js-css-injection", "CSS injection (style set from input)", "low",
+      r"\.(style\.cssText|style)\s*=\s*[^;\n]{0,40}(req\.|location\.(hash|search|href)|input|param)",
+      "A CSS/style value is built from user input, enabling CSS-injection data exfiltration.",
+      "Never build inline styles from untrusted input; use a fixed set of classes."),
 ]
 
 _PHP_RULES = [

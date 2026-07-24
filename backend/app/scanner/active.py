@@ -162,6 +162,28 @@ def _csv_injection(client: httpx.Client, url: str, param: str) -> Finding | None
     )
 
 
+def _hpp(client: httpx.Client, url: str, param: str) -> Finding | None:
+    """HTTP Parameter Pollution — the backend joins duplicate params with a comma."""
+    a = f"sfhppA{secrets.token_hex(2)}"
+    b = f"sfhppB{secrets.token_hex(2)}"
+    polluted = _with_param(url, param, a) + f"&{param}={b}"
+    r = _get(client, polluted)
+    if r is None:
+        return None
+    # The tell-tale sign is the two values reflected as a single comma-joined value.
+    if f"{a},{b}" in r.text or f"{b},{a}" in r.text:
+        return Finding(
+            check_id=f"http-parameter-pollution-{param}", title="HTTP Parameter Pollution", severity="low",
+            url=polluted,
+            description=f"Duplicate '{param}' parameters are merged into one comma-joined value by the backend.",
+            impact="Different components parsing the same parameter differently can bypass WAFs, validation, or access checks.",
+            evidence=f"Sent {param}={a} and {param}={b}; the response contained '{a},{b}'.",
+            remediation="Decide on a single canonical value for duplicate parameters and validate consistently.",
+            compliance_ref="OWASP A05:2025",
+        )
+    return None
+
+
 def _sim(a: str, b: str) -> float:
     """Response-body similarity in [0,1] (bounded for speed)."""
     return difflib.SequenceMatcher(None, a[:4000], b[:4000]).ratio()
@@ -468,7 +490,7 @@ def test_param_url(client: httpx.Client, url: str) -> list[Finding]:
     saw_stacktrace = False
     baseline_tests = (_sqli, _nosql, _ldap, _xpath)  # these compare against the baseline response
     for p in params:
-        for test in (_xss, _sqli, _blind_sqli, _open_redirect, _traversal, _ssti, _crlf, _cmdi, _ssrf, _nosql, _ldap, _xpath, _csti, _ssi, _csv_injection):
+        for test in (_xss, _sqli, _blind_sqli, _open_redirect, _traversal, _ssti, _crlf, _cmdi, _ssrf, _nosql, _ldap, _xpath, _csti, _ssi, _csv_injection, _hpp):
             try:
                 f = test(client, url, p, baseline) if test in baseline_tests else test(client, url, p)
             except httpx.HTTPError:
