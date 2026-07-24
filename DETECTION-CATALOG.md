@@ -28,6 +28,7 @@ Top 10:2025** category, a **CWE ID**, the affected layer, evidence, and a fix.
 | 12 | Stored / Second-order XSS | CWE-79 |
 | 13 | CRLF / HTTP Response Splitting | CWE-113 |
 | 14 | Host Header Injection | CWE-644 |
+| 14a | CSV / Formula Injection (spreadsheet export) | CWE-1236 |
 
 ### Broken Access Control (OWASP A01)
 | # | Vulnerability | CWE |
@@ -102,6 +103,10 @@ Top 10:2025** category, a **CWE ID**, the affected layer, evidence, and a fix.
 |---|---|---|
 | 84 | JWT accepts `alg=none` | CWE-347 |
 | 85 | JWT weak / guessable secret | CWE-347 |
+| 85a | JWT algorithm-confusion surface (RS256/ES256 asymmetric) | CWE-347 |
+| 85b | JWT `jku` / `x5u` external-key-URL header | CWE-347 |
+| 85c | JWT embedded `jwk` (self-provided key) | CWE-347 |
+| 85d | JWT `kid` header injection surface (path/SQL) | CWE-347 |
 | 86 | JWKS exposure / algorithm-confusion surface | CWE-347 |
 | 87 | No brute-force protection on login | CWE-307 |
 | 88 | Username enumeration | CWE-203 |

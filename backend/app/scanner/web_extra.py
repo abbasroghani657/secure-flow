@@ -90,6 +90,11 @@ def check_jwt(probe) -> list[Finding]:
     blob = (getattr(probe, "body_snippet", "") or "")
     for v in (getattr(probe, "set_cookies", []) or []):
         blob += " " + v
+    found: dict[str, Finding] = {}   # dedupe by check_id across all tokens
+
+    def add(f: Finding) -> None:
+        found.setdefault(f.check_id, f)
+
     for raw in dict.fromkeys(_JWT_RE.findall(blob)):
         parts = raw.split(".")
         try:
@@ -97,28 +102,61 @@ def check_jwt(probe) -> list[Finding]:
         except Exception:  # noqa: BLE001
             continue
         alg = str(header.get("alg", "")).lower()
+        url = probe.final_url
+
         if alg == "none":
-            return [Finding("jwt-alg-none", "JWT accepts 'none' algorithm", "high", probe.final_url,
-                            description="A JWT uses alg=none, meaning it is unsigned.",
-                            impact="Anyone can forge tokens and impersonate any user.",
-                            evidence="JWT header alg=none", remediation="Reject 'none'; require a strong signature (RS256/HS256).",
-                            compliance_ref="OWASP A07:2025")]
-        if alg == "hs256":
+            add(Finding("jwt-alg-none", "JWT accepts 'none' algorithm", "high", url,
+                        description="A JWT uses alg=none, meaning it is unsigned.",
+                        impact="Anyone can forge tokens and impersonate any user.",
+                        evidence="JWT header alg=none", remediation="Reject 'none'; require a strong signature.",
+                        compliance_ref="OWASP A07:2025"))
+        elif alg == "hs256" and len(parts) == 3 and parts[2]:
             signing_input = f"{parts[0]}.{parts[1]}".encode()
             try:
-                expected = parts[2]
                 for secret in _WEAK_JWT_SECRETS:
                     sig = base64.urlsafe_b64encode(hmac.new(secret.encode(), signing_input, hashlib.sha256).digest()).rstrip(b"=").decode()
-                    if hmac.compare_digest(sig, expected):
-                        return [Finding("jwt-weak-secret", "JWT signed with a weak secret", "critical", probe.final_url,
-                                        description=f"The JWT's HMAC secret is a common weak value ('{secret}').",
-                                        impact="A guessable secret lets an attacker forge valid tokens for any user.",
-                                        evidence=f"Signature verified with secret '{secret}'",
-                                        remediation="Use a long, random, secret (32+ bytes) stored securely.",
-                                        compliance_ref="OWASP A07:2025")]
+                    if hmac.compare_digest(sig, parts[2]):
+                        add(Finding("jwt-weak-secret", "JWT signed with a weak secret", "critical", url,
+                                    description=f"The JWT's HMAC secret is a common weak value ('{secret}').",
+                                    impact="A guessable secret lets an attacker forge valid tokens for any user.",
+                                    evidence=f"Signature verified with secret '{secret}'",
+                                    remediation="Use a long, random secret (32+ bytes) stored securely.",
+                                    compliance_ref="OWASP A07:2025"))
+                        break
             except Exception:  # noqa: BLE001
                 pass
-    return []
+
+        # --- Advanced header-based attack surface (James Kettle / Auth0 class) ---
+        if alg.startswith(("rs", "es", "ps")):
+            add(Finding("jwt-algorithm-confusion", "JWT algorithm-confusion attack surface (asymmetric alg)", "medium", url,
+                        description=f"The JWT is signed with an asymmetric algorithm ({alg.upper()}). If the server also accepts HMAC, an attacker can re-sign tokens with the public key as an HMAC secret.",
+                        impact="Algorithm confusion (RS256→HS256) lets an attacker forge tokens using the public key.",
+                        evidence=f"JWT alg={alg.upper()}",
+                        remediation="Pin verification to a single expected algorithm; never let the token's own alg choose the verifier.",
+                        compliance_ref="OWASP A07:2025"))
+        if "jku" in header or "x5u" in header:
+            k = "jku" if "jku" in header else "x5u"
+            add(Finding("jwt-jku-injection", f"JWT uses an external key URL ('{k}')", "high", url,
+                        description=f"The JWT header contains a '{k}' pointing to a key/cert URL.",
+                        impact="If the server fetches the key from this URL without strict allow-listing, an attacker can point it to their own key and forge tokens.",
+                        evidence=f"JWT header contains '{k}': {str(header.get(k))[:80]}",
+                        remediation="Remove jku/x5u, or restrict the key URL to a fixed, trusted host allow-list.",
+                        compliance_ref="OWASP A07:2025"))
+        if "jwk" in header:
+            add(Finding("jwt-embedded-jwk", "JWT embeds its own verification key ('jwk')", "high", url,
+                        description="The JWT header embeds a 'jwk' (public key).",
+                        impact="If the server trusts the embedded key, an attacker simply embeds their own key and forges any token.",
+                        evidence="JWT header contains an embedded 'jwk'.",
+                        remediation="Never verify against a key embedded in the token; use a pinned server-side key.",
+                        compliance_ref="OWASP A07:2025"))
+        if "kid" in header:
+            add(Finding("jwt-kid-injection", "JWT 'kid' header — injection attack surface", "medium", url,
+                        description="The JWT header contains a 'kid' (key ID) parameter.",
+                        impact="If 'kid' is used to look up a key via a file path or SQL query, it can be abused for path traversal / SQL injection / key confusion.",
+                        evidence=f"JWT header kid={str(header.get('kid'))[:60]}",
+                        remediation="Treat 'kid' as untrusted input: validate it against an allow-list; never use it in a file path or SQL query.",
+                        compliance_ref="OWASP A07:2025"))
+    return list(found.values())
 
 
 def check_open_firebase(client: httpx.Client, probe) -> list[Finding]:

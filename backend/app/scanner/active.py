@@ -136,6 +136,32 @@ def _sqli(client: httpx.Client, url: str, param: str, baseline: str | None) -> F
     return None
 
 
+def _csv_injection(client: httpx.Client, url: str, param: str) -> Finding | None:
+    """CSV/formula injection — a formula-prefixed value ends up in an exported CSV/sheet."""
+    marker = f"sfcsv{secrets.token_hex(2)}"
+    payload = f"=1+{marker}"          # a spreadsheet would evaluate this on open
+    r = _get(client, _with_param(url, param, payload))
+    if r is None:
+        return None
+    ct = (r.headers.get("content-type", "") + " " + r.headers.get("content-disposition", "")).lower()
+    is_export = any(s in ct for s in ("csv", "excel", "spreadsheet", "application/vnd.ms", "attachment"))
+    if not is_export or payload not in r.text:
+        return None
+    idx = r.text.find(payload)
+    prev = r.text[idx - 1] if idx > 0 else ""
+    if prev in ("'", "\t", '"', "\\"):      # value was neutralised (leading quote/tab)
+        return None
+    return Finding(
+        check_id=f"csv-formula-injection-{param}", title="CSV / Formula Injection", severity="medium",
+        url=_with_param(url, param, payload),
+        description=f"A formula-prefixed value in '{param}' is written unescaped into an exported CSV/spreadsheet.",
+        impact="When a victim opens the export, the formula executes — enabling data exfiltration or command execution on their machine.",
+        evidence=f"Payload '{payload}' appeared unescaped (no leading quote) in a CSV/Excel response.",
+        remediation="Prefix any cell starting with = + - @ TAB CR with a single quote, or wrap all fields in quotes.",
+        compliance_ref="OWASP A03:2021",
+    )
+
+
 def _sim(a: str, b: str) -> float:
     """Response-body similarity in [0,1] (bounded for speed)."""
     return difflib.SequenceMatcher(None, a[:4000], b[:4000]).ratio()
@@ -442,7 +468,7 @@ def test_param_url(client: httpx.Client, url: str) -> list[Finding]:
     saw_stacktrace = False
     baseline_tests = (_sqli, _nosql, _ldap, _xpath)  # these compare against the baseline response
     for p in params:
-        for test in (_xss, _sqli, _blind_sqli, _open_redirect, _traversal, _ssti, _crlf, _cmdi, _ssrf, _nosql, _ldap, _xpath, _csti, _ssi):
+        for test in (_xss, _sqli, _blind_sqli, _open_redirect, _traversal, _ssti, _crlf, _cmdi, _ssrf, _nosql, _ldap, _xpath, _csti, _ssi, _csv_injection):
             try:
                 f = test(client, url, p, baseline) if test in baseline_tests else test(client, url, p)
             except httpx.HTTPError:

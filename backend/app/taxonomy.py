@@ -207,6 +207,8 @@ _PREFIX = {
     "cspm-iam-": ("A07:2025", "CWE-521", "infra"),
     "cspm-cloudtrail-": ("A09:2025", "CWE-778", "infra"),
     "cspm-": ("A05:2025", "CWE-16", "infra"),
+    "jwt-": ("A07:2025", "CWE-347", "backend"),
+    "csv-formula-injection": ("A05:2025", "CWE-1236", "backend"),
     "cookie-flags-": ("A02:2025", "CWE-614", "backend"),
     "cookie-secure-": ("A02:2025", "CWE-614", "backend"),
     "banner-": ("A02:2025", "CWE-200", "infra"),
