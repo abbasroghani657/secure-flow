@@ -34,6 +34,8 @@ class Finding:
     owasp: str = ""   # e.g. "A05:2025"
     cwe: str = ""     # e.g. "CWE-89"
     layer: str = ""   # frontend | api | backend | database | infra
+    confidence: str = "firm"   # confirmed | firm | tentative (see prioritize.py)
+    priority: int = 0          # 0-100 fix-first score (see prioritize.py)
 
     def as_dict(self) -> dict:
         return {
@@ -50,6 +52,8 @@ class Finding:
             "owasp": self.owasp,
             "cwe": self.cwe,
             "layer": self.layer,
+            "confidence": self.confidence,
+            "priority": self.priority,
         }
 
 

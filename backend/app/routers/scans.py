@@ -324,7 +324,12 @@ def get_scan(scan_id: int, current: CurrentUser, session: SessionDep) -> ScanDet
         select(Finding).where(Finding.scan_id == scan_id)
     ).all()
     severity_rank = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
-    findings_sorted = sorted(findings, key=lambda f: (f.passed, severity_rank.get(f.severity, 5)))
+    # Fix-first: highest priority (KEV/EPSS/severity/confidence) at the top,
+    # falling back to severity for older findings without a priority score.
+    findings_sorted = sorted(
+        findings,
+        key=lambda f: (f.passed, -(f.priority or 0), severity_rank.get(f.severity, 5)),
+    )
     detail = ScanDetail.model_validate(scan, from_attributes=True)
     detail.findings = [FindingRead.model_validate(f, from_attributes=True) for f in findings_sorted]
     return detail

@@ -114,6 +114,9 @@ class Finding(SQLModel, table=True):
     owasp: str = ""   # OWASP Top 10:2025 category, e.g. "A05:2025"
     cwe: str = ""     # e.g. "CWE-89"
     layer: str = ""   # frontend | api | backend | database | infra
+    # Triage: how sure we are, and a 0-100 fix-first priority score.
+    confidence: str = Field(default="firm")   # confirmed | firm | tentative
+    priority: int = Field(default=0)          # higher = fix sooner (severity × confidence × exploit intel)
 
     # Passed checks are stored as findings with severity=info and passed=True,
     # so a single table drives both the "Findings" and "Passed" tabs.

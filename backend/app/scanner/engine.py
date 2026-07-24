@@ -334,6 +334,13 @@ def compute_score(findings: list[Finding]) -> int:
 
 def _tally_and_complete(session: Session, scan: Scan, findings: list[Finding]) -> None:
     """Persist findings, tally severity counts, score, and mark the scan completed."""
+    # Triage: confidence + risk-based priority (KEV/EPSS) for every scan type.
+    try:
+        from .prioritize import prioritize_findings
+        prioritize_findings(findings)
+    except Exception:  # noqa: BLE001 - triage must never fail the scan
+        pass
+
     counts = {s.value: 0 for s in Severity}
     passed = 0
     for f in findings:

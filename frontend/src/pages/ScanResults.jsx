@@ -6,6 +6,13 @@ import { T, SEVERITY, scoreColor } from "../theme";
 
 const SEV_ORDER = ["critical", "high", "medium", "low", "info"];
 
+// Confidence chip styling — how sure the scanner is about a finding.
+const CONF = {
+  confirmed: { label: "Confirmed", color: "#34d399", border: "rgba(52,211,153,0.35)", bg: "rgba(52,211,153,0.10)", hint: "Proven with an exploit marker, timing, error, or exact match" },
+  firm: { label: "Firm", color: "#60a5fa", border: "rgba(96,165,250,0.35)", bg: "rgba(96,165,250,0.10)", hint: "A directly observed configuration fact" },
+  tentative: { label: "Tentative", color: "#fbbf24", border: "rgba(251,191,36,0.35)", bg: "rgba(251,191,36,0.10)", hint: "A heuristic that may need manual review" },
+};
+
 const OWASP_NAMES = {
   "A01:2025": "Broken Access Control",
   "A02:2025": "Security Misconfiguration",
@@ -264,6 +271,9 @@ function FindingCard({ f, open, onToggle }) {
           {f.is_new && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "2px 7px", borderRadius: 999, color: T.accentInk, background: T.accent }}>New</span>}
         </span>
         <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {!f.passed && f.confidence && (() => { const c = CONF[f.confidence] || CONF.firm; return (
+            <span title={`${c.label} — ${c.hint}`} style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", fontFamily: T.mono, color: c.color, border: `1px solid ${c.border}`, background: c.bg, borderRadius: 6, padding: "2px 6px" }}>{c.label}</span>
+          ); })()}
           {f.owasp && <span style={{ fontSize: 10.5, fontWeight: 700, fontFamily: T.mono, color: T.accentHi, border: "1px solid rgba(0,191,99,0.3)", borderRadius: 6, padding: "2px 6px" }}>{f.owasp.split(":")[0]}</span>}
           {f.cwe && <span style={{ fontSize: 10.5, color: T.faint, fontFamily: T.mono }}>{f.cwe}</span>}
         </span>
@@ -277,6 +287,16 @@ function FindingCard({ f, open, onToggle }) {
                 {f.owasp && <span style={{ color: T.accentHi }}>{f.owasp} {OWASP_NAMES[f.owasp] || ""}</span>}
                 {f.cwe && <span style={{ color: T.muted, fontFamily: T.mono }}>{f.cwe}</span>}
                 {f.layer && <span style={{ color: T.faint }}>· {f.layer}</span>}
+              </span>
+            </Row>
+          )}
+          {!f.passed && (
+            <Row label="Triage">
+              <span style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", fontSize: 12.5 }}>
+                <span style={{ color: (CONF[f.confidence] || CONF.firm).color, fontWeight: 600 }}>{(CONF[f.confidence] || CONF.firm).label} confidence</span>
+                <span style={{ color: T.faint }}>·</span>
+                <span style={{ color: T.muted }}>Priority <b style={{ color: T.text, fontFamily: T.mono }}>{f.priority ?? 0}</b>/100</span>
+                {f.evidence && /CISA KEV/i.test(f.evidence) && <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#f87171", border: "1px solid rgba(248,113,113,0.4)", background: "rgba(248,113,113,0.1)", borderRadius: 6, padding: "2px 7px" }}>KEV · exploited in the wild</span>}
               </span>
             </Row>
           )}

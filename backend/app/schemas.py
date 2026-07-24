@@ -115,6 +115,8 @@ class FindingRead(BaseModel):
     owasp: str = ""
     cwe: str = ""
     layer: str = ""
+    confidence: str = "firm"
+    priority: int = 0
 
 
 class ScanRead(BaseModel):

@@ -132,6 +132,7 @@ def query_osv(client: httpx.Client, deps: list[tuple[str, str, str]], max_deps: 
         worst = "low"
         fixed = ""
         summaries = []
+        cve_aliases: list[str] = []
         for vid in ids:
             if vid not in detail_cache:
                 try:
@@ -144,7 +145,13 @@ def query_osv(client: httpx.Client, deps: list[tuple[str, str, str]], max_deps: 
                 worst = sev
             fixed = fixed or _fixed_version(d, name)
             summaries.append(d.get("summary") or vid)
-        aliases = ", ".join(ids)
+            # CVE aliases enable CISA-KEV / EPSS enrichment in the triage layer.
+            for alias in d.get("aliases", []):
+                if isinstance(alias, str) and alias.upper().startswith("CVE-"):
+                    cve_aliases.append(alias.upper())
+        # Prefer showing CVE IDs (what users search for), keep GHSA/OSV IDs too.
+        shown = list(dict.fromkeys(cve_aliases)) + [i for i in ids if i not in cve_aliases]
+        aliases = ", ".join(shown)
         findings.append(Finding(
             check_id=f"sca-{eco}-{name}".lower(), title=f"Vulnerable dependency: {name} {version}",
             severity=worst, url=f"{eco}:{name}@{version}",
