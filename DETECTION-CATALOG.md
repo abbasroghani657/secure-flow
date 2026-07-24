@@ -298,7 +298,7 @@ languages with a curated dangerous-sink ruleset.
 | 200 | Flask `debug=True` / insecure temp file | A05 | CWE-489 |
 
 ### 🟦 JavaScript / TypeScript — deep coverage (Node · Express · React · Angular · Vue · NestJS)
-Applies to `.js` `.jsx` `.ts` `.tsx` `.mjs` — the same 22-rule set runs on TypeScript.
+Applies to `.js` `.jsx` `.ts` `.tsx` `.mjs` — the **same 29-class ruleset runs on TypeScript**.
 | # | Vulnerability | OWASP | CWE |
 |---|---|---|---|
 | 201 | **NoSQL injection** — request input in a Mongo query / `$where` | A05 | CWE-943 |
@@ -312,6 +312,15 @@ Applies to `.js` `.jsx` `.ts` `.tsx` `.mjs` — the same 22-rule set runs on Typ
 | 209 | Cookie flag disabled (`httpOnly:false`/`secure:false`) | A02 | CWE-614 |
 | 210 | Dynamic `RegExp` from input (ReDoS) | A06 | CWE-1333 |
 | 211 | Secret written to logs (`console.log(password)`) | A09 | CWE-532 |
+| 212 | **Server-side template injection** — `handlebars/ejs/pug.compile(req.*)` | A05 | CWE-1336 |
+| 213 | **XXE** — XML parser with entity expansion (`noent:true`) | A05 | CWE-611 |
+| 214 | **CRLF / header injection** — `res.setHeader(_, req.*)` | A05 | CWE-113 |
+| 215 | **Unsafe YAML** — `yaml.load()` without a safe schema | A08 | CWE-502 |
+| 216 | **Mass assignment** — `Object.assign(model, req.body)` / `new Model(req.body)` | A08 | CWE-915 |
+| 217 | **XPath / LDAP injection** — filter built with request input | A05 | CWE-643 / CWE-90 |
+| 218 | **Reflected XSS** — `res.send(req.*)` | A05 | CWE-79 |
+| 219 | **Timing-unsafe secret comparison** — `token === userToken` | A02 | CWE-208 |
+| 220 | **Zip Slip** — archive entry path used as a write path | A01 | CWE-22 |
 
 ---
 

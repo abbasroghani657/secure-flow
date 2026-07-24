@@ -314,6 +314,55 @@ _JS_RULES = [
       r"console\.(log|info|debug|error|warn)\s*\([^)]*\b(password|secret|api[_-]?key|access[_-]?token|private[_-]?key)\b",
       "A secret is written to the console/logs.",
       "Never log secrets; redact sensitive fields before logging."),
+    # --- Server-side template injection ---
+    R("sast-js-ssti", "Server-side template injection", "high",
+      r"\b(handlebars|ejs|pug|jade|nunjucks|dot|hogan|mustache|underscore|_)\.(compile|render|renderString|renderFile)\s*\([^)]*(req\.(body|query|params)|\$\{|[`'\"]\s*\+)",
+      "A template is compiled/rendered from request input or concatenation.",
+      "Render static templates with a data context; never build templates from input."),
+    # --- XXE ---
+    R("sast-js-xxe", "XML external entity (XXE) processing enabled", "high",
+      r"noent\s*:\s*true|resolveExternals\s*:\s*true|resolveExternalEntities\s*:\s*true|expandEntities\s*:\s*true",
+      "An XML parser is configured to resolve/expand external entities.",
+      "Disable entity resolution (noent:false) and DTD loading on XML parsers."),
+    # --- CRLF / response-header injection ---
+    R("sast-js-header-injection", "HTTP header / CRLF injection", "medium",
+      r"res\.(setHeader|header|writeHead|append)\s*\([^,]+,\s*[^)]{0,40}req\.(query|params|body)",
+      "A response header value is taken directly from request input.",
+      "Strip CR/LF and validate values before writing them into response headers."),
+    # --- Unsafe YAML ---
+    R("sast-js-insecure-deserialization", "Unsafe YAML load (js-yaml <4 / full schema)", "medium",
+      r"\b(?:yaml|jsYaml|jsyaml|YAML)\.load\s*\((?![^\n]*(?:schema|SAFE|FAILSAFE|CORE_SCHEMA|JSON_SCHEMA))",
+      "yaml.load() with the default/full schema can instantiate arbitrary types.",
+      "Use yaml.load(x, { schema: SAFE_SCHEMA }) or upgrade js-yaml to v4+ (safe by default)."),
+    # --- Mass assignment ---
+    R("sast-js-mass-assignment", "Mass assignment (request body bound to a model)", "medium",
+      r"Object\.assign\s*\(\s*\w+\s*,\s*req\.(body|query)|new\s+[A-Z]\w+\s*\(\s*req\.body\s*\)|\.(create|update|updateOne|save|build)\s*\(\s*req\.body\s*\)",
+      "A whole request body is bound to a model/object, allowing extra fields (e.g. isAdmin).",
+      "Whitelist the fields you accept; never pass req.body straight into a model."),
+    # --- XPath / LDAP injection ---
+    R("sast-js-xpath-injection", "XPath injection", "high",
+      r"(xpath[.\w]*|\.evaluate)\s*\([^)\n]{0,120}(\$\{|[`'\"]\s*\+)",
+      "An XPath query is built with request input / concatenation.",
+      "Use parameterised XPath or strictly validate input."),
+    R("sast-js-ldap-injection", "LDAP injection", "high",
+      r"(searchFilter|ldapFilter)\s*[:=]\s*[`'\"][^`'\"]*(\$\{|[`'\"]\s*\+)|\bclient\.search\s*\([^)]*(\$\{|\+\s*req)",
+      "An LDAP search filter embeds request input.",
+      "Escape LDAP special characters and use a safe filter builder."),
+    # --- Reflected XSS in Express ---
+    R("sast-js-reflected-xss", "Reflected XSS (request input sent in the response)", "medium",
+      r"res\.(send|write|end)\s*\(\s*[^)]{0,20}req\.(query|params|body)",
+      "Request input is written straight into the HTTP response body.",
+      "Encode output for the correct context, or return JSON with a safe content type."),
+    # --- Timing attack ---
+    R("sast-js-timing-attack", "Timing-unsafe secret comparison", "low",
+      r"\b(token|secret|password|apikey|api_key|hmac|signature|digest|otp)\w*\s*===|===\s*\w*(token|secret|password|signature)\b",
+      "A secret is compared with === , which leaks length/content via timing.",
+      "Compare secrets with crypto.timingSafeEqual()."),
+    # --- Zip slip ---
+    R("sast-js-zip-slip", "Zip Slip (archive entry path used to write a file)", "medium",
+      r"(createWriteStream|writeFile|writeFileSync|mkdirSync?)\s*\([^)]*(entry\.(path|fileName)|\.entryName|header\.name)",
+      "An archive entry name is used as an output path — a crafted entry can escape the target dir.",
+      "Resolve each entry path and verify it stays within the extraction directory."),
 ]
 
 _PHP_RULES = [
