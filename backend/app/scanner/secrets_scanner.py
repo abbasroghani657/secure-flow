@@ -47,9 +47,32 @@ _DETECTORS: list[tuple[str, re.Pattern, str, bool]] = [
     ("JSON Web Token (JWT)",
      re.compile(r"\beyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\b"), "medium", True),
     ("Basic-auth credentials in URL",
-     re.compile(r"\b[a-zA-Z][a-zA-Z0-9+.\-]*://[^/\s:@]+:([^/\s:@]{3,})@[^/\s:@]+"), "high", True),
+     re.compile(r"\b[a-zA-Z][a-zA-Z0-9+.\-]*://[^/\s:@]+:([^/\s:@${}<>%]{3,})@[^/\s:@]+"), "high", True),
     ("Google service-account private key id",
      re.compile(r'"private_key_id"\s*:\s*"[0-9a-f]{40}"'), "high", True),
+    # --- Cloud providers ---
+    ("Azure Storage account key", re.compile(r"AccountKey=[A-Za-z0-9+/]{86}=="), "critical", True),
+    ("DigitalOcean access token", re.compile(r"\bdo[oprt]_v1_[a-f0-9]{64}\b"), "critical", True),
+    ("GCP service-account credentials", re.compile(r'"type"\s*:\s*"service_account"'), "high", True),
+    ("Kubernetes kubeconfig", re.compile(r"(?m)^\s*kind:\s*Config\b"), "high", True),
+    # --- SaaS / API providers ---
+    ("OpenAI API key", re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_\-]{20,}T3BlbkFJ[A-Za-z0-9_\-]{20,}\b"), "critical", True),
+    ("Anthropic API key", re.compile(r"\bsk-ant-[A-Za-z0-9_\-]{24,}\b"), "critical", True),
+    ("Shopify access token", re.compile(r"\bshp(at|ss|ca|pa)_[a-fA-F0-9]{32}\b"), "critical", True),
+    ("Discord bot token", re.compile(r"\b[MNO][A-Za-z0-9_\-]{23}\.[A-Za-z0-9_\-]{6}\.[A-Za-z0-9_\-]{27,}\b"), "high", True),
+    ("Discord webhook URL", re.compile(r"https://(?:canary\.|ptb\.)?discord(?:app)?\.com/api/webhooks/\d+/[\w\-]+"), "medium", True),
+    ("Telegram bot token", re.compile(r"\b\d{8,10}:[A-Za-z0-9_\-]{35,}\b"), "high", True),
+    ("New Relic user key", re.compile(r"\bNRAK-[A-Z0-9]{27}\b"), "high", True),
+    ("Sentry DSN", re.compile(r"https://[0-9a-f]{32}@[\w.\-]+/\d+"), "medium", True),
+    ("Atlassian API token", re.compile(r"\bATATT3[A-Za-z0-9_\-=]{20,}\b"), "high", True),
+    ("HashiCorp Vault token", re.compile(r"\bhvs\.[A-Za-z0-9_\-]{20,}\b"), "critical", True),
+    ("Mailchimp API key", re.compile(r"\b[0-9a-f]{32}-us\d{1,2}\b"), "high", True),
+    ("PayPal/Braintree access token", re.compile(r"access_token\$production\$[0-9a-z]{16}\$[0-9a-f]{32}"), "critical", True),
+    ("Cloudflare API token", re.compile(r"(?i)cloudflare.{0,20}['\"][A-Za-z0-9_\-]{40}['\"]"), "high", True),
+    ("Datadog API key", re.compile(r"(?i)datadog.{0,20}['\"][0-9a-f]{32}['\"]"), "high", True),
+    # --- Data stores ---
+    ("Database connection string with password",
+     re.compile(r"\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqps?|mssql|mariadb)://[^/\s:@]+:([^/\s:@${}<>%]{3,})@[^/\s:@]+"), "high", True),
 ]
 
 # Generic "assignment" secrets — a secret-looking name set to a literal.

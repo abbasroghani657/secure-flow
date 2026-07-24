@@ -256,6 +256,10 @@ and binaries skipped). Matches are **redacted** in the report.
 | 177 | JSON Web Token (JWT) | A05 | CWE-798 |
 | 178 | Basic-auth credentials embedded in a URL | A05 | CWE-798 |
 | 179 | Hardcoded secret via high-entropy assignment | A05 | CWE-798 |
+| 179a | Azure Storage key · DigitalOcean · GCP service-account · kubeconfig | A05 | CWE-798 |
+| 179b | OpenAI · Anthropic · Shopify · Discord · Telegram · New Relic tokens | A05 | CWE-798 |
+| 179c | Atlassian · HashiCorp Vault · Mailchimp · PayPal · Sentry · Cloudflare · Datadog | A05 | CWE-798 |
+| 179d | Database connection string with embedded password | A05 | CWE-798 |
 
 ---
 
