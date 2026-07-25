@@ -13,6 +13,7 @@ authenticated scan types). This is the Prowler / ScoutSuite / Wiz category.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -289,6 +290,105 @@ def _scan_cloudtrail(session, region) -> list[Finding]:
 
 
 # --------------------------------------------------------------------------- #
+# Account / logging / crypto posture (depth)
+# --------------------------------------------------------------------------- #
+def _scan_root_mfa(session) -> list[Finding]:
+    iam = _client(session, "iam")
+    try:
+        summ = iam.get_account_summary().get("SummaryMap", {})
+    except (ClientError, BotoCoreError):
+        return []
+    if summ.get("AccountMFAEnabled", 0) == 0:
+        return [_f("cspm-root-no-mfa", "Root account has no MFA", "critical", "iam:root",
+                   description="The AWS account root user does not have MFA enabled.",
+                   impact="The root user has unrestricted access; without MFA a leaked password is full account takeover.",
+                   remediation="Enable a hardware/virtual MFA device on the root account immediately.",
+                   evidence="AccountMFAEnabled = 0")]
+    return []
+
+
+def _scan_flow_logs(session, region) -> list[Finding]:
+    ec2 = _client(session, "ec2", region)
+    try:
+        vpcs = [v["VpcId"] for v in ec2.describe_vpcs().get("Vpcs", [])]
+        logged = {fl.get("ResourceId") for fl in ec2.describe_flow_logs().get("FlowLogs", [])}
+    except (ClientError, BotoCoreError):
+        return []
+    missing = [v for v in vpcs if v not in logged]
+    if missing:
+        return [_f("cspm-flowlogs-disabled", "VPC Flow Logs not enabled", "medium", f"ec2:{missing[0]}",
+                   description=f"{len(missing)} VPC(s) have no VPC Flow Logs.",
+                   impact="Without flow logs there is no network-level record to detect or investigate intrusions.",
+                   remediation="Enable VPC Flow Logs on all VPCs, delivered to CloudWatch/S3.",
+                   evidence=f"VPCs without flow logs: {', '.join(missing[:5])}")]
+    return []
+
+
+def _scan_guardduty(session, region) -> list[Finding]:
+    gd = _client(session, "guardduty", region)
+    try:
+        detectors = gd.list_detectors().get("DetectorIds", [])
+    except (ClientError, BotoCoreError):
+        return []
+    if not detectors:
+        return [_f("cspm-guardduty-disabled", "GuardDuty threat detection not enabled", "high", "guardduty",
+                   description="Amazon GuardDuty is not enabled in this region.",
+                   impact="No managed threat detection for credential misuse, crypto-mining or recon.",
+                   remediation="Enable GuardDuty (and Security Hub) across all active regions.",
+                   evidence="0 GuardDuty detectors")]
+    return []
+
+
+def _scan_kms(session, region) -> list[Finding]:
+    kms = _client(session, "kms", region)
+    out: list[Finding] = []
+    try:
+        keys = kms.list_keys().get("Keys", [])[:100]
+    except (ClientError, BotoCoreError):
+        return []
+    for k in keys:
+        kid = k.get("KeyId")
+        try:
+            meta = kms.describe_key(KeyId=kid).get("KeyMetadata", {})
+            if meta.get("KeyManager") != "CUSTOMER" or meta.get("KeyState") != "Enabled":
+                continue
+            if not kms.get_key_rotation_status(KeyId=kid).get("KeyRotationEnabled", False):
+                out.append(_f("cspm-kms-rotation-disabled", "KMS key rotation disabled", "low", f"kms:{kid}",
+                              description=f"Customer-managed KMS key {kid} does not have automatic rotation enabled.",
+                              impact="Long-lived encryption keys increase the blast radius if a key is compromised.",
+                              remediation="Enable automatic annual key rotation on customer-managed KMS keys.",
+                              evidence=f"{kid}: KeyRotationEnabled=false"))
+        except (ClientError, BotoCoreError):
+            continue
+    return out[:20]
+
+
+def _scan_lambda(session, region) -> list[Finding]:
+    lam = _client(session, "lambda", region)
+    out: list[Finding] = []
+    try:
+        fns = lam.list_functions().get("Functions", [])[:200]
+    except (ClientError, BotoCoreError):
+        return []
+    for fn in fns:
+        name = fn.get("FunctionName", "?")
+        env = ((fn.get("Environment") or {}).get("Variables") or {})
+        for k, v in env.items():
+            if _ENV_SECRET.search(k) and isinstance(v, str) and len(v) >= 6 and "arn:" not in v:
+                out.append(_f("cspm-lambda-env-secret", f"Secret in Lambda environment ({name})", "high",
+                              f"lambda:{name}",
+                              description=f"Lambda '{name}' stores a secret in an environment variable ({k}).",
+                              impact="Lambda env vars are readable by anyone with GetFunctionConfiguration and appear in the console.",
+                              remediation="Store secrets in Secrets Manager/SSM Parameter Store and fetch at runtime.",
+                              evidence=f"{k}={str(v)[:4]}…"))
+                break
+    return out[:20]
+
+
+_ENV_SECRET = re.compile(r"(?i)(pass(word|wd)?|secret|api[_-]?key|token|access[_-]?key|private[_-]?key)")
+
+
+# --------------------------------------------------------------------------- #
 # Entry point
 # --------------------------------------------------------------------------- #
 def run_cspm_scan(target: CSPMTarget) -> list[Finding]:
@@ -323,6 +423,11 @@ def run_cspm_scan(target: CSPMTarget) -> list[Finding]:
         (_scan_iam, (session,)),
         (_scan_rds, (session, region)),
         (_scan_cloudtrail, (session, region)),
+        (_scan_root_mfa, (session,)),
+        (_scan_flow_logs, (session, region)),
+        (_scan_guardduty, (session, region)),
+        (_scan_kms, (session, region)),
+        (_scan_lambda, (session, region)),
     ):
         try:
             findings.extend(fn(*args))

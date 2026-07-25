@@ -373,6 +373,11 @@ wiped). Prowler / ScoutSuite category.
 | 209 | RDS instance publicly accessible | A05 | CWE-668 |
 | 210 | RDS storage not encrypted | A02 | CWE-311 |
 | 211 | CloudTrail audit logging not enabled | A09 | CWE-778 |
+| 211a | Root account has no MFA | A07 | CWE-308 |
+| 211b | VPC Flow Logs not enabled | A09 | CWE-778 |
+| 211c | GuardDuty threat detection not enabled | A09 | CWE-778 |
+| 211d | KMS key rotation disabled | A02 | CWE-320 |
+| 211e | Secret in a Lambda environment variable | A05 | CWE-798 |
 
 ---
 
