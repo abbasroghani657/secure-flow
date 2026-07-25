@@ -26,6 +26,32 @@ const OWASP_NAMES = {
   "A10:2025": "Mishandling of Exceptional Conditions",
 };
 
+// The OWASP standard a scan is measured against — a full scorecard of every
+// category, so the user sees where they stand across the whole Top 10.
+const OWASP_STANDARDS = {
+  web: { label: "OWASP Top 10:2025", cats: Object.entries(OWASP_NAMES) },
+  mobile: { label: "OWASP Mobile Top 10:2024", cats: [
+    ["M1:2024", "Improper Credential Usage"], ["M2:2024", "Inadequate Supply-Chain Security"],
+    ["M3:2024", "Insecure Authentication / Authorization"], ["M4:2024", "Insufficient Input/Output Validation"],
+    ["M5:2024", "Insecure Communication"], ["M6:2024", "Inadequate Privacy Controls"],
+    ["M7:2024", "Insufficient Binary Protections"], ["M8:2024", "Security Misconfiguration"],
+    ["M9:2024", "Insecure Data Storage"], ["M10:2024", "Insufficient Cryptography"],
+  ] },
+  llm: { label: "OWASP LLM Top 10:2025", cats: [
+    ["LLM01:2025", "Prompt Injection"], ["LLM02:2025", "Sensitive Information Disclosure"],
+    ["LLM03:2025", "Supply Chain"], ["LLM04:2025", "Data & Model Poisoning"],
+    ["LLM05:2025", "Improper Output Handling"], ["LLM06:2025", "Excessive Agency"],
+    ["LLM07:2025", "System Prompt Leakage"], ["LLM08:2025", "Vector & Embedding Weaknesses"],
+    ["LLM09:2025", "Misinformation"], ["LLM10:2025", "Unbounded Consumption"],
+  ] },
+};
+
+function owaspStandardFor(scanType) {
+  if (scanType === "mobile" || scanType === "ios") return OWASP_STANDARDS.mobile;
+  if (scanType === "llm") return OWASP_STANDARDS.llm;
+  return OWASP_STANDARDS.web;
+}
+
 export default function ScanResults() {
   const { id } = useParams();
   const [scan, setScan] = useState(null);
@@ -33,6 +59,7 @@ export default function ScanResults() {
   const [tab, setTab] = useState("findings"); // findings | passed | compliance
   const [sevFilter, setSevFilter] = useState("all");
   const [open, setOpen] = useState({});
+  const [openCat, setOpenCat] = useState({});
 
   useEffect(() => {
     let alive = true;
@@ -62,19 +89,18 @@ export default function ScanResults() {
     [issues, sevFilter]
   );
 
-  // Group issues by OWASP Top 10:2025 category for the compliance view.
-  const compliance = useMemo(() => {
-    const map = {};
-    for (const f of issues) {
-      const cat = f.owasp || "Unmapped";
-      (map[cat] = map[cat] || []).push(f);
-    }
-    return Object.entries(map).sort((a, b) => {
-      if (a[0] === "Unmapped") return 1;
-      if (b[0] === "Unmapped") return -1;
-      return a[0].localeCompare(b[0]);
-    });
-  }, [issues]);
+  // Full OWASP scorecard — every category of the relevant standard, with the
+  // issues found in each (clean categories are shown too, so coverage is visible).
+  const scorecard = useMemo(() => {
+    const std = owaspStandardFor(scan?.scan_type);
+    const rows = std.cats.map(([code, name]) => ({
+      code, name, items: issues.filter((f) => f.owasp === code),
+    }));
+    const known = new Set(std.cats.map((c) => c[0]));
+    const other = issues.filter((f) => f.owasp && !known.has(f.owasp));
+    const flagged = rows.filter((r) => r.items.length > 0).length;
+    return { label: std.label, rows, other, flagged, total: std.cats.length };
+  }, [issues, scan]);
 
   if (err) return <Shell><p style={{ color: "#F87171" }}>{err}</p></Shell>;
   if (!scan) return <Shell><p style={{ color: T.muted }}>Loading…</p></Shell>;
@@ -133,7 +159,7 @@ export default function ScanResults() {
 
           {/* Tabs */}
           <div style={{ display: "flex", gap: 6, borderBottom: `1px solid ${T.border}`, marginBottom: 20 }}>
-            {[["findings", `Findings (${issues.length})`], ["passed", `Passed (${passed.length})`], ["compliance", "OWASP Top 10"]].map(([k, label]) => (
+            {[["findings", `Findings (${issues.length})`], ["passed", `Passed (${passed.length})`], ["compliance", "OWASP"]].map(([k, label]) => (
               <button key={k} onClick={() => setTab(k)} style={{ background: "none", border: "none", borderBottom: `2px solid ${tab === k ? T.accent : "transparent"}`, color: tab === k ? T.text : T.muted, cursor: "pointer", padding: "10px 14px", fontFamily: T.body, fontSize: 14, fontWeight: 600, marginBottom: -1 }}>
                 {label}
               </button>
@@ -178,28 +204,66 @@ export default function ScanResults() {
           )}
 
           {tab === "compliance" && (
-            compliance.length === 0 ? <Empty text="No compliance gaps found." /> : (
-              <div style={{ display: "grid", gap: 14 }}>
-                {compliance.map(([ref, items]) => (
-                  <div key={ref} style={{ padding: "18px 20px", borderRadius: 14, border: `1px solid ${T.border}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, gap: 12 }}>
-                      <span style={{ fontFamily: T.heading, fontWeight: 600, fontSize: 15 }}>
-                        {ref === "Unmapped" ? "Unmapped" : <><span style={{ color: T.accentHi }}>{ref}</span> — {OWASP_NAMES[ref] || ""}</>}
-                      </span>
-                      <span style={{ fontSize: 12.5, color: T.muted, whiteSpace: "nowrap" }}>{items.length} issue{items.length !== 1 ? "s" : ""}</span>
-                    </div>
-                    <div style={{ display: "grid", gap: 6 }}>
-                      {items.map((f) => (
-                        <div key={f.id} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13.5 }}>
-                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: SEVERITY[f.severity].color }} />
-                          <span style={{ color: T.muted }}>{f.title}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 4, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13.5, color: T.muted }}>
+                  Coverage against <b style={{ color: T.text }}>{scorecard.label}</b> — every category, with the issues found in each.
+                </span>
+                <span style={{ fontSize: 12.5, color: scorecard.flagged ? SEVERITY.high.color : T.accent, fontWeight: 600, whiteSpace: "nowrap" }}>
+                  {scorecard.flagged} of {scorecard.total} categories affected
+                </span>
               </div>
-            )
+              {scorecard.rows.map((row) => {
+                const has = row.items.length > 0;
+                const worst = has ? SEV_ORDER.find((s) => row.items.some((f) => f.severity === s)) : null;
+                const isOpen = !!openCat[row.code];
+                return (
+                  <div key={row.code} style={{ borderRadius: 12, border: `1px solid ${has ? SEVERITY[worst].border : "rgba(0,191,99,0.25)"}`, background: has ? "rgba(255,255,255,0.02)" : "rgba(0,191,99,0.05)", overflow: "hidden" }}>
+                    <button onClick={() => has && setOpenCat((o) => ({ ...o, [row.code]: !o[row.code] }))} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "13px 16px", background: "none", border: "none", cursor: has ? "pointer" : "default", textAlign: "left", fontFamily: T.body }}>
+                      {has ? (
+                        <span style={{ width: 10, height: 10, borderRadius: "50%", background: SEVERITY[worst].color, flex: "none" }} />
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><path d="M20 6L9 17l-5-5" /></svg>
+                      )}
+                      <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: has ? T.text : T.muted, minWidth: 62 }}>{row.code.split(":")[0]}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: has ? T.text : T.muted, flex: 1 }}>{row.name}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: has ? SEVERITY[worst].color : T.accent, whiteSpace: "nowrap" }}>
+                        {has ? `${row.items.length} issue${row.items.length !== 1 ? "s" : ""}` : "Clean"}
+                      </span>
+                      {has && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.muted} strokeWidth="2" strokeLinecap="round" style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s", flex: "none" }}><path d="M6 9l6 6 6-6" /></svg>}
+                    </button>
+                    {has && isOpen && (
+                      <div style={{ padding: "0 16px 12px 38px", display: "grid", gap: 2 }}>
+                        {row.items.map((f) => (
+                          <div key={f.id} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13.5, padding: "8px 0", borderTop: `1px solid ${T.border}` }}>
+                            <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: SEVERITY[f.severity].color, minWidth: 50 }}>{SEVERITY[f.severity].label}</span>
+                            <span style={{ color: T.text, flex: 1 }}>{f.title}</span>
+                            {f.cwe && <span style={{ fontFamily: T.mono, fontSize: 11, color: T.faint, whiteSpace: "nowrap" }}>{f.cwe}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {scorecard.other.length > 0 && (
+                <div style={{ borderRadius: 12, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.02)", padding: "13px 16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>Other standards (Mobile / LLM / API)</span>
+                    <span style={{ fontSize: 12, color: T.muted }}>{scorecard.other.length} issue{scorecard.other.length !== 1 ? "s" : ""}</span>
+                  </div>
+                  <div style={{ display: "grid", gap: 2 }}>
+                    {scorecard.other.map((f) => (
+                      <div key={f.id} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13.5, padding: "6px 0" }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: SEVERITY[f.severity].color, flex: "none" }} />
+                        <span style={{ color: T.text, flex: 1 }}>{f.title}</span>
+                        <span style={{ fontFamily: T.mono, fontSize: 11, color: T.accentHi }}>{f.owasp}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </>
       )}
