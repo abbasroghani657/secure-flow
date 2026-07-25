@@ -250,6 +250,31 @@ async def create_cicd_scan(
     return _scan_read(scan)
 
 
+@router.post("/container", response_model=ScanRead, status_code=status.HTTP_201_CREATED)
+async def create_container_scan(
+    current: CurrentUser,
+    session: SessionDep,
+    file: UploadFile = File(...),
+) -> ScanRead:
+    """Upload a `docker save` image tar for OS-CVE, secret and config analysis."""
+    filename = file.filename or "image.tar"
+    data = await file.read()
+    if len(data) > settings.max_apk_mb * 4 * 1024 * 1024:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Image tar too large.")
+    if not data:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "The uploaded file is empty.")
+
+    scan = Scan(owner_id=current.id, target_url=filename, scan_type="container", status=ScanStatus.queued)
+    session.add(scan)
+    session.commit()
+    session.refresh(scan)
+
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    with open(os.path.join(settings.upload_dir, f"{scan.id}.imgtar"), "wb") as fh:
+        fh.write(data)
+    return _scan_read(scan)
+
+
 @router.post("/api-spec", response_model=ScanRead, status_code=status.HTTP_201_CREATED)
 async def create_api_scan(
     current: CurrentUser,

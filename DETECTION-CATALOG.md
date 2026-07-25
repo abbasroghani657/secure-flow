@@ -391,6 +391,18 @@ Upload an OpenAPI 3 / Swagger 2 spec (JSON or YAML) — static review, no live t
 
 ---
 
+## 🐳 Container image — `docker save` tar (Trivy-class)
+Upload an image tar; layers, config and OS-package databases are analysed offline.
+| # | Vulnerability | OWASP | CWE |
+|---|---|---|---|
+| C1 | Vulnerable OS package — Debian/Ubuntu (dpkg) / Alpine (apk) via OSV | A06 | CWE-1104 |
+| C2 | Secret baked into an image layer (any of the 37 secret detectors) | A05 | CWE-798 |
+| C3 | Secret baked into an image ENV variable | A05 | CWE-798 |
+| C4 | Image runs as root (no USER) | A05 | CWE-250 |
+| C5 | Sensitive port exposed (SSH/RDP/DB/Docker) | A05 | CWE-668 |
+
+---
+
 ## 🔬 Deep Scan — Nuclei engine
 Thousands of community templates: known **CVEs**, exposed panels, default credentials,
 technology/version fingerprinting, and misconfigurations — merged into the findings

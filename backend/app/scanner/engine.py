@@ -632,6 +632,34 @@ def _run_cspm_scan(session: Session, scan: Scan) -> None:
         session.commit()
 
 
+def _run_container_scan(session: Session, scan: Scan) -> None:
+    """Static analysis of an uploaded container image tar (OS CVEs + secrets + config)."""
+    import os
+
+    from .container_scanner import run_container_scan
+
+    path = os.path.join(settings.upload_dir, f"{scan.id}.imgtar")
+    try:
+        with open(path, "rb") as fh:
+            data = fh.read()
+        findings = run_container_scan(scan.target_url, data)
+        for f in findings:
+            enrich_taxonomy(f)
+        _tally_and_complete(session, scan, findings)
+    except Exception as exc:  # noqa: BLE001
+        scan.status = ScanStatus.failed
+        scan.error = f"Scan error: {exc}"
+        scan.finished_at = datetime.now(timezone.utc)
+        session.add(scan)
+        session.commit()
+    finally:
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except OSError:
+            pass
+
+
 def _run_api_scan(session: Session, scan: Scan) -> None:
     """Static analysis of an uploaded OpenAPI/Swagger spec (OWASP API Top 10)."""
     import os
@@ -703,6 +731,10 @@ def run_scan(scan_id: int) -> None:
         # API scan: static analysis of an uploaded OpenAPI/Swagger spec.
         if scan.scan_type == "api":
             _run_api_scan(session, scan)
+            return
+        # Container scan: static analysis of an uploaded docker-save image tar.
+        if scan.scan_type == "container":
+            _run_container_scan(session, scan)
             return
         # CSPM scan: query the owner's AWS account with their read-only credentials.
         if scan.scan_type == "cspm":
