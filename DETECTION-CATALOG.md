@@ -304,9 +304,13 @@ Upload a workflow file or a `.zip` — supply-chain and pipeline misconfiguratio
 
 ---
 
-## 🧬 SAST — source code (Python AST + JS/TS/PHP/Java/Go/Ruby rules)
-Upload a source `.zip`; Python is analysed with the real `ast` module, other
-languages with a curated dangerous-sink ruleset.
+## 🧬 SAST — source code (10 languages)
+Upload a source `.zip`. **Python** via the real `ast` module; **JS/TS** deeply
+(29 classes); and curated dangerous-sink rules for **PHP, Java, Go, Ruby, C#/.NET,
+Kotlin, Swift**. C#: command/SQL injection, BinaryFormatter/TypeNameHandling
+deserialization, XXE, weak hash/cipher, cert-validation bypass, path traversal.
+Kotlin/Swift: command/SQL injection, insecure WebView, weak crypto, ATS-disabled/
+TLS bypass, cleartext HTTP, secrets in logs, hardcoded secrets.
 | # | Vulnerability | OWASP | CWE |
 |---|---|---|---|
 | 189 | Code injection — `eval`/`exec`/`Function`/`vm`/timer-string | A05 | CWE-94 |

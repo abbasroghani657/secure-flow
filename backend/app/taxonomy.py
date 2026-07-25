@@ -282,6 +282,9 @@ _SAST_SUFFIX = {
     "trust-all-certs": ("A02:2025", "CWE-295", "backend"),
     "debug-enabled": ("A05:2025", "CWE-489", "backend"),
     "insecure-tempfile": ("A01:2025", "CWE-377", "backend"),
+    "webview": ("A05:2025", "CWE-749", "frontend"),
+    "cleartext-traffic": ("A02:2025", "CWE-319", "backend"),
+    "hardcoded-secret": ("A05:2025", "CWE-798", "backend"),
 }
 
 

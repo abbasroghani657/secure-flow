@@ -459,12 +459,104 @@ _RUBY_RULES = [
       "Use parameterised queries / ActiveRecord placeholders."),
 ]
 
+_CSHARP_RULES = [
+    R("sast-cs-command-injection", "OS command injection (Process.Start)", "high",
+      r"Process\.Start\s*\([^)]*(\+|\$\"|String\.Format)",
+      "Process.Start runs a command built from concatenation/interpolation.",
+      "Use ProcessStartInfo with an argument list; validate input."),
+    R("sast-cs-sql-injection", "Possible SQL injection (SqlCommand + concat)", "high",
+      r"new\s+SqlCommand\s*\(\s*[$\"][^)]*(\+|\{)|CommandText\s*=\s*[$\"][^;]*(\+|\{)",
+      "A SQL command is built by string concatenation/interpolation.",
+      "Use parameterised queries (SqlParameter)."),
+    R("sast-cs-insecure-deserialization", "Insecure .NET deserialization", "high",
+      r"new\s+BinaryFormatter\s*\(|TypeNameHandling\s*=\s*TypeNameHandling\.(All|Objects|Auto)|new\s+JavaScriptSerializer|LosFormatter|NetDataContractSerializer",
+      "Unsafe .NET deserialization (BinaryFormatter / TypeNameHandling / LosFormatter).",
+      "Avoid BinaryFormatter; use System.Text.Json; never set TypeNameHandling to All/Objects/Auto."),
+    R("sast-cs-xxe", "XML external entity (XXE) — DTD processing enabled", "high",
+      r"XmlResolver\s*=\s*new\s+XmlUrlResolver|DtdProcessing\s*=\s*DtdProcessing\.Parse|ProhibitDtd\s*=\s*false",
+      "XML parsing allows DTD/external entities.",
+      "Set DtdProcessing.Prohibit and XmlResolver=null."),
+    R("sast-cs-weak-hash", "Weak hash (MD5/SHA1)", "low",
+      r"(MD5|SHA1)\.Create\s*\(|new\s+(MD5|SHA1)(CryptoServiceProvider|Managed)",
+      "MD5/SHA1 are cryptographically broken.",
+      "Use SHA256+; PBKDF2/bcrypt/argon2 for passwords."),
+    R("sast-cs-weak-crypto", "Weak cipher (DES/TripleDES/ECB)", "medium",
+      r"(DES|TripleDES)(CryptoServiceProvider)?\.Create|CipherMode\.ECB",
+      "DES/TripleDES or ECB mode is weak.",
+      "Use AES-GCM."),
+    R("sast-cs-tls-verify-disabled", "TLS certificate validation disabled", "high",
+      r"ServerCertificateValidationCallback\s*\+?=\s*[^;]*=>\s*true|ServerCertificateCustomValidationCallback[^;]*=>\s*true",
+      "Certificate validation is bypassed (callback always returns true).",
+      "Never bypass certificate validation."),
+    R("sast-cs-path-traversal", "Path traversal (File API + request input)", "high",
+      r"(File\.(ReadAllText|ReadAllBytes|OpenRead|WriteAllText)|new\s+StreamReader)\s*\([^)]*Request(\.|\[)",
+      "A file path is built from request input.",
+      "Validate the resolved path stays within an allowed directory."),
+]
+
+_KOTLIN_RULES = [
+    R("sast-kt-command-injection", "OS command injection", "high",
+      r"(Runtime\.getRuntime\(\)\.exec|ProcessBuilder)\s*\([^)]*(\$|\+)",
+      "A shell command is built from interpolation/concatenation.",
+      "Use ProcessBuilder with an argument list; validate input."),
+    R("sast-kt-sql-injection", "Possible SQL injection (rawQuery/execSQL + concat)", "high",
+      r"\.(rawQuery|execSQL)\s*\(\s*[\"$][^)]*(\$\{|[\"']\s*\+)",
+      "A SQL query interpolates/concatenates input.",
+      "Use parameterised queries (selectionArgs / bind)."),
+    R("sast-kt-webview", "Insecure WebView (JS enabled / JS interface)", "medium",
+      r"javaScriptEnabled\s*=\s*true|addJavascriptInterface\s*\(",
+      "WebView enables JavaScript or a JS bridge.",
+      "Disable JS if unused; never expose sensitive JS interfaces to untrusted content."),
+    R("sast-kt-weak-hash", "Weak hash (MD5/SHA-1)", "low",
+      r"MessageDigest\.getInstance\s*\(\s*\"(MD5|SHA-1|SHA1)\"",
+      "Weak hash algorithm.",
+      "Use SHA-256+; bcrypt/argon2 for passwords."),
+    R("sast-kt-weak-crypto", "Weak cipher (DES/ECB)", "medium",
+      r"Cipher\.getInstance\s*\(\s*\"(DES|.*ECB.*)\"",
+      "Weak cipher/mode.",
+      "Use AES/GCM."),
+    R("sast-kt-cleartext-traffic", "Cleartext HTTP URL", "low",
+      r"[`'\"]http://[^`'\"]+[`'\"]",
+      "A cleartext http:// URL is used.",
+      "Use https:// and a strict network security config."),
+    R("sast-kt-sensitive-logging", "Sensitive data written to logcat", "low",
+      r"Log\.[dwiev]\s*\([^)]*\b(password|token|secret|api[_-]?key)\b",
+      "A secret/PII is written to logcat.",
+      "Never log secrets."),
+]
+
+_SWIFT_RULES = [
+    R("sast-swift-weak-hash", "Weak hash (MD5/SHA1)", "low",
+      r"\b(CC_MD5|CC_SHA1|Insecure\.(MD5|SHA1))\b",
+      "MD5/SHA1 are broken.",
+      "Use SHA-256+ (CryptoKit SHA256); for passwords use bcrypt/argon2."),
+    R("sast-swift-tls-verify-disabled", "ATS disabled / TLS validation bypass", "high",
+      r"NSAllowsArbitraryLoads|allowsAnyHTTPSCertificate|\.performDefaultHandling[\s\S]{0,0}|URLCredential\(trust",
+      "App Transport Security is disabled or TLS validation is bypassed.",
+      "Keep ATS enabled; validate server certificates."),
+    R("sast-swift-webview", "Deprecated UIWebView / insecure WKWebView", "medium",
+      r"\bUIWebView\b|allowFileAccessFromFileURLs\s*=\s*true|allowUniversalAccessFromFileURLs\s*=\s*true",
+      "Deprecated UIWebView or insecure WKWebView file-access config.",
+      "Use WKWebView with least-privilege settings."),
+    R("sast-swift-sql-injection", "Possible SQL injection (string-built query)", "high",
+      r"(sqlite3_exec|\.prepare|executeQuery)\s*\([^)]*\\\(",
+      "A SQL query interpolates input via \\(...).",
+      "Use parameterised statements (sqlite3_bind)."),
+    R("sast-swift-hardcoded-secret", "Hardcoded secret", "medium",
+      r"(?i)(apikey|api_key|secret|password|token)\s*=\s*\"[^\"\s]{8,}\"",
+      "A credential is hardcoded in source.",
+      "Load from the Keychain or secure configuration."),
+]
+
 _LANG_RULES = {
     ".js": _JS_RULES, ".jsx": _JS_RULES, ".ts": _JS_RULES, ".tsx": _JS_RULES, ".mjs": _JS_RULES,
     ".php": _PHP_RULES, ".php5": _PHP_RULES, ".phtml": _PHP_RULES,
     ".java": _JAVA_RULES,
     ".go": _GO_RULES,
     ".rb": _RUBY_RULES,
+    ".cs": _CSHARP_RULES,
+    ".kt": _KOTLIN_RULES, ".kts": _KOTLIN_RULES,
+    ".swift": _SWIFT_RULES,
 }
 
 
@@ -499,7 +591,7 @@ def scan_file(path: str, text: str) -> list[Finding]:
 
 
 _SUPPORTED = {".py", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".php", ".php5",
-              ".phtml", ".java", ".go", ".rb"}
+              ".phtml", ".java", ".go", ".rb", ".cs", ".kt", ".kts", ".swift"}
 
 
 def run_sast_scan(filename: str, data: bytes) -> list[Finding]:
