@@ -14,14 +14,15 @@ const SCAN_TYPES = [
   { id: "iac", label: "Infrastructure (IaC)", desc: "Upload a Terraform / CloudFormation / Kubernetes / Dockerfile — finds cloud & container misconfigurations." },
   { id: "secrets", label: "Secrets (source code)", desc: "Upload a source archive (.zip) — finds leaked API keys, tokens & private keys committed in your code." },
   { id: "cicd", label: "CI/CD pipeline", desc: "Upload a GitHub Actions / GitLab CI workflow — finds supply-chain risks: unpinned actions, script injection, over-broad tokens." },
-  { id: "sast", label: "Source code (SAST)", desc: "Upload a source archive (.zip) — static analysis for injection, command exec, deserialization & weak crypto (Python/JS/PHP/Java/Go/Ruby)." },
+  { id: "sast", label: "Source code (SAST)", desc: "Upload a source archive (.zip) — static analysis for injection, command exec, deserialization & weak crypto (Python/JS/PHP/Java/Go/Ruby/C#/Kotlin/Swift)." },
+  { id: "api", label: "API spec (OpenAPI/Swagger)", desc: "Upload an OpenAPI/Swagger file — OWASP API Top 10 review: missing auth, BOLA surface, keys in URL, excessive data exposure." },
   { id: "cspm", label: "Cloud posture (AWS)", desc: "Scan your AWS account with read-only keys — public buckets, open security groups, IAM/MFA, unencrypted storage, CloudTrail." },
   { id: "bola", label: "IDOR / BOLA (two accounts)", desc: "Use two accounts to test object-level authorization — can user B read user A's data? (OWASP API #1)." },
   { id: "headers", label: "Headers only", desc: "Quick check of security response headers." },
 ];
 
 // Scan types that take a file upload instead of a verified target.
-const UPLOAD_TYPES = ["mobile", "sca", "ios", "iac", "secrets", "cicd", "sast"];
+const UPLOAD_TYPES = ["mobile", "sca", "ios", "iac", "secrets", "cicd", "sast", "api"];
 
 const inp = (T) => ({
   padding: "11px 13px", borderRadius: 10, border: `1px solid ${T.borderStrong}`,
@@ -50,6 +51,7 @@ export default function NewScan() {
   const [secretsFile, setSecretsFile] = useState(null);
   const [cicdFile, setCicdFile] = useState(null);
   const [sastFile, setSastFile] = useState(null);
+  const [apiFile, setApiFile] = useState(null);
   const [awsAccessKey, setAwsAccessKey] = useState("");
   const [awsSecretKey, setAwsSecretKey] = useState("");
   const [awsRegion, setAwsRegion] = useState("us-east-1");
@@ -71,8 +73,8 @@ export default function NewScan() {
     setErr("");
     // File-upload scan types — no verified target needed.
     if (UPLOAD_TYPES.includes(type)) {
-      const fileMap = { mobile: apkFile, sca: depFile, ios: iosFile, iac: iacFile, secrets: secretsFile, cicd: cicdFile, sast: sastFile };
-      const uploadMap = { mobile: api.uploadMobileScan, sca: api.uploadScaScan, ios: api.uploadIosScan, iac: api.uploadIacScan, secrets: api.uploadSecretsScan, cicd: api.uploadCicdScan, sast: api.uploadSastScan };
+      const fileMap = { mobile: apkFile, sca: depFile, ios: iosFile, iac: iacFile, secrets: secretsFile, cicd: cicdFile, sast: sastFile, api: apiFile };
+      const uploadMap = { mobile: api.uploadMobileScan, sca: api.uploadScaScan, ios: api.uploadIosScan, iac: api.uploadIacScan, secrets: api.uploadSecretsScan, cicd: api.uploadCicdScan, sast: api.uploadSastScan, api: api.uploadApiScan };
       const f = fileMap[type];
       if (!f) { setErr("Choose a file to scan."); return; }
       setBusy(true);
@@ -173,7 +175,8 @@ export default function NewScan() {
                   iac: { label: "IaC file", file: iacFile, set: setIacFile, accept: ".tf,.tf.json,.yaml,.yml,.json,.hcl,Dockerfile", prompt: "Click to choose a .tf / .yaml / Dockerfile / compose file", note: "The file is analysed for cloud & container misconfigurations (Terraform, CloudFormation, Kubernetes, Docker), then deleted." },
                   secrets: { label: "Source archive", file: secretsFile, set: setSecretsFile, accept: ".zip", prompt: "Click to choose a .zip of your source code", note: "Every text file is scanned for leaked API keys, tokens and private keys, then the archive is deleted. Nothing is sent anywhere." },
                   cicd: { label: "CI/CD workflow", file: cicdFile, set: setCicdFile, accept: ".yml,.yaml,.zip", prompt: "Click to choose a workflow .yml / .gitlab-ci.yml / .zip", note: "The workflow is analysed for supply-chain and pipeline misconfigurations (GitHub Actions, GitLab CI), then deleted." },
-                  sast: { label: "Source archive", file: sastFile, set: setSastFile, accept: ".zip,.py,.js,.jsx,.ts,.tsx,.php,.java,.go,.rb", prompt: "Click to choose a .zip of your source code", note: "Every supported source file (Python/JS/PHP/Java/Go/Ruby) is statically analysed for dangerous code, then the archive is deleted. Nothing is sent anywhere." },
+                  sast: { label: "Source archive", file: sastFile, set: setSastFile, accept: ".zip,.py,.js,.jsx,.ts,.tsx,.php,.java,.go,.rb,.cs,.kt,.swift", prompt: "Click to choose a .zip of your source code", note: "Every supported source file (Python/JS/TS/PHP/Java/Go/Ruby/C#/Kotlin/Swift) is statically analysed, then the archive is deleted. Nothing is sent anywhere." },
+                  api: { label: "OpenAPI / Swagger spec", file: apiFile, set: setApiFile, accept: ".json,.yaml,.yml", prompt: "Click to choose openapi.json / swagger.yaml", note: "The spec is analysed against the OWASP API Security Top 10, then deleted. No live requests are sent." },
                 }[type];
                 const f = cfg.file;
                 return (

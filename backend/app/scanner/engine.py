@@ -631,6 +631,34 @@ def _run_cspm_scan(session: Session, scan: Scan) -> None:
         session.commit()
 
 
+def _run_api_scan(session: Session, scan: Scan) -> None:
+    """Static analysis of an uploaded OpenAPI/Swagger spec (OWASP API Top 10)."""
+    import os
+
+    from .api_scanner import run_api_scan
+
+    path = os.path.join(settings.upload_dir, f"{scan.id}.api")
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            content = fh.read()
+        findings = run_api_scan(scan.target_url, content)
+        for f in findings:
+            enrich_taxonomy(f)
+        _tally_and_complete(session, scan, findings)
+    except Exception as exc:  # noqa: BLE001
+        scan.status = ScanStatus.failed
+        scan.error = f"Scan error: {exc}"
+        scan.finished_at = datetime.now(timezone.utc)
+        session.add(scan)
+        session.commit()
+    finally:
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except OSError:
+            pass
+
+
 def run_scan(scan_id: int) -> None:
     """Entry point for the background task. Owns its own DB session."""
     with Session(db_engine) as session:
@@ -670,6 +698,10 @@ def run_scan(scan_id: int) -> None:
         # SAST scan: static analysis of an uploaded source archive — no network target.
         if scan.scan_type == "sast":
             _run_sast_scan(session, scan)
+            return
+        # API scan: static analysis of an uploaded OpenAPI/Swagger spec.
+        if scan.scan_type == "api":
+            _run_api_scan(session, scan)
             return
         # CSPM scan: query the owner's AWS account with their read-only credentials.
         if scan.scan_type == "cspm":

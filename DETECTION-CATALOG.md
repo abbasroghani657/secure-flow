@@ -374,6 +374,21 @@ wiped). Prowler / ScoutSuite category.
 
 ---
 
+## 🔌 API spec — OpenAPI / Swagger (OWASP API Security Top 10)
+Upload an OpenAPI 3 / Swagger 2 spec (JSON or YAML) — static review, no live traffic.
+| # | Vulnerability | OWASP-API | CWE |
+|---|---|---|---|
+| A1 | Object endpoint without authentication (BOLA surface) | API1 | CWE-639 |
+| A2 | No authentication defined on the API | API2 | CWE-306 |
+| A3 | Sensitive fields exposed in response schemas | API3 | CWE-213 |
+| A4 | API key passed in the URL query string | API2 | CWE-598 |
+| A5 | HTTP Basic authentication | API2 | CWE-522 |
+| A6 | API served over cleartext HTTP | API8 | CWE-319 |
+| A7 | Deprecated endpoint still documented | API9 | CWE-1059 |
+| A8 | Multiple API versions exposed (improper inventory) | API9 | CWE-1059 |
+
+---
+
 ## 🔬 Deep Scan — Nuclei engine
 Thousands of community templates: known **CVEs**, exposed panels, default credentials,
 technology/version fingerprinting, and misconfigurations — merged into the findings

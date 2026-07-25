@@ -250,6 +250,33 @@ async def create_cicd_scan(
     return _scan_read(scan)
 
 
+@router.post("/api-spec", response_model=ScanRead, status_code=status.HTTP_201_CREATED)
+async def create_api_scan(
+    current: CurrentUser,
+    session: SessionDep,
+    file: UploadFile = File(...),
+) -> ScanRead:
+    """Upload an OpenAPI/Swagger spec (JSON/YAML) for OWASP API Top 10 analysis."""
+    filename = file.filename or "openapi.json"
+    data = await file.read()
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Spec too large (max 10 MB).")
+    try:
+        data.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "That does not look like a text spec file.")
+
+    scan = Scan(owner_id=current.id, target_url=filename, scan_type="api", status=ScanStatus.queued)
+    session.add(scan)
+    session.commit()
+    session.refresh(scan)
+
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    with open(os.path.join(settings.upload_dir, f"{scan.id}.api"), "wb") as fh:
+        fh.write(data)
+    return _scan_read(scan)
+
+
 @router.post("/sast", response_model=ScanRead, status_code=status.HTTP_201_CREATED)
 async def create_sast_scan(
     current: CurrentUser,
