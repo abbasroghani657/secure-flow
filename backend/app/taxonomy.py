@@ -208,6 +208,8 @@ _PREFIX = {
     "cspm-iam-": ("A07:2025", "CWE-521", "infra"),
     "cspm-cloudtrail-": ("A09:2025", "CWE-778", "infra"),
     "cspm-": ("A05:2025", "CWE-16", "infra"),
+    "cors-": ("A01:2025", "CWE-942", "api"),
+    "waf-detected": ("A05:2025", "CWE-693", "infra"),
     "jwt-": ("A07:2025", "CWE-347", "backend"),
     "api-cleartext-server": ("A02:2025", "CWE-319", "api"),
     "api-apikey-in-query": ("A07:2025", "CWE-598", "api"),

@@ -32,6 +32,8 @@ Top 10:2025** category, a **CWE ID**, the affected layer, evidence, and a fix.
 | 14b | HTTP Parameter Pollution (duplicate-param merge) | CWE-235 |
 
 ### Broken Access Control (OWASP A01)
+| — | **CORS** — arbitrary-origin reflection, **null origin**, **suffix/prefix/subdomain** validation bypass | CWE-942 |
+| — | WAF fingerprinting (Cloudflare/AWS/Akamai/Imperva/Sucuri/F5/Barracuda/ModSecurity) | CWE-693 |
 | # | Vulnerability | CWE |
 |---|---|---|
 | 15 | IDOR / BOLA (object-level authorization) | CWE-639 |

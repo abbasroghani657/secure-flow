@@ -30,24 +30,69 @@ _MASS_ASSIGN_FIELDS = {"isAdmin": "true", "is_admin": "true", "admin": "true",
 
 
 def check_cors_reflection(client: httpx.Client, base_url: str) -> list[Finding]:
+    from urllib.parse import urlparse
+    host = urlparse(base_url).hostname or "target.example"
+    # (kind, origin, human description) — ordered from most general to specific bypass.
+    probes = [
+        ("cors-origin-reflection", _EVIL_ORIGIN, "reflects any arbitrary Origin"),
+        ("cors-null-origin", "null", "trusts the 'null' Origin (sandboxed iframe / redirect attack)"),
+        ("cors-suffix-bypass", f"https://evil{host}", "validates the Origin by suffix (evil{host} is accepted)"),
+        ("cors-prefix-bypass", f"https://{host}.sf-evil.example", "validates the Origin by prefix ({host}.attacker is accepted)"),
+        ("cors-subdomain-trust", f"https://sf-evil.{host}", "trusts any subdomain (a single XSS-able subdomain breaks it)"),
+    ]
+    for cid, origin, desc in probes:
+        try:
+            r = client.get(base_url, headers={"Origin": origin})
+        except httpx.HTTPError:
+            continue
+        acao = r.headers.get("access-control-allow-origin", "")
+        acac = r.headers.get("access-control-allow-credentials", "").lower()
+        if acao == origin or (origin == "null" and acao == "null"):
+            sev = "high" if acac == "true" else "medium"
+            return [Finding(
+                cid, f"CORS misconfiguration — {desc.split(' (')[0]}", sev, base_url,
+                description=f"The server {desc} in Access-Control-Allow-Origin.",
+                impact=("With credentials allowed, the attacker origin can read this site's authenticated responses."
+                        if acac == "true" else "The attacker origin can read cross-origin responses."),
+                evidence=f"Sent Origin: {origin} → Access-Control-Allow-Origin: {acao}"
+                         f"{'; Allow-Credentials: true' if acac == 'true' else ''}",
+                remediation="Validate the Origin against an exact allow-list; never reflect it (especially with credentials).",
+                compliance_ref="OWASP A01:2025",
+            )]
+    return []
+
+
+_WAF_SIGNS = [
+    ("Cloudflare", ("cf-ray", "cloudflare"), ("__cfduid", "cf_clearance")),
+    ("AWS WAF / CloudFront", ("x-amz-cf-id", "x-amzn-requestid", "awselb"), ()),
+    ("Akamai", ("akamaighost", "x-akamai"), ("ak_bmsc",)),
+    ("Imperva / Incapsula", ("x-iinfo", "x-cdn"), ("visid_incap", "incap_ses")),
+    ("Sucuri", ("x-sucuri-id", "x-sucuri-cache"), ()),
+    ("F5 BIG-IP ASM", ("x-waf-status",), ("bigipserver", "ts")),
+    ("Barracuda", (), ("barra_counter_session",)),
+    ("ModSecurity", ("mod_security", "modsecurity"), ()),
+]
+
+
+def check_waf(client: httpx.Client, base_url: str) -> list[Finding]:
+    """Fingerprint a Web Application Firewall (recon; presence is informational)."""
     try:
-        r = client.get(base_url, headers={"Origin": _EVIL_ORIGIN})
+        r = client.get(base_url, headers={"Origin": _EVIL_ORIGIN}, params={"sf": "<script>alert(1)</script>"})
     except httpx.HTTPError:
         return []
-    acao = r.headers.get("access-control-allow-origin", "")
-    acac = r.headers.get("access-control-allow-credentials", "").lower()
-    if acao == _EVIL_ORIGIN or acao == "null":
-        sev = "high" if acac == "true" else "medium"
-        return [Finding(
-            "cors-origin-reflection", "CORS reflects arbitrary origin", sev, base_url,
-            description="The server reflects any supplied Origin in Access-Control-Allow-Origin.",
-            impact=("With credentials allowed, any website can read this site's authenticated responses."
-                    if acac == "true" else "Any origin can read cross-origin responses from this endpoint."),
-            evidence=f"Sent Origin: {_EVIL_ORIGIN} → Access-Control-Allow-Origin: {acao}"
-                     f"{'; Allow-Credentials: true' if acac == 'true' else ''}",
-            remediation="Allow-list specific trusted origins; never reflect the Origin with credentials.",
-            compliance_ref="OWASP A01:2025",
-        )]
+    hay = " ".join(f"{k}:{v}" for k, v in r.headers.items()).lower()
+    server = r.headers.get("server", "").lower()
+    cookies = " ".join(r.headers.get_list("set-cookie")).lower() if hasattr(r.headers, "get_list") else \
+        r.headers.get("set-cookie", "").lower()
+    for name, hdr_sigs, cookie_sigs in _WAF_SIGNS:
+        if any(s in hay or s in server for s in hdr_sigs) or any(s in cookies for s in cookie_sigs):
+            return [Finding(
+                "waf-detected", f"Web Application Firewall detected ({name})", "info", base_url,
+                description=f"The target appears to be protected by {name}.",
+                impact="Informational — a WAF adds a layer of defence but is not a substitute for fixing findings.",
+                evidence=f"{name} fingerprint in response headers/cookies.",
+                remediation="No action needed; ensure the WAF is in blocking (not detection-only) mode.",
+                compliance_ref="OWASP A05:2025", passed=True)]
     return []
 
 

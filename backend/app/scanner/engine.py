@@ -17,7 +17,7 @@ from ..models import Finding as FindingModel
 from ..models import Scan, ScanStatus, Severity
 from ..taxonomy import enrich as enrich_taxonomy
 from .active import run_active_tests, test_file_upload, test_host_header, test_stored_xss, test_xxe
-from .api_checks import check_cors_reflection, check_excessive_data, check_websocket, test_mass_assignment
+from .api_checks import check_cors_reflection, check_excessive_data, check_waf, check_websocket, test_mass_assignment
 from .auth_tests import check_logout_invalidation, run_auth_tests
 from .cloud import check_cloud_buckets
 from .dom_xss import check_dom_xss
@@ -224,7 +224,8 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
     except Exception:
         pass
     try:
-        findings.extend(check_cors_reflection(client, probe.final_url))  # CORS origin reflection
+        findings.extend(check_cors_reflection(client, probe.final_url))  # CORS origin reflection + bypasses
+        findings.extend(check_waf(client, probe.final_url))              # WAF fingerprinting (recon)
     except Exception:
         pass
     try:
