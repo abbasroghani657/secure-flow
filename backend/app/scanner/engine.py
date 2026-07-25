@@ -54,7 +54,7 @@ from .tls_checks import check_tls
 # Severity weights used to turn findings into a 0-100 security score.
 SEVERITY_WEIGHT = {"critical": 40, "high": 20, "medium": 8, "low": 3, "info": 0}
 
-USER_AGENT = "SecureFlow-Scanner/1.0 (+https://secureflow.app/scanner)"
+USER_AGENT = "Pentrixa-Scanner/1.0 (+https://pentrixa.app/scanner)"
 
 
 def _is_private_host(host: str) -> bool:

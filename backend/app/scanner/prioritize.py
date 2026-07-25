@@ -133,7 +133,7 @@ def prioritize_findings(findings: list[Finding]) -> None:
     epss: dict[str, float] = {}
     if all_cves:
         try:
-            with httpx.Client(headers={"User-Agent": "SecureFlow-Triage/1.0"}) as client:
+            with httpx.Client(headers={"User-Agent": "Pentrixa-Triage/1.0"}) as client:
                 kev = _load_kev(client)
                 epss = _load_epss(client, sorted(all_cves))
         except httpx.HTTPError:

@@ -13,7 +13,7 @@ from email.message import EmailMessage
 from .config import settings
 from .models import Scan
 
-logger = logging.getLogger("secureflow.notifications")
+logger = logging.getLogger("pentrixa.notifications")
 
 
 def _summary_line(scan: Scan) -> str:
@@ -41,15 +41,15 @@ def build_alert(scan: Scan, to_email: str) -> EmailMessage:
     prefix = " (" + ", ".join(subject_bits) + ")" if subject_bits else ""
 
     body = (
-        f"SecureFlow scan completed for {scan.target_url}{prefix}.\n\n"
+        f"Pentrixa scan completed for {scan.target_url}{prefix}.\n\n"
         f"{_summary_line(scan)}\n"
     )
     if scan.new_findings_count > 0:
         body += f"\n{scan.new_findings_count} issue(s) are NEW since the previous scan.\n"
-    body += f"\nView the full report:\n{link}\n\n— SecureFlow"
+    body += f"\nView the full report:\n{link}\n\n— Pentrixa"
 
     msg = EmailMessage()
-    msg["Subject"] = f"[SecureFlow] {scan.target_url}{prefix}"
+    msg["Subject"] = f"[Pentrixa] {scan.target_url}{prefix}"
     msg["From"] = settings.smtp_from
     msg["To"] = to_email
     msg.set_content(body)

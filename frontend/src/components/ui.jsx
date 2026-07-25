@@ -9,7 +9,7 @@ export function Logo({ size = 20 }) {
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
         <path d="M9 12l2 2 4-4" />
       </svg>
-      Secure<span style={{ color: T.accent }}>Flow</span>
+      Pen<span style={{ color: T.accent }}>trixa</span>
     </span>
   );
 }
@@ -20,7 +20,7 @@ export function AppNav() {
   const nav = useNavigate();
   const initials = (user?.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
-    <nav style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, padding: "12px 32px", background: "rgba(13,15,13,0.85)", backdropFilter: "blur(14px)", borderBottom: `1px solid ${T.border}` }}>
+    <nav style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, padding: "12px 32px", background: "rgba(10,14,18,0.85)", backdropFilter: "blur(14px)", borderBottom: `1px solid ${T.border}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
         <Link to="/dashboard"><Logo size={18} /></Link>
         <div style={{ display: "flex", gap: 20, fontSize: 13.5 }}>

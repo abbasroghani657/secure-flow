@@ -25,7 +25,7 @@ export default function Landing() {
 
   return (
     <div>
-      <nav style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, padding: "14px 40px", background: "rgba(13,15,13,0.82)", backdropFilter: "blur(14px)", borderBottom: `1px solid ${T.border}` }}>
+      <nav style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, padding: "14px 40px", background: "rgba(10,14,18,0.82)", backdropFilter: "blur(14px)", borderBottom: `1px solid ${T.border}` }}>
         <Link to="/"><Logo /></Link>
         <div style={{ display: "flex", gap: 28, fontSize: 14, color: T.muted }}>
           <a href="#features" style={{ color: T.muted }}>Features</a>
@@ -44,17 +44,17 @@ export default function Landing() {
       </nav>
 
       <header style={{ position: "relative", overflow: "hidden", padding: "96px 40px 72px", textAlign: "center" }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 45% at 50% -5%, rgba(0,191,99,0.18), transparent 70%), radial-gradient(ellipse 40% 35% at 85% 20%, rgba(6,182,212,0.10), transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 45% at 50% -5%, rgba(6,182,212,0.18), transparent 70%), radial-gradient(ellipse 40% 35% at 85% 20%, rgba(6,182,212,0.10), transparent 70%)", pointerEvents: "none" }} />
         <div style={{ position: "relative", maxWidth: 860, margin: "0 auto", animation: "fadeUp 0.7s ease both" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 999, border: "1px solid rgba(0,191,99,0.35)", background: "rgba(0,191,99,0.08)", color: T.accentHi, fontSize: 13, fontWeight: 500, marginBottom: 28 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 999, border: "1px solid rgba(6,182,212,0.35)", background: "rgba(6,182,212,0.08)", color: T.accentHi, fontSize: 13, fontWeight: 500, marginBottom: 28 }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.accent, animation: "blink 1.6s infinite" }} />
             Real scanning engine — no signup credit card required
           </div>
           <h1 style={{ fontFamily: T.heading, fontSize: "clamp(40px, 6vw, 68px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.05, margin: "0 0 20px" }}>
-            Find vulnerabilities<br />before <span style={{ color: T.accent, textShadow: "0 0 40px rgba(0,191,99,0.4)" }}>hackers do</span>
+            Find vulnerabilities<br />before <span style={{ color: T.accent, textShadow: "0 0 40px rgba(6,182,212,0.4)" }}>hackers do</span>
           </h1>
           <p style={{ fontSize: 18, lineHeight: 1.6, color: T.muted, maxWidth: 620, margin: "0 auto 36px" }}>
-            SecureFlow scans your websites for real misconfigurations and exposures — security headers, TLS, leaked files — then tells you exactly how to fix each one.
+            Pentrixa scans your websites for real misconfigurations and exposures — security headers, TLS, leaked files — then tells you exactly how to fix each one.
           </p>
           <form onSubmit={start} style={{ display: "flex", gap: 10, maxWidth: 560, margin: "0 auto", flexWrap: "wrap", justifyContent: "center" }}>
             <input value={url} onChange={(e) => setUrl(e.target.value)} type="text" placeholder="https://your-website.com" aria-label="Website URL" style={{ flex: 1, minWidth: 260, padding: "15px 18px", borderRadius: 12, border: `1px solid ${T.borderStrong}`, background: "rgba(255,255,255,0.05)", color: T.text, fontSize: 15, fontFamily: T.body }} />
@@ -78,7 +78,7 @@ export default function Landing() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 18 }}>
           {FEATURES.map((f) => (
             <div key={f.title} style={{ padding: "26px 24px", borderRadius: 16, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.025)" }}>
-              <div style={{ width: 42, height: 42, borderRadius: 11, background: "rgba(0,191,99,0.1)", border: "1px solid rgba(0,191,99,0.25)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 11, background: "rgba(6,182,212,0.1)", border: "1px solid rgba(6,182,212,0.25)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
               </div>
               <h3 style={{ fontFamily: T.heading, fontSize: 17, fontWeight: 600, margin: "0 0 8px" }}>{f.title}</h3>
@@ -89,7 +89,7 @@ export default function Landing() {
       </section>
 
       <section id="how" style={{ padding: "40px 40px 100px", textAlign: "center" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", padding: "48px 40px", borderRadius: 20, border: "1px solid rgba(0,191,99,0.25)", background: "linear-gradient(180deg, rgba(0,191,99,0.06), transparent)" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "48px 40px", borderRadius: 20, border: "1px solid rgba(6,182,212,0.25)", background: "linear-gradient(180deg, rgba(6,182,212,0.06), transparent)" }}>
           <h2 style={{ fontFamily: T.heading, fontSize: 32, fontWeight: 700, margin: "0 0 12px" }}>Scan your first site in 30 seconds</h2>
           <p style={{ color: T.muted, margin: "0 0 28px" }}>Create an account, enter a URL you control, and get a full report.</p>
           <Link to="/auth" style={{ ...primaryBtn, display: "inline-block" }}>Get started free</Link>
@@ -98,7 +98,7 @@ export default function Landing() {
 
       <footer style={{ padding: "28px 40px", borderTop: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, color: T.faint, fontSize: 13 }}>
         <Logo size={16} />
-        <span>© {new Date().getFullYear()} SecureFlow. Scan only what you own.</span>
+        <span>© {new Date().getFullYear()} Pentrixa. Scan only what you own.</span>
       </footer>
     </div>
   );

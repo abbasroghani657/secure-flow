@@ -7,11 +7,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # Core
-    app_name: str = "SecureFlow"
+    app_name: str = "Pentrixa"
     environment: str = "development"
 
     # Database
-    database_url: str = "sqlite:///./secureflow.db"
+    database_url: str = "sqlite:///./pentrixa.db"
     # Dev convenience: auto-create tables on startup. In production set False and
     # manage the schema with Alembic migrations (`alembic upgrade head`).
     auto_create_tables: bool = True
@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
-    smtp_from: str = "SecureFlow <alerts@secureflow.app>"
+    smtp_from: str = "Pentrixa <alerts@pentrixa.app>"
     smtp_starttls: bool = True
     app_base_url: str = "http://localhost:5173"
 

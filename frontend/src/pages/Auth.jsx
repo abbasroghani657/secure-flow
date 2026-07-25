@@ -11,7 +11,7 @@ function strength(pw) {
   if (/\d/.test(pw)) s++;
   if (/[^A-Za-z0-9]/.test(pw)) s++;
   const labels = ["Too short", "Weak", "Fair", "Good", "Strong"];
-  const colors = [T.faint, "#F87171", "#FBBF24", "#33D98A", T.accent];
+  const colors = [T.faint, "#F87171", "#FBBF24", "#22D3EE", T.accent];
   return { score: s, label: labels[s], color: colors[s] };
 }
 

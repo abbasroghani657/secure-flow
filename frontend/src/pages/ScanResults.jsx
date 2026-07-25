@@ -127,7 +127,7 @@ export default function ScanResults() {
       <p style={{ color: T.muted, fontSize: 13.5, margin: "0 0 28px", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <span>{scan.scan_type} scan · {new Date(scan.created_at).toLocaleString()}</span>
         {scan.trigger === "scheduled" && (
-          <span style={{ fontSize: 11, fontWeight: 600, color: T.accentHi, border: "1px solid rgba(0,191,99,0.35)", background: "rgba(0,191,99,0.08)", borderRadius: 999, padding: "2px 9px" }}>Scheduled</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: T.accentHi, border: "1px solid rgba(6,182,212,0.35)", background: "rgba(6,182,212,0.08)", borderRadius: 999, padding: "2px 9px" }}>Scheduled</span>
         )}
         {scan.status === "completed" && scan.new_findings_count > 0 && (
           <span style={{ fontSize: 11, fontWeight: 700, color: T.accentInk, background: T.accent, borderRadius: 999, padding: "2px 9px" }}>{scan.new_findings_count} new since last scan</span>
@@ -190,7 +190,7 @@ export default function ScanResults() {
             passed.length === 0 ? <Empty text="No passed checks recorded." /> : (
               <div style={{ display: "grid", gap: 10 }}>
                 {passed.map((f) => (
-                  <div key={f.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "14px 16px", borderRadius: 12, border: `1px solid ${T.border}`, background: "rgba(0,191,99,0.04)" }}>
+                  <div key={f.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "14px 16px", borderRadius: 12, border: `1px solid ${T.border}`, background: "rgba(6,182,212,0.04)" }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                     <div>
                       <div style={{ fontSize: 14.5, fontWeight: 600 }}>{f.title}</div>
@@ -218,7 +218,7 @@ export default function ScanResults() {
                 const worst = has ? SEV_ORDER.find((s) => row.items.some((f) => f.severity === s)) : null;
                 const isOpen = !!openCat[row.code];
                 return (
-                  <div key={row.code} style={{ borderRadius: 12, border: `1px solid ${has ? SEVERITY[worst].border : "rgba(0,191,99,0.25)"}`, background: has ? "rgba(255,255,255,0.02)" : "rgba(0,191,99,0.05)", overflow: "hidden" }}>
+                  <div key={row.code} style={{ borderRadius: 12, border: `1px solid ${has ? SEVERITY[worst].border : "rgba(6,182,212,0.25)"}`, background: has ? "rgba(255,255,255,0.02)" : "rgba(6,182,212,0.05)", overflow: "hidden" }}>
                     <button onClick={() => has && setOpenCat((o) => ({ ...o, [row.code]: !o[row.code] }))} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "13px 16px", background: "none", border: "none", cursor: has ? "pointer" : "default", textAlign: "left", fontFamily: T.body }}>
                       {has ? (
                         <span style={{ width: 10, height: 10, borderRadius: "50%", background: SEVERITY[worst].color, flex: "none" }} />
@@ -283,7 +283,7 @@ function Shell({ children }) {
 function RunningState({ scan }) {
   return (
     <div style={{ position: "relative", overflow: "hidden", padding: "40px 28px", borderRadius: 18, border: `1px solid ${T.border}`, background: T.panel }}>
-      <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 60, background: "linear-gradient(180deg, transparent, rgba(0,191,99,0.08), transparent)", animation: "scanSweep 3.2s linear infinite", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 60, background: "linear-gradient(180deg, transparent, rgba(6,182,212,0.08), transparent)", animation: "scanSweep 3.2s linear infinite", pointerEvents: "none" }} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
         <span style={{ width: 9, height: 9, borderRadius: "50%", background: T.accent, animation: "blink 1s infinite" }} />
         <span style={{ fontFamily: T.mono, fontSize: 14, color: T.accentHi }}>Scanning {scan.target_url}…</span>
@@ -338,7 +338,7 @@ function FindingCard({ f, open, onToggle }) {
           {!f.passed && f.confidence && (() => { const c = CONF[f.confidence] || CONF.firm; return (
             <span title={`${c.label} — ${c.hint}`} style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", fontFamily: T.mono, color: c.color, border: `1px solid ${c.border}`, background: c.bg, borderRadius: 6, padding: "2px 6px" }}>{c.label}</span>
           ); })()}
-          {f.owasp && <span style={{ fontSize: 10.5, fontWeight: 700, fontFamily: T.mono, color: T.accentHi, border: "1px solid rgba(0,191,99,0.3)", borderRadius: 6, padding: "2px 6px" }}>{f.owasp.split(":")[0]}</span>}
+          {f.owasp && <span style={{ fontSize: 10.5, fontWeight: 700, fontFamily: T.mono, color: T.accentHi, border: "1px solid rgba(6,182,212,0.3)", borderRadius: 6, padding: "2px 6px" }}>{f.owasp.split(":")[0]}</span>}
           {f.cwe && <span style={{ fontSize: 10.5, color: T.faint, fontFamily: T.mono }}>{f.cwe}</span>}
         </span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.muted} strokeWidth="2" strokeLinecap="round" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}><path d="M6 9l6 6 6-6" /></svg>

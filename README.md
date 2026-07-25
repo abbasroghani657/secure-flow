@@ -1,11 +1,11 @@
-# SecureFlow
+# Pentrixa
 
 A full-stack web application security scanning platform (DAST). Users register,
 add a target they own, and run a security scan that checks real HTTP responses for
 vulnerabilities, misconfigurations and exposures — then get prioritised, fixable
 findings mapped to OWASP Top 10:2025 / CWE / PCI DSS / ISO 27001.
 
-> **Authorised use only.** SecureFlow performs passive, unauthenticated GET
+> **Authorised use only.** Pentrixa performs passive, unauthenticated GET
 > requests. A target can only be scanned after the user has **proven ownership**
 > of the domain (DNS TXT, HTML meta tag, or a `.well-known` file). Scanning of
 > private/loopback addresses is blocked.
@@ -45,9 +45,9 @@ docker compose up --build
 
 Before any scan, the user adds a target and proves control of it via **any one** of:
 
-- **DNS TXT record** — `secureflow-verify=<token>` on the host
-- **HTML meta tag** — `<meta name="secureflow-verify" content="<token>">` on the homepage
-- **Verification file** — the token at `/.well-known/secureflow-verify.txt`
+- **DNS TXT record** — `pentrixa-verify=<token>` on the host
+- **HTML meta tag** — `<meta name="pentrixa-verify" content="<token>">` on the homepage
+- **Verification file** — the token at `/.well-known/pentrixa-verify.txt`
 
 The backend re-checks the live domain on demand; only verified targets can be
 scanned. This is what makes running a scan legally defensible.
@@ -221,7 +221,7 @@ Every finding is tagged (centrally, in `app/taxonomy.py`) with its **OWASP Top
 (frontend / api / backend / database / infra). The results page groups findings
 by OWASP category in an "OWASP Top 10" view and shows the CWE on each finding.
 
-**Honest coverage.** SecureFlow is a black-box, unauthenticated scanner. It
+**Honest coverage.** Pentrixa is a black-box, unauthenticated scanner. It
 detects issues visible from the outside: injection (SQLi/NoSQLi/command/SSTI/
 XSS/SSRF/CRLF/host-header), misconfiguration, exposed files, weak crypto/TLS,
 missing headers, email-spoofing gaps, outdated JS libraries, SRI/CSRF/tabnabbing,
@@ -349,7 +349,7 @@ convenience. In production set it to `false` and let `alembic upgrade head`
 
 ## Security hardening
 
-SecureFlow is built to pass its own scan: every API response carries
+Pentrixa is built to pass its own scan: every API response carries
 `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
 `Permissions-Policy`, a locked-down CSP and (in production) HSTS; auth endpoints
 are rate-limited (login 10/min, register 5/min) to blunt brute force; and the app

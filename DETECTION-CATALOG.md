@@ -1,6 +1,6 @@
-# SecureFlow — Detection Catalog
+# Pentrixa — Detection Catalog
 
-The complete list of vulnerabilities SecureFlow detects (~172 distinct checks across
+The complete list of vulnerabilities Pentrixa detects (~172 distinct checks across
 web, API, authentication, AI/LLM and mobile), plus thousands of CVE templates via
 the Nuclei deep-scan engine. Every finding is tagged with severity, its **OWASP
 Top 10:2025** category, a **CWE ID**, the affected layer, evidence, and a fix.

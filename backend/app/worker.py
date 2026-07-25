@@ -35,7 +35,7 @@ from .notifications import send_scan_alert
 from .scanner.engine import run_scan
 from .scheduling import compute_next_run
 
-logger = logging.getLogger("secureflow.worker")
+logger = logging.getLogger("pentrixa.worker")
 
 
 def finalize_scan(scan_id: int) -> None:

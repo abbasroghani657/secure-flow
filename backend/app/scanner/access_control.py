@@ -28,7 +28,7 @@ import httpx
 from .checks import Finding
 from .crawler import crawl
 
-USER_AGENT = "SecureFlow-Scanner/1.0"
+USER_AGENT = "Pentrixa-Scanner/1.0"
 
 _UUID_RE = re.compile(r"/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
 _NUM_PATH_RE = re.compile(r"/\d+(?:/|$)")

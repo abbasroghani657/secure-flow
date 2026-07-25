@@ -1,14 +1,14 @@
-// Design tokens lifted from the SecureFlow mockups (dark, green accent).
+// Pentrixa design tokens — dark ground with an electric-cyan accent.
 export const T = {
-  bg: "#0D0F0D",
-  panel: "#121412",
-  panel2: "#161916",
+  bg: "#0A0E12",
+  panel: "#0F141A",
+  panel2: "#141B22",
   text: "#F3F6FA",
-  muted: "#A7B0BC",
-  faint: "#6B7280",
-  accent: "#00BF63",
-  accentHi: "#33D98A",
-  accentInk: "#06130B",
+  muted: "#A3B1C2",
+  faint: "#6B7686",
+  accent: "#06B6D4",
+  accentHi: "#22D3EE",
+  accentInk: "#04141A",
   border: "rgba(255,255,255,0.08)",
   borderStrong: "rgba(255,255,255,0.14)",
   heading: "Outfit, sans-serif",

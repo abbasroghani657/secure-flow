@@ -153,7 +153,7 @@ export default function NewScan() {
                 {SCAN_TYPES.map((t) => {
                   const active = type === t.id;
                   return (
-                    <button type="button" key={t.id} onClick={() => setType(t.id)} style={{ textAlign: "left", padding: "16px 18px", borderRadius: 12, cursor: "pointer", border: `1.5px solid ${active ? T.accent : T.border}`, background: active ? "rgba(0,191,99,0.08)" : "rgba(255,255,255,0.02)", fontFamily: T.body }}>
+                    <button type="button" key={t.id} onClick={() => setType(t.id)} style={{ textAlign: "left", padding: "16px 18px", borderRadius: 12, cursor: "pointer", border: `1.5px solid ${active ? T.accent : T.border}`, background: active ? "rgba(6,182,212,0.08)" : "rgba(255,255,255,0.02)", fontFamily: T.body }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${active ? T.accent : T.borderStrong}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                           {active && <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.accent }} />}
@@ -185,7 +185,7 @@ export default function NewScan() {
                 return (
                   <div style={{ display: "grid", gap: 8 }}>
                     <label style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>{cfg.label}</label>
-                    <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "28px 20px", borderRadius: 12, border: `1.5px dashed ${f ? T.accent : T.borderStrong}`, background: f ? "rgba(0,191,99,0.06)" : "rgba(255,255,255,0.02)", cursor: "pointer", textAlign: "center" }}>
+                    <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "28px 20px", borderRadius: 12, border: `1.5px dashed ${f ? T.accent : T.borderStrong}`, background: f ? "rgba(6,182,212,0.06)" : "rgba(255,255,255,0.02)", cursor: "pointer", textAlign: "center" }}>
                       <input type="file" accept={cfg.accept} style={{ display: "none" }} onChange={(e) => cfg.set(e.target.files?.[0] || null)} />
                       <span style={{ fontSize: 14, color: f ? T.accentHi : T.muted, fontFamily: f ? T.mono : T.body }}>
                         {f ? `${f.name} (${(f.size / 1024).toFixed(0)} KB)` : cfg.prompt}
@@ -197,7 +197,7 @@ export default function NewScan() {
               })()
             ) : type === "cspm" ? (
               /* CSPM — read-only AWS credentials, no verified target needed */
-              <div style={{ display: "grid", gap: 14, padding: "16px 18px", borderRadius: 12, border: `1px solid ${T.accent}`, background: "rgba(0,191,99,0.05)" }}>
+              <div style={{ display: "grid", gap: 14, padding: "16px 18px", borderRadius: 12, border: `1px solid ${T.accent}`, background: "rgba(6,182,212,0.05)" }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: T.accentHi }}>AWS read-only credentials</div>
                 <p style={{ margin: 0, fontSize: 12.5, color: T.muted, lineHeight: 1.5 }}>
                   Use an IAM key with the AWS-managed <b style={{ color: T.text }}>SecurityAudit</b> or <b style={{ color: T.text }}>ReadOnlyAccess</b> policy. Credentials are used for this scan only and <b style={{ color: T.text }}>deleted the moment it finishes</b> — never stored.
@@ -230,7 +230,7 @@ export default function NewScan() {
                     {targets.map((t) => {
                       const active = selected === t.url;
                       return (
-                        <button type="button" key={t.id} onClick={() => setSelected(t.url)} style={{ textAlign: "left", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 12, cursor: "pointer", border: `1.5px solid ${active ? T.accent : T.border}`, background: active ? "rgba(0,191,99,0.08)" : "rgba(255,255,255,0.02)", fontFamily: T.body }}>
+                        <button type="button" key={t.id} onClick={() => setSelected(t.url)} style={{ textAlign: "left", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 12, cursor: "pointer", border: `1.5px solid ${active ? T.accent : T.border}`, background: active ? "rgba(6,182,212,0.08)" : "rgba(255,255,255,0.02)", fontFamily: T.body }}>
                           <span style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${active ? T.accent : T.borderStrong}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             {active && <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.accent }} />}
                           </span>
@@ -245,7 +245,7 @@ export default function NewScan() {
 
             {/* LLM endpoint config (only for LLM scans) */}
             {type === "llm" && (
-              <div style={{ display: "grid", gap: 14, padding: "16px 18px", borderRadius: 12, border: `1px solid ${T.accent}`, background: "rgba(0,191,99,0.05)" }}>
+              <div style={{ display: "grid", gap: 14, padding: "16px 18px", borderRadius: 12, border: `1px solid ${T.accent}`, background: "rgba(6,182,212,0.05)" }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: T.accentHi }}>LLM endpoint configuration</div>
                 <div style={{ display: "grid", gap: 6 }}>
                   <label style={{ fontSize: 12.5, fontWeight: 600 }}>Endpoint URL <span style={{ color: T.faint, fontWeight: 400 }}>(must be on a verified target)</span></label>
@@ -265,7 +265,7 @@ export default function NewScan() {
 
             {/* BOLA/IDOR — two accounts (required) */}
             {type === "bola" && (
-              <div style={{ display: "grid", gap: 14, padding: "16px 18px", borderRadius: 12, border: `1px solid ${T.accent}`, background: "rgba(0,191,99,0.05)" }}>
+              <div style={{ display: "grid", gap: 14, padding: "16px 18px", borderRadius: 12, border: `1px solid ${T.accent}`, background: "rgba(6,182,212,0.05)" }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: T.accentHi }}>Two accounts (required)</div>
                 <p style={{ margin: 0, fontSize: 12.5, color: T.muted, lineHeight: 1.5 }}>
                   Paste a session Cookie or Bearer token for <b style={{ color: T.text }}>two different accounts</b>. The scanner logs in as A, finds A's objects, then checks whether B can read them. Credentials are used for this scan only and deleted the moment it finishes.

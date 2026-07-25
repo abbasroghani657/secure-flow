@@ -14,7 +14,7 @@ from .routers import auth, scans, schedules, targets
 from .worker import worker
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-logger = logging.getLogger("secureflow")
+logger = logging.getLogger("pentrixa")
 
 
 def _check_production_secrets() -> None:
@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="SecureFlow API",
+    title="Pentrixa API",
     version="0.1.0",
     description="Web application security scanning platform (DAST).",
     lifespan=lifespan,

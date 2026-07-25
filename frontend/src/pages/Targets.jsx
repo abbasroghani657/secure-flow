@@ -101,7 +101,7 @@ function TargetRow({ t, open, onOpen, onChange, onRemove }) {
   }
 
   return (
-    <div style={{ borderRadius: 14, border: `1px solid ${t.verified ? "rgba(0,191,99,0.35)" : T.border}`, background: "rgba(255,255,255,0.02)", overflow: "hidden" }}>
+    <div style={{ borderRadius: 14, border: `1px solid ${t.verified ? "rgba(6,182,212,0.35)" : T.border}`, background: "rgba(255,255,255,0.02)", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 18px" }}>
         <span style={{ width: 10, height: 10, borderRadius: "50%", background: t.verified ? T.accent : T.faint, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>

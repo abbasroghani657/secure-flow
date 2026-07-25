@@ -258,7 +258,7 @@ def run_sca_scan(filename: str, content: str) -> tuple[list[Finding], dict, int]
                          description="No dependencies could be read from the uploaded file.",
                          remediation="Upload a package.json / requirements.txt / go.mod / lock file.",
                          compliance_ref="OWASP A06:2021", passed=True)], {}, 0)
-    with httpx.Client(headers={"User-Agent": "SecureFlow-SCA/1.0"}) as client:
+    with httpx.Client(headers={"User-Agent": "Pentrixa-SCA/1.0"}) as client:
         findings = query_osv(client, deps)
         findings.extend(check_dependency_confusion(client, deps))
     if not findings:

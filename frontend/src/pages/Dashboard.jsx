@@ -75,7 +75,7 @@ export default function Dashboard() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontFamily: T.mono, fontSize: 14.5, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "flex", alignItems: "center", gap: 8 }}>
                         {s.target_url}
-                        {s.trigger === "scheduled" && <span style={{ fontSize: 10, fontWeight: 600, color: T.accentHi, border: "1px solid rgba(0,191,99,0.3)", borderRadius: 999, padding: "1px 7px", flexShrink: 0 }}>scheduled</span>}
+                        {s.trigger === "scheduled" && <span style={{ fontSize: 10, fontWeight: 600, color: T.accentHi, border: "1px solid rgba(6,182,212,0.3)", borderRadius: 999, padding: "1px 7px", flexShrink: 0 }}>scheduled</span>}
                         {s.status === "completed" && s.new_findings_count > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: T.accentInk, background: T.accent, borderRadius: 999, padding: "1px 7px", flexShrink: 0 }}>{s.new_findings_count} new</span>}
                       </div>
                       <div style={{ fontSize: 12.5, color: T.muted, marginTop: 4 }}>

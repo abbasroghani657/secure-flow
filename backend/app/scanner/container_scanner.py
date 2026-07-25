@@ -120,7 +120,7 @@ def _query_osv(pkgs: list[tuple[str, str, str]], max_pkgs: int = 400) -> list[Fi
         return []
     queries = [{"version": v, "package": {"name": n, "ecosystem": e}} for (e, n, v) in pkgs]
     try:
-        with httpx.Client(headers={"User-Agent": "SecureFlow-Container/1.0"}) as c:
+        with httpx.Client(headers={"User-Agent": "Pentrixa-Container/1.0"}) as c:
             r = c.post(_OSV_BATCH, json={"queries": queries}, timeout=30)
             results = r.json().get("results", [])
     except (httpx.HTTPError, ValueError):

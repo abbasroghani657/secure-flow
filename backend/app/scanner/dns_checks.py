@@ -232,7 +232,7 @@ def check_subdomain_takeover(host: str) -> list[Finding]:
         for scheme in ("https", "http"):
             try:
                 r = httpx.get(f"{scheme}://{fqdn}/", timeout=8, follow_redirects=True,
-                              headers={"User-Agent": "SecureFlow-Scanner/1.0"})
+                              headers={"User-Agent": "Pentrixa-Scanner/1.0"})
             except httpx.HTTPError:
                 continue
             if _TAKEOVER[service].lower() in r.text.lower():

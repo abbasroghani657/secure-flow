@@ -2,7 +2,7 @@
 
 The highest-paying bug-bounty classes — business logic, race conditions,
 account-takeover chains, OAuth/SSO abuse — cannot be reliably auto-confirmed by
-any scanner. Rather than pretend (false confidence) or stay silent, SecureFlow
+any scanner. Rather than pretend (false confidence) or stay silent, Pentrixa
 ships each as an info-severity advisory with a concrete, hands-on test recipe.
 This is what turns the report from a scan into a teaching tool.
 """
