@@ -1,6 +1,11 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./auth";
 import Landing from "./pages/Landing";
+import Features from "./pages/Features";
+import Pricing from "./pages/Pricing";
+import Compare from "./pages/Compare";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Targets from "./pages/Targets";
@@ -38,6 +43,11 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/features" element={<Features />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/compare" element={<Compare />} />
+      <Route path="/blog" element={<Blog />} />
+      <Route path="/blog/:slug" element={<BlogPost />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
       <Route path="/targets" element={<Protected><Targets /></Protected>} />
