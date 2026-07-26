@@ -40,7 +40,7 @@ export default function Compare() {
       </section>
 
       <section style={{ padding: "40px 28px 90px", textAlign: "center" }}>
-        <Link to="/auth" state={{ mode: "signup" }} style={{ ...primaryBtn, display: "inline-block", padding: "14px 28px", fontSize: 15.5 }}>See it on your site →</Link>
+        <Link to="/auth" state={{ mode: "signup" }} className="btn-primary" style={{ ...primaryBtn, display: "inline-block", padding: "14px 28px", fontSize: 15.5 }}>See it on your site →</Link>
       </section>
       <MarketingFooter />
     </div>

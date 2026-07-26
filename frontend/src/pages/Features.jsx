@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { primaryBtn } from "../components/ui";
 import { MarketingNav, MarketingFooter, FEATURES, sectionTitle, eyebrow } from "../components/marketing";
+import { IconBadge } from "../components/icons";
 import { T } from "../theme";
 
 const SCAN_TYPES = [
@@ -28,8 +29,11 @@ export default function Features() {
           {FEATURES.map((f, i) => (
             <div key={f.title} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, alignItems: "center", padding: "34px 34px", borderRadius: 20, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.02)" }} className="feat-row">
               <div style={{ order: i % 2 ? 2 : 1 }}>
-                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.accentHi, background: "rgba(6,182,212,0.1)", padding: "4px 10px", borderRadius: 6 }}>{f.tag}</span>
-                <h2 style={{ fontFamily: T.heading, fontSize: 26, fontWeight: 700, margin: "16px 0 12px", letterSpacing: "-0.02em" }}>{f.title}</h2>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                  <IconBadge name={f.iconName} size={40} />
+                  <span style={{ fontFamily: T.mono, fontSize: 11, color: T.accentHi, background: "rgba(6,182,212,0.1)", padding: "4px 10px", borderRadius: 6 }}>{f.tag}</span>
+                </div>
+                <h2 style={{ fontFamily: T.heading, fontSize: 26, fontWeight: 700, margin: "0 0 12px", letterSpacing: "-0.02em" }}>{f.title}</h2>
                 <p style={{ fontSize: 15, lineHeight: 1.6, color: T.muted, margin: 0 }}>{f.desc}</p>
               </div>
               <div style={{ order: i % 2 ? 1 : 2, display: "grid", gap: 12, padding: "26px 28px", borderRadius: 16, border: `1px solid ${T.border}`, background: "linear-gradient(180deg, rgba(6,182,212,0.05), transparent)" }}>
@@ -55,7 +59,7 @@ export default function Features() {
       </section>
 
       <section style={{ padding: "50px 28px 90px", textAlign: "center" }}>
-        <Link to="/auth" state={{ mode: "signup" }} style={{ ...primaryBtn, display: "inline-block", padding: "14px 28px", fontSize: 15.5 }}>Start scanning free →</Link>
+        <Link to="/auth" state={{ mode: "signup" }} className="btn-primary" style={{ ...primaryBtn, display: "inline-block", padding: "14px 28px", fontSize: 15.5 }}>Start scanning free →</Link>
       </section>
       <MarketingFooter />
     </div>

@@ -43,7 +43,7 @@ export default function BlogPost() {
         <div style={{ padding: "34px 34px", borderRadius: 18, border: "1px solid rgba(6,182,212,0.28)", background: "linear-gradient(180deg, rgba(6,182,212,0.08), transparent)", textAlign: "center" }}>
           <h3 style={{ fontFamily: T.heading, fontSize: 22, fontWeight: 700, margin: "0 0 10px" }}>See where your app stands</h3>
           <p style={{ color: T.muted, margin: "0 0 20px", fontSize: 15 }}>Run a free scan and get a prioritised, fixable report in minutes.</p>
-          <Link to="/auth" state={{ mode: "signup" }} style={{ ...primaryBtn, display: "inline-block", padding: "13px 26px" }}>Start free →</Link>
+          <Link to="/auth" state={{ mode: "signup" }} className="btn-primary" style={{ ...primaryBtn, display: "inline-block", padding: "13px 26px" }}>Start free →</Link>
         </div>
       </section>
 

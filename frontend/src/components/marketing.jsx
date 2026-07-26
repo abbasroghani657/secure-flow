@@ -6,22 +6,22 @@ import { T } from "../theme";
 
 // ---- shared marketing data ------------------------------------------------
 export const FEATURES = [
-  { title: "Web & API scanning", tag: "DAST",
+  { title: "Web & API scanning", tag: "DAST", iconName: "globe",
     desc: "Injection (SQLi/XSS/SSRF/SSTI…), broken access control, misconfiguration, TLS and exposed services — plus a dedicated OpenAPI/Swagger reviewer for the OWASP API Top 10.",
     points: ["Blind & time-based SQLi", "SSRF, XXE, SSTI, command injection", "Auth, JWT & CORS bypass analysis"] },
-  { title: "Mobile — Android & iOS", tag: "SAST",
+  { title: "Mobile — Android & iOS", tag: "SAST", iconName: "smartphone",
     desc: "Deep static analysis of an APK or IPA against the OWASP Mobile Top 10: hardcoded secrets, weak crypto, insecure storage, transport security and binary protections.",
     points: ["Secrets & weak crypto (ECB/DES)", "ATS, cert-pinning, WebView issues", "PIE/ASLR & jailbreak checks (iOS)"] },
-  { title: "Cloud & containers", tag: "CSPM",
+  { title: "Cloud & containers", tag: "CSPM", iconName: "cloud",
     desc: "AWS posture management, Infrastructure-as-Code (Terraform / CloudFormation / Kubernetes / Docker) and container-image CVE scanning from a docker save tar.",
     points: ["Public buckets, open SGs, IAM", "Root MFA, GuardDuty, KMS rotation", "OS-package CVEs per image layer"] },
-  { title: "Source code (SAST)", tag: "10 languages",
+  { title: "Source code (SAST)", tag: "10 languages", iconName: "code",
     desc: "Python via the real AST plus curated rule engines for JS/TS, PHP, Java, Go, Ruby, C#, Kotlin and Swift — injection, deserialization, weak crypto and dangerous sinks.",
     points: ["29 JS/TS vulnerability classes", "Low false-positive AST analysis", "Enterprise + native mobile langs"] },
-  { title: "Supply chain & secrets", tag: "SCA",
+  { title: "Supply chain & secrets", tag: "SCA", iconName: "package",
     desc: "Dependency CVEs across eight ecosystems via OSV, dependency-confusion detection, CI/CD pipeline risks, and 37 leaked-credential detectors across your source.",
     points: ["npm/PyPI/Go/Maven/NuGet + more", "GitHub Actions / GitLab CI risks", "AWS/GCP/Azure/Stripe/OpenAI keys"] },
-  { title: "Fix-first prioritization", tag: "KEV + EPSS",
+  { title: "Fix-first prioritization", tag: "KEV + EPSS", iconName: "target",
     desc: "Every finding carries a confidence level and a 0–100 priority blended from severity, CISA-KEV (is it exploited right now?) and EPSS (predicted probability).",
     points: ["“Patch these five” not “here are 400”", "Confidence: confirmed / firm / tentative", "Guided manual-test playbooks"] },
 ];
@@ -54,6 +54,18 @@ export const QUOTES = [
   { text: "The OWASP scorecard makes client reports trivial — they see exactly where they stand across all ten categories, green and red.", initials: "MJ", name: "M. Johansson", role: "Independent pentester" },
 ];
 
+// Real findings the engine produces — used instead of fabricated testimonials.
+export const SAMPLE_FINDINGS = [
+  { sev: "critical", title: "Hardcoded AWS key in a bundled JS file", meta: "A05:2025 · CWE-798", where: "/assets/app.min.js" },
+  { sev: "high", title: "Blind time-based SQL injection", meta: "A05:2025 · CWE-89", where: "/search?q=" },
+  { sev: "high", title: "Exposed wp-config backup — DB credentials", meta: "A02:2025 · CWE-538", where: "/wp-config.php.bak" },
+  { sev: "medium", title: "CORS trusts any subdomain origin", meta: "A01:2025 · CWE-942", where: "api.acme-store.com" },
+  { sev: "high", title: "Log4Shell in a transitive dependency", meta: "A03:2025 · CVE-2021-44228", where: "log4j-core 2.14.1" },
+  { sev: "medium", title: "S3 bucket without Block Public Access", meta: "A05:2025 · CWE-668", where: "acme-assets (us-east-1)" },
+];
+
+export const SEV_COLORS = { critical: "#F87171", high: "#FB923C", medium: "#FBBF24", low: "#60A5FA", info: "#9CA3AF" };
+
 export const NAV_LINKS = [
   ["/features", "Features"], ["/pricing", "Pricing"], ["/compare", "Compare"], ["/blog", "Blog"],
 ];
@@ -75,11 +87,11 @@ export function MarketingNav() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {user ? (
-            <Link to="/dashboard" style={{ ...primaryBtn, padding: "9px 18px", fontSize: 14 }}>Dashboard</Link>
+            <Link to="/dashboard" className="btn-primary" style={{ ...primaryBtn, padding: "9px 18px", fontSize: 14 }}>Dashboard</Link>
           ) : (
             <>
-              <Link to="/auth" style={{ ...ghostBtn, padding: "9px 16px", fontSize: 14 }} className="mkt-login">Log in</Link>
-              <Link to="/auth" state={{ mode: "signup" }} style={{ ...primaryBtn, padding: "9px 18px", fontSize: 14 }}>Start free</Link>
+              <Link to="/auth" style={{ ...ghostBtn, padding: "9px 16px", fontSize: 14 }} className="mkt-login btn-ghost">Log in</Link>
+              <Link to="/auth" state={{ mode: "signup" }} className="btn-primary" style={{ ...primaryBtn, padding: "9px 18px", fontSize: 14 }}>Start free</Link>
             </>
           )}
         </div>
