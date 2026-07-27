@@ -37,6 +37,10 @@ export const api = {
   login: (email, password) =>
     request("/api/auth/login", { method: "POST", body: { email, password }, auth: false }),
   me: () => request("/api/auth/me"),
+  updateProfile: (name) => request("/api/auth/me", { method: "PATCH", body: { name } }),
+  changePassword: (current_password, new_password) =>
+    request("/api/auth/change-password", { method: "POST", body: { current_password, new_password } }),
+  deleteAccount: (password) => request("/api/auth/me", { method: "DELETE", body: { password } }),
   createScan: (target_url, scan_type = "web", auth = {}) =>
     request("/api/scans", { method: "POST", body: { target_url, scan_type, ...auth } }),
   uploadMobileScan: (file) => {

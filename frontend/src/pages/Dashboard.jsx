@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppNav, primaryBtn } from "../components/ui";
+import { useUX } from "../components/UX";
 import { api } from "../api";
 import { T, scoreColor } from "../theme";
 
@@ -12,6 +13,7 @@ const STATUS_STYLE = {
 };
 
 export default function Dashboard() {
+  const { confirm, toast } = useUX();
   const [scans, setScans] = useState(null);
   const [err, setErr] = useState("");
   const [plan, setPlan] = useState(null);
@@ -34,9 +36,17 @@ export default function Dashboard() {
 
   async function remove(id, e) {
     e.preventDefault();
-    if (!confirm("Delete this scan?")) return;
-    await api.deleteScan(id);
-    load();
+    const ok = await confirm({
+      title: "Delete this scan?",
+      message: "The scan and all its findings will be removed. This can't be undone.",
+      confirmLabel: "Delete", danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api.deleteScan(id);
+      toast("Scan deleted");
+      load();
+    } catch (e2) { toast(e2.message, "error"); }
   }
 
   return (

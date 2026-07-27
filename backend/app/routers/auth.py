@@ -5,9 +5,14 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import select
 
 from ..deps import CurrentUser, SessionDep
-from ..models import User
+from ..models import (
+    ApiToken, Integration, Scan, Schedule, Target, User,
+)
 from ..ratelimit import limiter
-from ..schemas import TokenResponse, UserCreate, UserLogin, UserRead
+from ..schemas import (
+    AccountDelete, PasswordChange, ProfileUpdate,
+    TokenResponse, UserCreate, UserLogin, UserRead,
+)
 from ..security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -61,3 +66,37 @@ def login_form(request: Request, form: Annotated[OAuth2PasswordRequestForm, Depe
 @router.get("/me", response_model=UserRead)
 def me(current: CurrentUser) -> UserRead:
     return UserRead(id=current.id, name=current.name, email=current.email, plan=current.plan, created_at=current.created_at)
+
+
+@router.patch("/me", response_model=UserRead)
+def update_profile(data: ProfileUpdate, current: CurrentUser, session: SessionDep) -> UserRead:
+    current.name = data.name
+    session.add(current)
+    session.commit()
+    session.refresh(current)
+    return UserRead(id=current.id, name=current.name, email=current.email, plan=current.plan, created_at=current.created_at)
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(data: PasswordChange, current: CurrentUser, session: SessionDep) -> None:
+    if not verify_password(data.current_password, current.hashed_password):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is incorrect")
+    current.hashed_password = hash_password(data.new_password)
+    session.add(current)
+    session.commit()
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(data: AccountDelete, current: CurrentUser, session: SessionDep) -> None:
+    """Permanently delete the account and everything owned by it. Password-gated."""
+    if not verify_password(data.password, current.hashed_password):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Password is incorrect")
+    uid = current.id
+    # Remove owned data first (scans cascade their findings via the relationship).
+    for scan in session.exec(select(Scan).where(Scan.owner_id == uid)).all():
+        session.delete(scan)
+    for model in (Target, Schedule, Integration, ApiToken):
+        for row in session.exec(select(model).where(model.owner_id == uid)).all():
+            session.delete(row)
+    session.delete(current)
+    session.commit()

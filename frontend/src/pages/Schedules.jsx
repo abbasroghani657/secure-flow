@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppNav, primaryBtn, ghostBtn, Spinner } from "../components/ui";
+import { useUX } from "../components/UX";
 import { api } from "../api";
 import { T } from "../theme";
 
@@ -8,6 +9,7 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const SCAN_LABEL = { web: "Web application", deep: "Deep scan (Nuclei)", headers: "Headers only" };
 
 export default function Schedules() {
+  const { confirm, toast } = useUX();
   const [schedules, setSchedules] = useState(null);
   const [targets, setTargets] = useState([]);
   const [err, setErr] = useState("");
@@ -53,9 +55,17 @@ export default function Schedules() {
     load();
   }
   async function remove(id) {
-    if (!confirm("Delete this schedule?")) return;
-    await api.deleteSchedule(id);
-    load();
+    const ok = await confirm({
+      title: "Delete this schedule?",
+      message: "Automatic scans for this target will stop. Past scan results are kept.",
+      confirmLabel: "Delete", danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api.deleteSchedule(id);
+      toast("Schedule deleted");
+      load();
+    } catch (e) { toast(e.message, "error"); }
   }
 
   return (

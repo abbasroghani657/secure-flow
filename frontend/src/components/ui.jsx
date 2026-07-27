@@ -32,9 +32,9 @@ export function AppNav() {
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <span style={{ fontSize: 13, color: T.muted }}>{user?.email}</span>
+        <Link to="/account" style={{ fontSize: 13, color: T.muted }}>{user?.email}</Link>
         <button onClick={() => { logout(); nav("/"); }} style={ghostBtn}>Log out</button>
-        <span title={user?.name} style={{ width: 30, height: 30, borderRadius: "50%", background: T.accent, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.heading, fontWeight: 700, fontSize: 12, color: T.accentInk }}>{initials}</span>
+        <Link to="/account" title={`${user?.name} · Account`} style={{ width: 30, height: 30, borderRadius: "50%", background: T.accent, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.heading, fontWeight: 700, fontSize: 12, color: T.accentInk }}>{initials}</Link>
       </div>
     </nav>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppNav, primaryBtn, ghostBtn, Spinner } from "../components/ui";
+import { useUX } from "../components/UX";
 import { api } from "../api";
 import { T } from "../theme";
 
@@ -42,6 +43,7 @@ function UpgradeGate({ what }) {
 }
 
 export default function Settings() {
+  const { confirm, toast } = useUX();
   const [plan, setPlan] = useState(null);
   const [err, setErr] = useState("");
 
@@ -84,7 +86,8 @@ export default function Settings() {
       setNtarget(""); setNname("");
       const ints = await api.listIntegrations();
       setIntegrations(ints);
-    } catch (e2) { setErr(e2.message); } finally { setSavingI(false); }
+      toast("Channel connected");
+    } catch (e2) { setErr(e2.message); toast(e2.message, "error"); } finally { setSavingI(false); }
   }
 
   async function testIntegration(id) {
@@ -92,12 +95,22 @@ export default function Settings() {
     try {
       await api.testIntegration(id);
       setTestMsg((m) => ({ ...m, [id]: "sent" }));
-    } catch (e) { setTestMsg((m) => ({ ...m, [id]: e.message })); }
+      toast("Test message delivered");
+    } catch (e) { setTestMsg((m) => ({ ...m, [id]: "failed" })); toast(e.message, "error"); }
   }
 
   async function removeIntegration(id) {
-    await api.deleteIntegration(id);
-    setIntegrations((xs) => xs.filter((x) => x.id !== id));
+    const ok = await confirm({
+      title: "Remove this channel?",
+      message: "You'll stop receiving scan alerts here.",
+      confirmLabel: "Remove", danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api.deleteIntegration(id);
+      setIntegrations((xs) => xs.filter((x) => x.id !== id));
+      toast("Channel removed");
+    } catch (e) { toast(e.message, "error"); }
   }
 
   async function createToken(e) {
@@ -108,12 +121,22 @@ export default function Settings() {
       setFreshToken(t.token);
       setTname("");
       setTokens(await api.listTokens());
-    } catch (e2) { setErr(e2.message); } finally { setSavingT(false); }
+      toast("Token created, copy it now");
+    } catch (e2) { setErr(e2.message); toast(e2.message, "error"); } finally { setSavingT(false); }
   }
 
   async function revokeToken(id) {
-    await api.revokeToken(id);
-    setTokens(await api.listTokens());
+    const ok = await confirm({
+      title: "Revoke this token?",
+      message: "Any CI pipeline or script using it will immediately stop working. This can't be undone.",
+      confirmLabel: "Revoke", danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api.revokeToken(id);
+      setTokens(await api.listTokens());
+      toast("Token revoked");
+    } catch (e) { toast(e.message, "error"); }
   }
 
   if (!plan) return (<><AppNav /><div style={{ padding: 60, textAlign: "center" }}><Spinner /></div></>);

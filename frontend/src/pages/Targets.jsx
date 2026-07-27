@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { AppNav, primaryBtn, ghostBtn, Spinner } from "../components/ui";
+import { useUX } from "../components/UX";
 import { api } from "../api";
 import { T } from "../theme";
 
 export default function Targets() {
+  const { confirm, toast } = useUX();
   const [targets, setTargets] = useState(null);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
@@ -36,9 +38,17 @@ export default function Targets() {
   }
 
   async function remove(id) {
-    if (!confirm("Remove this target?")) return;
-    await api.deleteTarget(id);
-    load();
+    const ok = await confirm({
+      title: "Remove this target?",
+      message: "You'll need to verify ownership again before you can scan it. Existing scans are kept.",
+      confirmLabel: "Remove", danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api.deleteTarget(id);
+      toast("Target removed");
+      load();
+    } catch (e) { toast(e.message, "error"); }
   }
 
   return (
