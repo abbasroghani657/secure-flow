@@ -91,6 +91,7 @@ export const api = {
   },
   getPlan: () => request("/api/billing/plan"),
   getRisk: () => request("/api/risk"),
+  getCompliance: () => request("/api/compliance"),
   listScans: () => request("/api/scans"),
   getScan: (id) => request(`/api/scans/${id}`),
   setFindingStatus: (scanId, findingId, status) =>

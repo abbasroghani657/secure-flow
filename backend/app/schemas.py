@@ -270,6 +270,40 @@ class ApiTokenCreated(ApiTokenRead):
     token: str  # the full secret, shown exactly once
 
 
+# ---- Compliance readiness ----
+class ComplianceFinding(BaseModel):
+    title: str
+    target: str
+    severity: str
+    cwe: str = ""
+
+
+class ComplianceControl(BaseModel):
+    id: str
+    title: str
+    description: str
+    status: str  # met | at_risk
+    issue_count: int
+    findings: list[ComplianceFinding]
+
+
+class ComplianceFramework(BaseModel):
+    key: str
+    name: str
+    version: str
+    blurb: str
+    controls_total: int
+    controls_met: int
+    readiness: int
+    controls: list[ComplianceControl]
+
+
+class ComplianceOverview(BaseModel):
+    generated_at: str
+    targets_covered: int
+    frameworks: list[ComplianceFramework]
+
+
 # ---- Organizations / teams ----
 class OrgSummary(BaseModel):
     id: int

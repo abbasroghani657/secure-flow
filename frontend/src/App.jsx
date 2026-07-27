@@ -12,6 +12,7 @@ import OAuthCallback from "./pages/OAuthCallback";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Risk from "./pages/Risk";
+import Compliance from "./pages/Compliance";
 import Targets from "./pages/Targets";
 import Schedules from "./pages/Schedules";
 import Settings from "./pages/Settings";
@@ -64,6 +65,7 @@ export default function App() {
       <Route path="/oauth" element={<OAuthCallback />} />
       <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
       <Route path="/risk" element={<Protected><Risk /></Protected>} />
+      <Route path="/compliance" element={<Protected><Compliance /></Protected>} />
       <Route path="/targets" element={<Protected><Targets /></Protected>} />
       <Route path="/schedules" element={<Protected><Schedules /></Protected>} />
       <Route path="/settings" element={<Protected><Settings /></Protected>} />

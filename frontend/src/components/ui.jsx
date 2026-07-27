@@ -28,6 +28,7 @@ export function AppNav() {
         <div style={{ display: "flex", gap: 20, fontSize: 13.5 }}>
           <Link to="/dashboard" style={{ color: T.muted }}>Dashboard</Link>
           <Link to="/risk" style={{ color: T.muted }}>Risk</Link>
+          <Link to="/compliance" style={{ color: T.muted }}>Compliance</Link>
           <Link to="/targets" style={{ color: T.muted }}>Targets</Link>
           <Link to="/schedules" style={{ color: T.muted }}>Schedules</Link>
           <Link to="/scans/new" style={{ color: T.muted }}>New Scan</Link>
