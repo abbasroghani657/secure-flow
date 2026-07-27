@@ -10,7 +10,7 @@ from ..deps import CurrentUser, SessionDep
 from ..models import Finding, Scan, ScanStatus, Target
 from ..schemas import CSPMScanCreate, FindingRead, ScanCreate, ScanDetail, ScanRead
 from ..scanner.checks import normalize_url
-from ..plans import check_can_scan
+from ..plans import check_can_scan, plan_shows_remediation
 
 router = APIRouter(prefix="/api/scans", tags=["scans"])
 
@@ -406,7 +406,15 @@ def get_scan(scan_id: int, current: CurrentUser, session: SessionDep) -> ScanDet
         key=lambda f: (f.passed, -(f.priority or 0), severity_rank.get(f.severity, 5)),
     )
     detail = ScanDetail.model_validate(scan, from_attributes=True)
-    detail.findings = [FindingRead.model_validate(f, from_attributes=True) for f in findings_sorted]
+    reads = [FindingRead.model_validate(f, from_attributes=True) for f in findings_sorted]
+    # Free plan: show the finding, lock the fix (remediation + evidence).
+    if not plan_shows_remediation(current.plan):
+        for r in reads:
+            if not r.passed:
+                r.remediation = ""
+                r.evidence = ""
+                r.locked = True
+    detail.findings = reads
     return detail
 
 

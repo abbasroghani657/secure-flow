@@ -368,7 +368,16 @@ function FindingCard({ f, open, onToggle }) {
           {f.description && <Row label="Description"><p style={txt}>{f.description}</p></Row>}
           {f.impact && <Row label="Impact"><p style={txt}>{f.impact}</p></Row>}
           {f.evidence && <Row label="Evidence"><pre style={{ ...txt, fontFamily: T.mono, fontSize: 12.5, background: "rgba(0,0,0,0.35)", padding: "10px 12px", borderRadius: 8, overflow: "auto", margin: 0 }}>{f.evidence}</pre></Row>}
-          {f.remediation && <Row label="How to fix"><p style={{ ...txt, color: T.accentHi }}>{f.remediation}</p></Row>}
+          {f.locked ? (
+            <Row label="How to fix">
+              <Link to="/pricing" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, border: "1px solid rgba(6,182,212,0.3)", background: "linear-gradient(180deg, rgba(6,182,212,0.09), rgba(255,255,255,0.02))" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="2" strokeLinecap="round" style={{ flex: "none" }}><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
+                <span style={{ fontSize: 13.5, color: T.text }}><b style={{ color: T.accentHi }}>Upgrade to Pro</b> to unlock the fix and evidence for this issue.</span>
+              </Link>
+            </Row>
+          ) : (
+            f.remediation && <Row label="How to fix"><p style={{ ...txt, color: T.accentHi }}>{f.remediation}</p></Row>
+          )}
         </div>
       )}
     </div>

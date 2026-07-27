@@ -4,7 +4,7 @@ import { MarketingNav, MarketingFooter, PRICING, sectionTitle, eyebrow } from ".
 import { T } from "../theme";
 
 const FAQ = [
-  ["Is there really a free tier?", "Yes, one verified target, the web scan, the OWASP Top 10 scorecard and PDF export, free forever. No credit card."],
+  ["Is there really a free tier?", "Yes. One verified target and three passive web + headers scans a month, free forever, no credit card. You'll see every issue we find; the fixes, evidence and active testing unlock on Pro."],
   ["What does “verified target” mean?", "You can only scan a domain after proving you control it (a DNS TXT record, an HTML meta tag, or a .well-known file). This keeps every scan authorised and legally defensible."],
   ["Do you store my source code or credentials?", "No. Uploaded files (APK/IPA, source archives, IaC, container images) are analysed and deleted immediately after the scan. Cloud keys are used only for that scan and wiped."],
   ["Can I cancel anytime?", "Yes. Plans are month-to-month; cancel whenever and keep access until the period ends."],

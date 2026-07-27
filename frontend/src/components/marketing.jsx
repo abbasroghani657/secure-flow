@@ -27,10 +27,10 @@ export const FEATURES = [
 ];
 
 export const PRICING = [
-  { name: "Free", price: "$0", period: "forever", blurb: "For a single site you own.", cta: "Start free", featured: false,
-    features: ["1 verified target", "Web + headers scan", "OWASP Top 10 scorecard", "PDF report export"] },
+  { name: "Free", price: "$0", period: "forever", blurb: "A taste, on one site you own.", cta: "Start free", featured: false,
+    features: ["1 verified target", "3 passive scans / month", "Web + headers surface only", "See what's wrong (fixes locked)"] },
   { name: "Pro", price: "$29", period: "/ month", blurb: "For teams that ship.", cta: "Start Pro", featured: true,
-    features: ["10 targets", "All scanners, API, mobile, cloud, SAST, containers", "Daily scheduled scans", "KEV / EPSS prioritization", "Compliance mapping (PCI/SOC2/ISO)"] },
+    features: ["10 targets, 100 scans / month", "All 15 scanners + active testing", "Full fixes, evidence & remediation", "Daily scheduled scans", "KEV / EPSS prioritization + compliance"] },
   { name: "Business", price: "$99", period: "/ month", blurb: "For agencies & security teams.", cta: "Contact us", featured: false,
     features: ["Unlimited targets", "Continuous monitoring + drift alerts", "Teams, roles & SSO", "Auditor-ready compliance reports", "API, CLI & integrations"] },
 ];

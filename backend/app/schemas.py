@@ -118,6 +118,7 @@ class FindingRead(BaseModel):
     layer: str = ""
     confidence: str = "firm"
     priority: int = 0
+    locked: bool = False   # remediation/evidence hidden on the Free plan
 
 
 class ScanRead(BaseModel):

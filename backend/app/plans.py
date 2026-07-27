@@ -25,18 +25,32 @@ FREE_SCAN_TYPES = {"web", "headers"}
 
 PLAN_LIMITS = {
     "free": {
-        "label": "Free", "max_targets": 1, "scans_per_month": 5,
+        "label": "Free", "max_targets": 1, "scans_per_month": 3,
         "scan_types": FREE_SCAN_TYPES, "scheduling": False, "teams": False,
+        # Strictly limited: passive surface only, and the fixes are locked.
+        "active_tests": False, "remediation": False,
     },
     "pro": {
         "label": "Pro", "max_targets": 10, "scans_per_month": 100,
         "scan_types": ALL_SCAN_TYPES, "scheduling": True, "teams": False,
+        "active_tests": True, "remediation": True,
     },
     "business": {
         "label": "Business", "max_targets": None, "scans_per_month": None,
         "scan_types": ALL_SCAN_TYPES, "scheduling": True, "teams": True,
+        "active_tests": True, "remediation": True,
     },
 }
+
+
+def plan_allows_active(plan: str) -> bool:
+    """Free runs passive checks only; active injection testing is a paid feature."""
+    return limits_for(plan).get("active_tests", True)
+
+
+def plan_shows_remediation(plan: str) -> bool:
+    """Free sees the findings but not how to fix them."""
+    return limits_for(plan).get("remediation", True)
 
 
 def limits_for(plan: str) -> dict:

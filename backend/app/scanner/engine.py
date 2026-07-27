@@ -158,7 +158,7 @@ def _manual_review_advisory(url: str) -> Finding:
 
 
 def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web",
-                      authenticated: bool = False) -> list[Finding]:
+                      authenticated: bool = False, allow_active: bool = True) -> list[Finding]:
     findings: list[Finding] = []
     probe = _probe_base(client, base_url)
     host = urlparse(probe.final_url).hostname or ""
@@ -340,7 +340,7 @@ def _collect_findings(client: httpx.Client, base_url: str, scan_type: str = "web
             result = crawl(client, probe.final_url, settings.max_crawl_pages, settings.max_crawl_depth)
             findings.extend(check_session_in_url(result.param_urls))
             findings.extend(check_csrf_forms(result.forms))
-            if settings.active_tests_enabled:
+            if settings.active_tests_enabled and allow_active:
                 findings.extend(run_active_tests(client, result.param_urls, result.forms,
                                                  max_urls=settings.max_active_urls))
                 findings.extend(test_xxe(client, probe.final_url, result.param_urls))
@@ -694,6 +694,11 @@ def run_scan(scan_id: int) -> None:
         scan = session.get(Scan, scan_id)
         if scan is None:
             return
+        # Free plan runs passive checks only; active injection testing is Pro.
+        from ..models import User
+        from ..plans import plan_allows_active
+        owner = session.get(User, scan.owner_id)
+        allow_active = plan_allows_active(owner.plan if owner else "free")
         scan.status = ScanStatus.running
         scan.started_at = datetime.now(timezone.utc)
         scan.progress = 5
@@ -806,7 +811,7 @@ def run_scan(scan_id: int) -> None:
                     session.add(scan)
                     session.commit()
 
-                    findings = _collect_findings(client, base_url, scan.scan_type, authenticated=bool(auth_headers))
+                    findings = _collect_findings(client, base_url, scan.scan_type, authenticated=bool(auth_headers), allow_active=allow_active)
 
                 # Deep scan: also run the Nuclei template engine (active, but gated on
                 # verified ownership and with intrusive/DoS templates excluded).
