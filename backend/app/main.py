@@ -1,8 +1,9 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, PlainTextResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -25,9 +26,28 @@ def _check_production_secrets() -> None:
         )
 
 
+def _init_sentry() -> None:
+    """Wire up error tracking when a DSN is configured. No-op otherwise, and a
+    missing sentry-sdk never breaks boot, it's an optional prod dependency."""
+    if not settings.sentry_dsn:
+        return
+    try:
+        import sentry_sdk  # type: ignore
+
+        sentry_sdk.init(
+            dsn=settings.sentry_dsn,
+            environment=settings.environment,
+            traces_sample_rate=settings.sentry_traces_sample_rate,
+        )
+        logger.info("Sentry error tracking enabled")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Sentry not initialised (%s). Install sentry-sdk to enable.", exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _check_production_secrets()
+    _init_sentry()
     init_db()
     if settings.worker_in_process:
         worker.start()
@@ -70,3 +90,35 @@ app.include_router(tokens.router)
 @app.get("/api/health", tags=["meta"])
 def health() -> dict:
     return {"status": "ok", "app": settings.app_name, "environment": settings.environment}
+
+
+@app.get("/api/health/ready", tags=["meta"])
+def readiness():
+    """Deep check for load balancers and orchestrators: is the DB reachable?"""
+    from sqlalchemy import text
+    from .database import engine
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ready", "database": "ok"}
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("readiness check failed: %s", exc)
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "not_ready", "database": "unreachable"},
+        )
+
+
+@app.get("/.well-known/security.txt", include_in_schema=False)
+def security_txt() -> PlainTextResponse:
+    """Our own responsible-disclosure contact — the trust signal we tell
+    customers to publish, published for ourselves."""
+    base = settings.app_base_url.rstrip("/")
+    body = (
+        f"Contact: mailto:security@pentrixa.app\n"
+        f"Policy: {base}/security\n"
+        f"Preferred-Languages: en\n"
+        f"Canonical: {base}/.well-known/security.txt\n"
+    )
+    return PlainTextResponse(body, media_type="text/plain")

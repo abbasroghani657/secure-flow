@@ -4,8 +4,24 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from .config import settings
 
-connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-engine = create_engine(settings.database_url, echo=False, connect_args=connect_args)
+_is_sqlite = settings.database_url.startswith("sqlite")
+
+# SQLite (dev) needs check_same_thread off for the threaded worker. Postgres
+# (prod) gets pool_pre_ping so a connection dropped by the server is detected
+# and replaced instead of raising, plus a recycle window and a real pool.
+if _is_sqlite:
+    engine = create_engine(
+        settings.database_url, echo=False,
+        connect_args={"check_same_thread": False},
+    )
+else:
+    engine = create_engine(
+        settings.database_url, echo=False,
+        pool_pre_ping=True,
+        pool_recycle=settings.db_pool_recycle,
+        pool_size=settings.db_pool_size,
+        max_overflow=settings.db_max_overflow,
+    )
 
 
 def init_db() -> None:

@@ -15,6 +15,14 @@ class Settings(BaseSettings):
     # Dev convenience: auto-create tables on startup. In production set False and
     # manage the schema with Alembic migrations (`alembic upgrade head`).
     auto_create_tables: bool = True
+    # Connection pool (Postgres/prod only; ignored for SQLite).
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    db_pool_recycle: int = 1800  # recycle connections after 30 min
+
+    # Error tracking (Sentry). Set sentry_dsn in prod to capture exceptions.
+    sentry_dsn: str = ""
+    sentry_traces_sample_rate: float = 0.0
 
     # Auth
     jwt_secret: str = "CHANGE_ME_IN_PRODUCTION_use_a_long_random_string"
