@@ -67,7 +67,7 @@ export const SAMPLE_FINDINGS = [
 export const SEV_COLORS = { critical: "#F87171", high: "#FB923C", medium: "#FBBF24", low: "#60A5FA", info: "#9CA3AF" };
 
 export const NAV_LINKS = [
-  ["/", "Home"], ["/features", "Features"], ["/pricing", "Pricing"], ["/compare", "Compare"], ["/blog", "Blog"],
+  ["/", "Home"], ["/how-it-works", "How it works"], ["/features", "Features"], ["/pricing", "Pricing"], ["/compare", "Compare"], ["/blog", "Blog"],
 ];
 
 // ---- shared components ----------------------------------------------------
@@ -102,7 +102,7 @@ export function MarketingNav() {
 
 export function MarketingFooter() {
   const cols = [
-    ["Product", [["Features", "/features"], ["Pricing", "/pricing"], ["Compare", "/compare"], ["Log in", "/auth"]]],
+    ["Product", [["How it works", "/how-it-works"], ["Features", "/features"], ["Pricing", "/pricing"], ["Compare", "/compare"]]],
     ["Resources", [["Blog", "/blog"], ["Docs", "/docs"], ["Changelog", "/changelog"], ["OWASP 2025", "/blog/owasp-2025-what-changed"]]],
     ["Company", [["About", "/about"], ["Security", "/security"], ["Privacy", "/privacy"], ["Terms", "/terms"]]],
   ];

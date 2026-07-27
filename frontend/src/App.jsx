@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./auth";
 import Landing from "./pages/Landing";
 import Features from "./pages/Features";
+import HowItWorks from "./pages/HowItWorks";
 import Pricing from "./pages/Pricing";
 import Compare from "./pages/Compare";
 import Blog from "./pages/Blog";
@@ -47,6 +48,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/features" element={<Features />} />
+      <Route path="/how-it-works" element={<HowItWorks />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/compare" element={<Compare />} />
       <Route path="/blog" element={<Blog />} />
