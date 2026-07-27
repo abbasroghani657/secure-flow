@@ -10,6 +10,7 @@ from ..deps import CurrentUser, SessionDep
 from ..models import Finding, Scan, ScanStatus, Target
 from ..schemas import CSPMScanCreate, FindingRead, ScanCreate, ScanDetail, ScanRead
 from ..scanner.checks import normalize_url
+from ..plans import check_can_scan
 
 router = APIRouter(prefix="/api/scans", tags=["scans"])
 
@@ -73,6 +74,8 @@ def create_scan(
             "A BOLA/IDOR scan needs credentials for TWO different accounts (A and B).",
         )
 
+    check_can_scan(session, current, data.scan_type)
+
     scan = Scan(
         owner_id=current.id, target_url=target_url, scan_type=data.scan_type,
         status=ScanStatus.queued,
@@ -107,6 +110,8 @@ async def create_mobile_scan(
     if data[:2] != b"PK":  # APKs are ZIP archives
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "That file is not a valid APK.")
 
+    check_can_scan(session, current, "mobile")
+
     scan = Scan(owner_id=current.id, target_url=filename, scan_type="mobile", status=ScanStatus.queued)
     session.add(scan)
     session.commit()
@@ -135,6 +140,8 @@ async def create_ios_scan(
     if data[:2] != b"PK":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "That file is not a valid IPA.")
 
+    check_can_scan(session, current, "ios")
+
     scan = Scan(owner_id=current.id, target_url=filename, scan_type="ios", status=ScanStatus.queued)
     session.add(scan)
     session.commit()
@@ -161,6 +168,8 @@ async def create_sca_scan(
         data.decode("utf-8")
     except UnicodeDecodeError:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "That does not look like a text manifest.")
+
+    check_can_scan(session, current, "sca")
 
     scan = Scan(owner_id=current.id, target_url=filename, scan_type="sca", status=ScanStatus.queued)
     session.add(scan)
@@ -189,6 +198,8 @@ async def create_iac_scan(
     except UnicodeDecodeError:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "That does not look like a text IaC file.")
 
+    check_can_scan(session, current, "iac")
+
     scan = Scan(owner_id=current.id, target_url=filename, scan_type="iac", status=ScanStatus.queued)
     session.add(scan)
     session.commit()
@@ -213,6 +224,8 @@ async def create_secrets_scan(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Archive too large (max 20 MB).")
     if not data:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "The uploaded file is empty.")
+
+    check_can_scan(session, current, "secrets")
 
     scan = Scan(owner_id=current.id, target_url=filename, scan_type="secrets", status=ScanStatus.queued)
     session.add(scan)
@@ -239,6 +252,8 @@ async def create_cicd_scan(
     if not data:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "The uploaded file is empty.")
 
+    check_can_scan(session, current, "cicd")
+
     scan = Scan(owner_id=current.id, target_url=filename, scan_type="cicd", status=ScanStatus.queued)
     session.add(scan)
     session.commit()
@@ -263,6 +278,8 @@ async def create_container_scan(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Image tar too large.")
     if not data:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "The uploaded file is empty.")
+
+    check_can_scan(session, current, "container")
 
     scan = Scan(owner_id=current.id, target_url=filename, scan_type="container", status=ScanStatus.queued)
     session.add(scan)
@@ -291,6 +308,8 @@ async def create_api_scan(
     except UnicodeDecodeError:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "That does not look like a text spec file.")
 
+    check_can_scan(session, current, "api")
+
     scan = Scan(owner_id=current.id, target_url=filename, scan_type="api", status=ScanStatus.queued)
     session.add(scan)
     session.commit()
@@ -315,6 +334,8 @@ async def create_sast_scan(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Archive too large (max 20 MB).")
     if not data:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "The uploaded file is empty.")
+
+    check_can_scan(session, current, "sast")
 
     scan = Scan(owner_id=current.id, target_url=filename, scan_type="sast", status=ScanStatus.queued)
     session.add(scan)
@@ -341,6 +362,8 @@ def create_cspm_scan(
     """
     if not data.aws_access_key.strip() or not data.aws_secret_key.strip():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "AWS access key and secret key are required.")
+
+    check_can_scan(session, current, "cspm")
 
     creds = json.dumps({
         "aws_access_key": data.aws_access_key.strip(),

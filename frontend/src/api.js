@@ -85,6 +85,7 @@ export const api = {
     fd.append("file", file);
     return request("/api/scans/container", { method: "POST", body: fd, isForm: true });
   },
+  getPlan: () => request("/api/billing/plan"),
   listScans: () => request("/api/scans"),
   getScan: (id) => request(`/api/scans/${id}`),
   deleteScan: (id) => request(`/api/scans/${id}`, { method: "DELETE" }),

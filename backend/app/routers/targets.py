@@ -8,6 +8,7 @@ from ..deps import CurrentUser, SessionDep
 from ..models import Target
 from ..schemas import TargetCreate, TargetDetail, TargetRead, VerificationStep, VerifyResult
 from ..scanner.checks import normalize_url
+from ..plans import check_can_add_target
 from ..verification import instructions, new_token, verify
 
 router = APIRouter(prefix="/api/targets", tags=["targets"])
@@ -34,6 +35,8 @@ def create_target(data: TargetCreate, current: CurrentUser, session: SessionDep)
     ).first()
     if existing:
         return _detail(existing)
+
+    check_can_add_target(session, current)
 
     target = Target(
         owner_id=current.id,

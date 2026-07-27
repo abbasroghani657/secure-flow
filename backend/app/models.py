@@ -29,6 +29,7 @@ class User(SQLModel, table=True):
     email: str = Field(index=True, unique=True)
     name: str
     hashed_password: str
+    plan: str = Field(default="free")   # free | pro | business
     created_at: datetime = Field(default_factory=utcnow)
 
     targets: list["Target"] = Relationship(back_populates="owner")

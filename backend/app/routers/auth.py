@@ -17,7 +17,7 @@ def _token_response(user: User) -> TokenResponse:
     token = create_access_token(subject=str(user.id))
     return TokenResponse(
         access_token=token,
-        user=UserRead(id=user.id, name=user.name, email=user.email, created_at=user.created_at),
+        user=UserRead(id=user.id, name=user.name, email=user.email, plan=user.plan, created_at=user.created_at),
     )
 
 
@@ -60,4 +60,4 @@ def login_form(request: Request, form: Annotated[OAuth2PasswordRequestForm, Depe
 
 @router.get("/me", response_model=UserRead)
 def me(current: CurrentUser) -> UserRead:
-    return UserRead(id=current.id, name=current.name, email=current.email, created_at=current.created_at)
+    return UserRead(id=current.id, name=current.name, email=current.email, plan=current.plan, created_at=current.created_at)

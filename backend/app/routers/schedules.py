@@ -7,6 +7,7 @@ from ..deps import CurrentUser, SessionDep
 from ..models import Schedule, Target
 from ..schemas import ScheduleCreate, ScheduleRead, ScheduleUpdate
 from ..scanner.checks import normalize_url
+from ..plans import check_can_schedule
 from ..scheduling import compute_next_run
 
 router = APIRouter(prefix="/api/schedules", tags=["schedules"])
@@ -31,6 +32,7 @@ def _require_verified_target(session, owner_id: int, url: str) -> Target:
 
 @router.post("", response_model=ScheduleRead, status_code=status.HTTP_201_CREATED)
 def create_schedule(data: ScheduleCreate, current: CurrentUser, session: SessionDep) -> ScheduleRead:
+    check_can_schedule(current)
     target = _require_verified_target(session, current.id, data.target_url)
     schedule = Schedule(
         owner_id=current.id,

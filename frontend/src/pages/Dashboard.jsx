@@ -14,6 +14,7 @@ const STATUS_STYLE = {
 export default function Dashboard() {
   const [scans, setScans] = useState(null);
   const [err, setErr] = useState("");
+  const [plan, setPlan] = useState(null);
 
   async function load() {
     try {
@@ -25,6 +26,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     load();
+    api.getPlan().then(setPlan).catch(() => {});
     // Refresh while any scan is in progress.
     const t = setInterval(load, 2500);
     return () => clearInterval(t);
@@ -53,6 +55,28 @@ export default function Dashboard() {
         </div>
 
         {err && <div style={{ color: "#F87171", marginBottom: 16 }}>{err}</div>}
+
+        {plan && plan.plan === "free" && (() => {
+          const cap = plan.limits.scans_per_month;
+          const used = plan.usage.scans_this_month;
+          const pct = cap ? Math.min(100, Math.round((used / cap) * 100)) : 0;
+          return (
+            <div style={{ marginBottom: 22, padding: "16px 20px", borderRadius: 14, border: "1px solid rgba(6,182,212,0.28)", background: "linear-gradient(180deg, rgba(6,182,212,0.07), rgba(255,255,255,0.02))" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>You're on the <span style={{ color: T.accentHi }}>Free</span> plan</div>
+                  <div style={{ fontSize: 12.5, color: T.muted, marginTop: 3 }}>
+                    {used} of {cap} scans used this month · {plan.usage.targets} of {plan.limits.max_targets} target{plan.limits.max_targets !== 1 ? "s" : ""} · web scans only
+                  </div>
+                </div>
+                <Link to="/pricing" className="btn-primary" style={{ ...primaryBtn, padding: "9px 18px", fontSize: 13.5, whiteSpace: "nowrap" }}>Upgrade to Pro →</Link>
+              </div>
+              <div style={{ marginTop: 12, height: 6, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                <div style={{ width: `${pct}%`, height: "100%", background: `linear-gradient(90deg, ${T.accent}, ${T.accentHi})`, borderRadius: 999 }} />
+              </div>
+            </div>
+          );
+        })()}
 
         {scans === null ? (
           <p style={{ color: T.muted }}>Loading…</p>

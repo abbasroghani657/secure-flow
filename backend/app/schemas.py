@@ -27,6 +27,7 @@ class UserRead(BaseModel):
     id: int
     name: str
     email: EmailStr
+    plan: str = "free"
     created_at: datetime
 
 

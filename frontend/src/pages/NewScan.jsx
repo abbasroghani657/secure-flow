@@ -57,6 +57,7 @@ export default function NewScan() {
   const [awsAccessKey, setAwsAccessKey] = useState("");
   const [awsSecretKey, setAwsSecretKey] = useState("");
   const [awsRegion, setAwsRegion] = useState("us-east-1");
+  const [plan, setPlan] = useState(null);
   const nav = useNavigate();
 
   useEffect(() => {
@@ -68,7 +69,11 @@ export default function NewScan() {
       const match = hint && verified.find((t) => t.host === hint);
       setSelected(match ? match.url : verified[0]?.url || "");
     }).catch((e) => setErr(e.message));
+    api.getPlan().then(setPlan).catch(() => {});
   }, []);
+
+  const allowedTypes = plan ? new Set(plan.limits.scan_types) : null;
+  const typeLocked = (id) => allowedTypes ? !allowedTypes.has(id) : false;
 
   async function submit(e) {
     e.preventDefault();
@@ -152,13 +157,19 @@ export default function NewScan() {
               <div style={{ display: "grid", gap: 10 }}>
                 {SCAN_TYPES.map((t) => {
                   const active = type === t.id;
+                  const locked = typeLocked(t.id);
                   return (
-                    <button type="button" key={t.id} onClick={() => setType(t.id)} style={{ textAlign: "left", padding: "16px 18px", borderRadius: 12, cursor: "pointer", border: `1.5px solid ${active ? T.accent : T.border}`, background: active ? "rgba(6,182,212,0.08)" : "rgba(255,255,255,0.02)", fontFamily: T.body }}>
+                    <button type="button" key={t.id} onClick={() => setType(t.id)} style={{ textAlign: "left", padding: "16px 18px", borderRadius: 12, cursor: "pointer", border: `1.5px solid ${active ? T.accent : T.border}`, background: active ? "rgba(6,182,212,0.08)" : "rgba(255,255,255,0.02)", fontFamily: T.body, opacity: locked && !active ? 0.7 : 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${active ? T.accent : T.borderStrong}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                           {active && <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.accent }} />}
                         </span>
                         <span style={{ fontSize: 14.5, fontWeight: 600, color: T.text }}>{t.label}</span>
+                        {locked && (
+                          <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.05em", color: T.accentHi, background: "rgba(6,182,212,0.12)", border: "1px solid rgba(6,182,212,0.3)", borderRadius: 999, padding: "3px 9px" }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>PRO
+                          </span>
+                        )}
                       </div>
                       <p style={{ margin: "8px 0 0 26px", fontSize: 13, color: T.muted }}>{t.desc}</p>
                     </button>
@@ -312,9 +323,19 @@ export default function NewScan() {
 
             {err && <div style={{ fontSize: 13.5, color: "#F87171", background: "rgba(220,38,38,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 10, padding: "10px 12px" }}>{err}</div>}
 
-            <button type="submit" disabled={busy || (!UPLOAD_TYPES.includes(type) && type !== "cspm" && targets.length === 0)} style={{ ...primaryBtn, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: (busy || (!UPLOAD_TYPES.includes(type) && type !== "cspm" && targets.length === 0)) ? 0.6 : 1 }}>
-              {busy && <Spinner />} Launch scan
-            </button>
+            {typeLocked(type) ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", padding: "18px 20px", borderRadius: 14, border: "1px solid rgba(6,182,212,0.3)", background: "linear-gradient(180deg, rgba(6,182,212,0.09), rgba(255,255,255,0.02))" }}>
+                <div>
+                  <div style={{ fontSize: 14.5, fontWeight: 600, color: T.text }}>This scanner is on the Pro plan</div>
+                  <div style={{ fontSize: 13, color: T.muted, marginTop: 3 }}>You're on the {plan?.label || "Free"} plan. Upgrade to unlock all 15 scan types, scheduling and more targets.</div>
+                </div>
+                <Link to="/pricing" className="btn-primary" style={{ ...primaryBtn, whiteSpace: "nowrap", textDecoration: "none" }}>Upgrade to Pro →</Link>
+              </div>
+            ) : (
+              <button type="submit" disabled={busy || (!UPLOAD_TYPES.includes(type) && type !== "cspm" && targets.length === 0)} style={{ ...primaryBtn, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: (busy || (!UPLOAD_TYPES.includes(type) && type !== "cspm" && targets.length === 0)) ? 0.6 : 1 }}>
+                {busy && <Spinner />} Launch scan
+              </button>
+            )}
           </form>
         )}
       </main>
