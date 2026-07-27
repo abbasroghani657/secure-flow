@@ -103,4 +103,16 @@ export const api = {
   listSchedules: () => request("/api/schedules"),
   updateSchedule: (id, body) => request(`/api/schedules/${id}`, { method: "PATCH", body }),
   deleteSchedule: (id) => request(`/api/schedules/${id}`, { method: "DELETE" }),
+
+  // Integrations (Slack / Teams / Discord / webhook)
+  listIntegrations: () => request("/api/integrations"),
+  createIntegration: (body) => request("/api/integrations", { method: "POST", body }),
+  updateIntegration: (id, body) => request(`/api/integrations/${id}`, { method: "PATCH", body }),
+  testIntegration: (id) => request(`/api/integrations/${id}/test`, { method: "POST" }),
+  deleteIntegration: (id) => request(`/api/integrations/${id}`, { method: "DELETE" }),
+
+  // API tokens (CLI / CI)
+  listTokens: () => request("/api/tokens"),
+  createToken: (name) => request("/api/tokens", { method: "POST", body: { name } }),
+  revokeToken: (id) => request(`/api/tokens/${id}`, { method: "DELETE" }),
 };

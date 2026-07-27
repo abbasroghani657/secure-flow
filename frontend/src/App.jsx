@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Targets from "./pages/Targets";
 import Schedules from "./pages/Schedules";
+import Settings from "./pages/Settings";
 import NewScan from "./pages/NewScan";
 import ScanResults from "./pages/ScanResults";
 import Report from "./pages/Report";
@@ -58,6 +59,7 @@ export default function App() {
       <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
       <Route path="/targets" element={<Protected><Targets /></Protected>} />
       <Route path="/schedules" element={<Protected><Schedules /></Protected>} />
+      <Route path="/settings" element={<Protected><Settings /></Protected>} />
       <Route path="/scans/new" element={<Protected><NewScan /></Protected>} />
       <Route path="/scans/:id" element={<Protected><ScanResults /></Protected>} />
       <Route path="/scans/:id/report" element={<Protected><Report /></Protected>} />

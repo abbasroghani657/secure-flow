@@ -28,6 +28,7 @@ export function AppNav() {
           <Link to="/targets" style={{ color: T.muted }}>Targets</Link>
           <Link to="/schedules" style={{ color: T.muted }}>Schedules</Link>
           <Link to="/scans/new" style={{ color: T.muted }}>New Scan</Link>
+          <Link to="/settings" style={{ color: T.muted }}>Settings</Link>
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>

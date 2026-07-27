@@ -1,0 +1,24 @@
+# Drop this in .github/workflows/security.yml in your own repo.
+# It runs a Pentrixa scan on every push and pull request, and fails the
+# build if any high or critical issue is found.
+
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pentrixa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pentrixa scan
+        uses: pentrixa/scan-action@v1
+        with:
+          target: https://staging.example.com   # a verified target
+          token: ${{ secrets.PENTRIXA_TOKEN }}
+          type: web
+          fail-on: high

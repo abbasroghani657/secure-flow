@@ -128,6 +128,42 @@ class Finding(SQLModel, table=True):
     scan: Optional[Scan] = Relationship(back_populates="findings")
 
 
+class Integration(SQLModel, table=True):
+    """An outbound alert channel the user connects — Slack, Teams, Discord or a
+    generic webhook. When a scan finishes, matching integrations get a POST.
+
+    ``target`` holds the incoming-webhook URL the user pastes from their own
+    workspace; we never store their credentials, just the URL they control.
+    """
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    owner_id: int = Field(foreign_key="user.id", index=True)
+    kind: str = Field(default="slack")   # slack | teams | discord | webhook
+    name: str = ""                       # user label, e.g. "#security channel"
+    target: str = ""                     # incoming-webhook URL
+    # When to fire: "critical_high" (default), "new_only", or "all".
+    events: str = Field(default="critical_high")
+    enabled: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=utcnow)
+    last_fired_at: Optional[datetime] = None
+
+
+class ApiToken(SQLModel, table=True):
+    """A machine token for the CLI / CI pipelines. The raw token is shown once at
+    creation; we store only a hash. ``prefix`` is the visible first chars so the
+    user can tell tokens apart in the UI.
+    """
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    owner_id: int = Field(foreign_key="user.id", index=True)
+    name: str = ""                       # user label, e.g. "GitHub Actions"
+    prefix: str = Field(index=True)      # e.g. "ptx_a1b2c3"
+    hashed_token: str
+    created_at: datetime = Field(default_factory=utcnow)
+    last_used_at: Optional[datetime] = None
+    revoked: bool = Field(default=False)
+
+
 class Schedule(SQLModel, table=True):
     """A recurring scan for a verified target — the continuous-monitoring engine."""
 

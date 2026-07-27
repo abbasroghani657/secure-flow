@@ -29,16 +29,19 @@ PLAN_LIMITS = {
         "scan_types": FREE_SCAN_TYPES, "scheduling": False, "teams": False,
         # Strictly limited: passive surface only, and the fixes are locked.
         "active_tests": False, "remediation": False,
+        "integrations": False, "api_access": False,
     },
     "pro": {
         "label": "Pro", "max_targets": 10, "scans_per_month": 100,
         "scan_types": ALL_SCAN_TYPES, "scheduling": True, "teams": False,
         "active_tests": True, "remediation": True,
+        "integrations": True, "api_access": True,
     },
     "business": {
         "label": "Business", "max_targets": None, "scans_per_month": None,
         "scan_types": ALL_SCAN_TYPES, "scheduling": True, "teams": True,
         "active_tests": True, "remediation": True,
+        "integrations": True, "api_access": True,
     },
 }
 
@@ -85,6 +88,9 @@ def usage_for(session, user: User) -> dict:
             "scans_per_month": lim["scans_per_month"],
             "scheduling": lim["scheduling"],
             "scan_types": sorted(lim["scan_types"]),
+            "integrations": lim.get("integrations", False),
+            "api_access": lim.get("api_access", False),
+            "remediation": lim.get("remediation", True),
         },
         "usage": {
             "targets": target_count(session, user.id),
@@ -119,3 +125,17 @@ def check_can_schedule(user: User) -> None:
     lim = limits_for(user.plan)
     if not lim["scheduling"]:
         _upgrade("Scheduled scans are a Pro feature. Upgrade to run scans automatically.")
+
+
+def check_can_integrate(user: User) -> None:
+    lim = limits_for(user.plan)
+    if not lim.get("integrations", False):
+        _upgrade("Slack, Teams and webhook alerts are a Pro feature. "
+                 "Upgrade to route findings into your team's workflow.")
+
+
+def check_api_access(user: User) -> None:
+    lim = limits_for(user.plan)
+    if not lim.get("api_access", False):
+        _upgrade("API tokens and the CI/CD scanner are a Pro feature. "
+                 "Upgrade to run Pentrixa in your pipeline.")

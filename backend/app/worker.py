@@ -30,8 +30,8 @@ from sqlmodel import Session, select
 
 from .config import settings
 from .database import engine, init_db
-from .models import Finding, Scan, ScanStatus, Schedule, User
-from .notifications import send_scan_alert
+from .models import Finding, Integration, Scan, ScanStatus, Schedule, User
+from .notifications import send_scan_alert, send_scan_integrations
 from .scanner.engine import run_scan
 from .scheduling import compute_next_run
 
@@ -86,6 +86,18 @@ def finalize_scan(scan_id: int) -> None:
                 send_scan_alert(scan, user.email)
             except Exception:  # noqa: BLE001
                 logger.exception("alert failed for scan %s", scan_id)
+
+        integrations = s.exec(
+            select(Integration).where(
+                Integration.owner_id == scan.owner_id,
+                Integration.enabled == True,  # noqa: E712
+            )
+        ).all()
+        if integrations:
+            try:
+                send_scan_integrations(scan, integrations, session=s)
+            except Exception:  # noqa: BLE001
+                logger.exception("integration alert failed for scan %s", scan_id)
 
 
 class ScanWorker:

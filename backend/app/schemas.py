@@ -148,6 +148,50 @@ class ScanDetail(ScanRead):
     findings: list[FindingRead]
 
 
+# ---- Integrations ----
+class IntegrationCreate(BaseModel):
+    kind: str = "slack"          # slack | teams | discord | webhook
+    name: str = ""
+    target: str                  # incoming-webhook URL
+    events: str = "critical_high"  # critical_high | new_only | all
+
+
+class IntegrationUpdate(BaseModel):
+    name: Optional[str] = None
+    target: Optional[str] = None
+    events: Optional[str] = None
+    enabled: Optional[bool] = None
+
+
+class IntegrationRead(BaseModel):
+    id: int
+    kind: str
+    name: str
+    target: str
+    events: str
+    enabled: bool
+    created_at: datetime
+    last_fired_at: Optional[datetime]
+
+
+# ---- API tokens (CLI / CI) ----
+class ApiTokenCreate(BaseModel):
+    name: str = ""
+
+
+class ApiTokenRead(BaseModel):
+    id: int
+    name: str
+    prefix: str
+    created_at: datetime
+    last_used_at: Optional[datetime]
+    revoked: bool
+
+
+class ApiTokenCreated(ApiTokenRead):
+    token: str  # the full secret, shown exactly once
+
+
 # ---- Schedules ----
 class ScheduleCreate(BaseModel):
     target_url: str

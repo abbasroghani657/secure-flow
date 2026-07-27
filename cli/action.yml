@@ -1,0 +1,45 @@
+name: "Pentrixa Security Scan"
+description: "Run a Pentrixa security scan against a verified target and fail the build on findings."
+author: "Pentrixa"
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  target:
+    description: "Target URL to scan (must be a verified target on your Pentrixa account)."
+    required: true
+  token:
+    description: "Pentrixa API token. Store it as a repo secret and pass ${{ secrets.PENTRIXA_TOKEN }}."
+    required: true
+  type:
+    description: "Scan type (web, headers, api, ...)."
+    required: false
+    default: "web"
+  fail-on:
+    description: "Minimum severity that fails the build (info|low|medium|high|critical)."
+    required: false
+    default: "high"
+  api:
+    description: "Pentrixa API base URL (only change for self-hosted)."
+    required: false
+    default: "https://api.pentrixa.app"
+  timeout:
+    description: "Max seconds to wait for the scan to finish."
+    required: false
+    default: "900"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run Pentrixa scan
+      shell: bash
+      env:
+        PENTRIXA_TOKEN: ${{ inputs.token }}
+        PENTRIXA_API: ${{ inputs.api }}
+      run: |
+        python3 "${{ github.action_path }}/pentrixa.py" scan \
+          "${{ inputs.target }}" \
+          --type "${{ inputs.type }}" \
+          --fail-on "${{ inputs.fail-on }}" \
+          --timeout "${{ inputs.timeout }}"
