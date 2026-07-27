@@ -28,6 +28,7 @@ class UserRead(BaseModel):
     name: str
     email: EmailStr
     plan: str = "free"
+    current_org_id: Optional[int] = None
     created_at: datetime
 
 
@@ -267,6 +268,85 @@ class ApiTokenRead(BaseModel):
 
 class ApiTokenCreated(ApiTokenRead):
     token: str  # the full secret, shown exactly once
+
+
+# ---- Organizations / teams ----
+class OrgSummary(BaseModel):
+    id: int
+    name: str
+    role: str
+    personal: bool
+    member_count: int
+
+
+class MemberRead(BaseModel):
+    user_id: int
+    name: str
+    email: EmailStr
+    role: str
+    joined_at: datetime
+
+
+class InvitationRead(BaseModel):
+    id: int
+    email: EmailStr
+    role: str
+    status: str
+    created_at: datetime
+
+
+class InvitationCreated(InvitationRead):
+    token: str        # shown once so the admin can copy the invite link
+    accept_url: str
+
+
+class OrgDetail(BaseModel):
+    id: int
+    name: str
+    personal: bool
+    my_role: str
+    members: list[MemberRead]
+    invitations: list[InvitationRead]
+
+
+class OrgCreate(BaseModel):
+    name: str
+
+    @field_validator("name")
+    @classmethod
+    def not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Name cannot be empty")
+        return v.strip()
+
+
+class OrgRename(OrgCreate):
+    pass
+
+
+class InviteCreate(BaseModel):
+    email: EmailStr
+    role: str = "member"
+
+
+class InvitePreview(BaseModel):
+    org_name: str
+    role: str
+    email: EmailStr
+    valid: bool
+    reason: str = ""
+
+
+class RoleUpdate(BaseModel):
+    role: str
+
+
+class AuditEventRead(BaseModel):
+    id: int
+    actor_email: str
+    action: str
+    detail: str
+    created_at: datetime
 
 
 # ---- Schedules ----

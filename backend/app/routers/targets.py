@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, HTTPException, status
 from sqlmodel import select
 
+from ..access import require_write
 from ..deps import CurrentUser, SessionDep
 from ..models import Target
 from ..schemas import TargetCreate, TargetDetail, TargetRead, VerificationStep, VerifyResult
@@ -31,15 +32,17 @@ def create_target(data: TargetCreate, current: CurrentUser, session: SessionDep)
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Could not parse a hostname from the URL")
 
     existing = session.exec(
-        select(Target).where(Target.owner_id == current.id, Target.host == host)
+        select(Target).where(Target.org_id == current.current_org_id, Target.host == host)
     ).first()
     if existing:
         return _detail(existing)
 
+    require_write(session, current)
     check_can_add_target(session, current)
 
     target = Target(
         owner_id=current.id,
+        org_id=current.current_org_id,
         url=f"{urlparse(url).scheme}://{host}",
         host=host,
         label=data.label,
@@ -54,7 +57,7 @@ def create_target(data: TargetCreate, current: CurrentUser, session: SessionDep)
 @router.get("", response_model=list[TargetRead])
 def list_targets(current: CurrentUser, session: SessionDep) -> list[TargetRead]:
     targets = session.exec(
-        select(Target).where(Target.owner_id == current.id).order_by(Target.created_at.desc())
+        select(Target).where(Target.org_id == current.current_org_id).order_by(Target.created_at.desc())
     ).all()
     return [TargetRead.model_validate(t, from_attributes=True) for t in targets]
 
@@ -62,15 +65,16 @@ def list_targets(current: CurrentUser, session: SessionDep) -> list[TargetRead]:
 @router.get("/{target_id}", response_model=TargetDetail)
 def get_target(target_id: int, current: CurrentUser, session: SessionDep) -> TargetDetail:
     target = session.get(Target, target_id)
-    if not target or target.owner_id != current.id:
+    if not target or target.org_id != current.current_org_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Target not found")
     return _detail(target)
 
 
 @router.post("/{target_id}/verify", response_model=VerifyResult)
 def verify_target(target_id: int, current: CurrentUser, session: SessionDep) -> VerifyResult:
+    require_write(session, current)
     target = session.get(Target, target_id)
-    if not target or target.owner_id != current.id:
+    if not target or target.org_id != current.current_org_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Target not found")
     if target.verified:
         return VerifyResult(verified=True, method=target.verification_method, message="Already verified.")
@@ -91,8 +95,9 @@ def verify_target(target_id: int, current: CurrentUser, session: SessionDep) -> 
 
 @router.delete("/{target_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_target(target_id: int, current: CurrentUser, session: SessionDep) -> None:
+    require_write(session, current)
     target = session.get(Target, target_id)
-    if not target or target.owner_id != current.id:
+    if not target or target.org_id != current.current_org_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Target not found")
     session.delete(target)
     session.commit()

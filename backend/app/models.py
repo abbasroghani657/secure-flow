@@ -24,23 +24,76 @@ class Severity(str, Enum):
     info = "info"
 
 
+ROLE_RANK = {"viewer": 0, "member": 1, "admin": 2, "owner": 3}
+
+
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     email: str = Field(index=True, unique=True)
     name: str
     hashed_password: str
     plan: str = Field(default="free")   # free | pro | business
+    # The organization the user is currently acting in (their personal workspace
+    # by default). Resource queries are scoped to this org.
+    current_org_id: Optional[int] = Field(default=None, foreign_key="organization.id", index=True)
     created_at: datetime = Field(default_factory=utcnow)
 
     targets: list["Target"] = Relationship(back_populates="owner")
     scans: list["Scan"] = Relationship(back_populates="owner")
 
 
+class Organization(SQLModel, table=True):
+    """A workspace that owns targets, scans and schedules and is shared by its
+    members. Every user gets a personal org on signup; teams add more members."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    personal: bool = Field(default=False)   # the auto-created single-user workspace
+    created_by_id: int = Field(foreign_key="user.id", index=True)
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class Membership(SQLModel, table=True):
+    """A user's role inside an organization."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    org_id: int = Field(foreign_key="organization.id", index=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    role: str = Field(default="member")   # owner | admin | member | viewer
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class Invitation(SQLModel, table=True):
+    """A pending invite for someone to join an org at a given role."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    org_id: int = Field(foreign_key="organization.id", index=True)
+    email: str = Field(index=True)
+    role: str = Field(default="member")
+    token: str = Field(index=True, unique=True)
+    status: str = Field(default="pending")   # pending | accepted | revoked
+    invited_by_id: int = Field(foreign_key="user.id")
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class AuditEvent(SQLModel, table=True):
+    """A record of who did what in an org — the enterprise accountability trail."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    org_id: int = Field(foreign_key="organization.id", index=True)
+    actor_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    actor_email: str = ""
+    action: str = ""      # e.g. "member.invited", "scan.created", "role.changed"
+    detail: str = ""
+    created_at: datetime = Field(default_factory=utcnow)
+
+
 class Target(SQLModel, table=True):
     """A website/host the user has claimed. Scans are only allowed against verified targets."""
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    owner_id: int = Field(foreign_key="user.id", index=True)
+    owner_id: int = Field(foreign_key="user.id", index=True)      # who created it
+    org_id: Optional[int] = Field(default=None, foreign_key="organization.id", index=True)
     url: str  # normalized origin, e.g. https://example.com
     host: str = Field(index=True)  # bare hostname, e.g. example.com
     label: Optional[str] = None
@@ -55,7 +108,8 @@ class Target(SQLModel, table=True):
 
 class Scan(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    owner_id: int = Field(foreign_key="user.id", index=True)
+    owner_id: int = Field(foreign_key="user.id", index=True)      # who launched it
+    org_id: Optional[int] = Field(default=None, foreign_key="organization.id", index=True)
     target_url: str
     scan_type: str = Field(default="web")  # web | deep | headers
     status: ScanStatus = Field(default=ScanStatus.queued, index=True)
@@ -141,6 +195,7 @@ class Integration(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     owner_id: int = Field(foreign_key="user.id", index=True)
+    org_id: Optional[int] = Field(default=None, foreign_key="organization.id", index=True)
     kind: str = Field(default="slack")   # slack | teams | discord | webhook
     name: str = ""                       # user label, e.g. "#security channel"
     target: str = ""                     # incoming-webhook URL
@@ -159,6 +214,7 @@ class ApiToken(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     owner_id: int = Field(foreign_key="user.id", index=True)
+    org_id: Optional[int] = Field(default=None, foreign_key="organization.id", index=True)
     name: str = ""                       # user label, e.g. "GitHub Actions"
     prefix: str = Field(index=True)      # e.g. "ptx_a1b2c3"
     hashed_token: str
@@ -172,6 +228,7 @@ class Schedule(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     owner_id: int = Field(foreign_key="user.id", index=True)
+    org_id: Optional[int] = Field(default=None, foreign_key="organization.id", index=True)
     target_url: str
     host: str
     scan_type: str = Field(default="web")

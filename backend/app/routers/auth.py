@@ -4,9 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import select
 
+from ..access import ensure_personal_org
 from ..deps import CurrentUser, SessionDep
 from ..models import (
-    ApiToken, Integration, Scan, Schedule, Target, User,
+    ApiToken, Integration, Membership, Organization, Scan, Schedule, Target, User,
 )
 from ..ratelimit import limiter
 from ..schemas import (
@@ -22,7 +23,7 @@ def _token_response(user: User) -> TokenResponse:
     token = create_access_token(subject=str(user.id))
     return TokenResponse(
         access_token=token,
-        user=UserRead(id=user.id, name=user.name, email=user.email, plan=user.plan, created_at=user.created_at),
+        user=UserRead(id=user.id, name=user.name, email=user.email, plan=user.plan, current_org_id=user.current_org_id, created_at=user.created_at),
     )
 
 
@@ -41,6 +42,7 @@ def register(request: Request, data: UserCreate, session: SessionDep) -> TokenRe
     session.add(user)
     session.commit()
     session.refresh(user)
+    ensure_personal_org(session, user)   # every user gets a workspace
     return _token_response(user)
 
 
@@ -65,7 +67,7 @@ def login_form(request: Request, form: Annotated[OAuth2PasswordRequestForm, Depe
 
 @router.get("/me", response_model=UserRead)
 def me(current: CurrentUser) -> UserRead:
-    return UserRead(id=current.id, name=current.name, email=current.email, plan=current.plan, created_at=current.created_at)
+    return UserRead(id=current.id, name=current.name, email=current.email, plan=current.plan, current_org_id=current.current_org_id, created_at=current.created_at)
 
 
 @router.patch("/me", response_model=UserRead)
@@ -74,7 +76,7 @@ def update_profile(data: ProfileUpdate, current: CurrentUser, session: SessionDe
     session.add(current)
     session.commit()
     session.refresh(current)
-    return UserRead(id=current.id, name=current.name, email=current.email, plan=current.plan, created_at=current.created_at)
+    return UserRead(id=current.id, name=current.name, email=current.email, plan=current.plan, current_org_id=current.current_org_id, created_at=current.created_at)
 
 
 @router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
@@ -98,5 +100,12 @@ def delete_account(data: AccountDelete, current: CurrentUser, session: SessionDe
     for model in (Target, Schedule, Integration, ApiToken):
         for row in session.exec(select(model).where(model.owner_id == uid)).all():
             session.delete(row)
+    # Drop their team memberships and any personal workspaces they own.
+    for mem in session.exec(select(Membership).where(Membership.user_id == uid)).all():
+        session.delete(mem)
+    for org in session.exec(
+        select(Organization).where(Organization.created_by_id == uid, Organization.personal == True)  # noqa: E712
+    ).all():
+        session.delete(org)
     session.delete(current)
     session.commit()

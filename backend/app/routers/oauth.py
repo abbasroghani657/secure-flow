@@ -15,6 +15,7 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlmodel import select
 
+from ..access import ensure_personal_org
 from ..config import settings
 from ..deps import SessionDep
 from ..models import User
@@ -111,6 +112,7 @@ def oauth_callback(provider: str, session: SessionDep, code: str = "", state: st
         session.add(user)
         session.commit()
         session.refresh(user)
+    ensure_personal_org(session, user)   # provision (or backfill) their workspace
 
     token = create_access_token(subject=str(user.id))
     # Hand the token back via the URL fragment (never sent to a server / logged).

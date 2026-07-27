@@ -48,7 +48,7 @@ def finalize_scan(scan_id: int) -> None:
         prev = s.exec(
             select(Scan)
             .where(
-                Scan.owner_id == scan.owner_id,
+                Scan.org_id == scan.org_id,
                 Scan.target_url == scan.target_url,
                 Scan.status == ScanStatus.completed,
                 Scan.id != scan.id,
@@ -94,7 +94,7 @@ def finalize_scan(scan_id: int) -> None:
 
         integrations = s.exec(
             select(Integration).where(
-                Integration.owner_id == scan.owner_id,
+                Integration.org_id == scan.org_id,
                 Integration.enabled == True,  # noqa: E712
             )
         ).all()
@@ -195,6 +195,7 @@ class ScanWorker:
             for sch in due:
                 s.add(Scan(
                     owner_id=sch.owner_id,
+                    org_id=sch.org_id,
                     target_url=sch.target_url,
                     scan_type=sch.scan_type,
                     status=ScanStatus.queued,

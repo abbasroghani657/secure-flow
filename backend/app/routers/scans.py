@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from sqlmodel import select
 
+from ..access import require_write
 from ..config import settings
 from ..deps import CurrentUser, SessionDep
 from ..models import Finding, Scan, ScanStatus, Target
@@ -43,7 +44,7 @@ def create_scan(
         host = urlparse(target_url).hostname
 
     target = session.exec(
-        select(Target).where(Target.owner_id == current.id, Target.host == host)
+        select(Target).where(Target.org_id == current.current_org_id, Target.host == host)
     ).first()
     if not target:
         raise HTTPException(
@@ -77,7 +78,8 @@ def create_scan(
     check_can_scan(session, current, data.scan_type)
 
     scan = Scan(
-        owner_id=current.id, target_url=target_url, scan_type=data.scan_type,
+        owner_id=current.id, org_id=current.current_org_id,
+        target_url=target_url, scan_type=data.scan_type,
         status=ScanStatus.queued,
         authenticated=bool(auth_headers),
         auth_headers=json.dumps(auth_headers) if auth_headers else None,
@@ -112,7 +114,7 @@ async def create_mobile_scan(
 
     check_can_scan(session, current, "mobile")
 
-    scan = Scan(owner_id=current.id, target_url=filename, scan_type="mobile", status=ScanStatus.queued)
+    scan = Scan(owner_id=current.id, org_id=current.current_org_id, target_url=filename, scan_type="mobile", status=ScanStatus.queued)
     session.add(scan)
     session.commit()
     session.refresh(scan)
@@ -142,7 +144,7 @@ async def create_ios_scan(
 
     check_can_scan(session, current, "ios")
 
-    scan = Scan(owner_id=current.id, target_url=filename, scan_type="ios", status=ScanStatus.queued)
+    scan = Scan(owner_id=current.id, org_id=current.current_org_id, target_url=filename, scan_type="ios", status=ScanStatus.queued)
     session.add(scan)
     session.commit()
     session.refresh(scan)
@@ -171,7 +173,7 @@ async def create_sca_scan(
 
     check_can_scan(session, current, "sca")
 
-    scan = Scan(owner_id=current.id, target_url=filename, scan_type="sca", status=ScanStatus.queued)
+    scan = Scan(owner_id=current.id, org_id=current.current_org_id, target_url=filename, scan_type="sca", status=ScanStatus.queued)
     session.add(scan)
     session.commit()
     session.refresh(scan)
@@ -200,7 +202,7 @@ async def create_iac_scan(
 
     check_can_scan(session, current, "iac")
 
-    scan = Scan(owner_id=current.id, target_url=filename, scan_type="iac", status=ScanStatus.queued)
+    scan = Scan(owner_id=current.id, org_id=current.current_org_id, target_url=filename, scan_type="iac", status=ScanStatus.queued)
     session.add(scan)
     session.commit()
     session.refresh(scan)
@@ -227,7 +229,7 @@ async def create_secrets_scan(
 
     check_can_scan(session, current, "secrets")
 
-    scan = Scan(owner_id=current.id, target_url=filename, scan_type="secrets", status=ScanStatus.queued)
+    scan = Scan(owner_id=current.id, org_id=current.current_org_id, target_url=filename, scan_type="secrets", status=ScanStatus.queued)
     session.add(scan)
     session.commit()
     session.refresh(scan)
@@ -254,7 +256,7 @@ async def create_cicd_scan(
 
     check_can_scan(session, current, "cicd")
 
-    scan = Scan(owner_id=current.id, target_url=filename, scan_type="cicd", status=ScanStatus.queued)
+    scan = Scan(owner_id=current.id, org_id=current.current_org_id, target_url=filename, scan_type="cicd", status=ScanStatus.queued)
     session.add(scan)
     session.commit()
     session.refresh(scan)
@@ -281,7 +283,7 @@ async def create_container_scan(
 
     check_can_scan(session, current, "container")
 
-    scan = Scan(owner_id=current.id, target_url=filename, scan_type="container", status=ScanStatus.queued)
+    scan = Scan(owner_id=current.id, org_id=current.current_org_id, target_url=filename, scan_type="container", status=ScanStatus.queued)
     session.add(scan)
     session.commit()
     session.refresh(scan)
@@ -310,7 +312,7 @@ async def create_api_scan(
 
     check_can_scan(session, current, "api")
 
-    scan = Scan(owner_id=current.id, target_url=filename, scan_type="api", status=ScanStatus.queued)
+    scan = Scan(owner_id=current.id, org_id=current.current_org_id, target_url=filename, scan_type="api", status=ScanStatus.queued)
     session.add(scan)
     session.commit()
     session.refresh(scan)
@@ -337,7 +339,7 @@ async def create_sast_scan(
 
     check_can_scan(session, current, "sast")
 
-    scan = Scan(owner_id=current.id, target_url=filename, scan_type="sast", status=ScanStatus.queued)
+    scan = Scan(owner_id=current.id, org_id=current.current_org_id, target_url=filename, scan_type="sast", status=ScanStatus.queued)
     session.add(scan)
     session.commit()
     session.refresh(scan)
@@ -372,7 +374,8 @@ def create_cspm_scan(
         "aws_session_token": (data.aws_session_token or "").strip() or None,
     })
     scan = Scan(
-        owner_id=current.id, target_url=f"aws:{(data.aws_region or 'us-east-1').strip()}",
+        owner_id=current.id, org_id=current.current_org_id,
+        target_url=f"aws:{(data.aws_region or 'us-east-1').strip()}",
         scan_type="cspm", status=ScanStatus.queued,
         authenticated=True, auth_headers=creds,
     )
@@ -385,7 +388,7 @@ def create_cspm_scan(
 @router.get("", response_model=list[ScanRead])
 def list_scans(current: CurrentUser, session: SessionDep) -> list[ScanRead]:
     scans = session.exec(
-        select(Scan).where(Scan.owner_id == current.id).order_by(Scan.created_at.desc())
+        select(Scan).where(Scan.org_id == current.current_org_id).order_by(Scan.created_at.desc())
     ).all()
     return [_scan_read(s) for s in scans]
 
@@ -393,7 +396,7 @@ def list_scans(current: CurrentUser, session: SessionDep) -> list[ScanRead]:
 @router.get("/{scan_id}", response_model=ScanDetail)
 def get_scan(scan_id: int, current: CurrentUser, session: SessionDep) -> ScanDetail:
     scan = session.get(Scan, scan_id)
-    if not scan or scan.owner_id != current.id:
+    if not scan or scan.org_id != current.current_org_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Scan not found")
     findings = session.exec(
         select(Finding).where(Finding.scan_id == scan_id)
@@ -434,8 +437,9 @@ def set_finding_status(
     if data.status not in _TRIAGE_STATES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST,
                             f"status must be one of {sorted(_TRIAGE_STATES)}")
+    require_write(session, current)
     scan = session.get(Scan, scan_id)
-    if not scan or scan.owner_id != current.id:
+    if not scan or scan.org_id != current.current_org_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Scan not found")
     finding = session.get(Finding, finding_id)
     if not finding or finding.scan_id != scan_id:
@@ -454,8 +458,9 @@ def set_finding_status(
 
 @router.delete("/{scan_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_scan(scan_id: int, current: CurrentUser, session: SessionDep) -> None:
+    require_write(session, current)
     scan = session.get(Scan, scan_id)
-    if not scan or scan.owner_id != current.id:
+    if not scan or scan.org_id != current.current_org_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Scan not found")
     session.delete(scan)
     session.commit()

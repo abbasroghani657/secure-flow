@@ -122,4 +122,18 @@ export const api = {
   listTokens: () => request("/api/tokens"),
   createToken: (name) => request("/api/tokens", { method: "POST", body: { name } }),
   revokeToken: (id) => request(`/api/tokens/${id}`, { method: "DELETE" }),
+
+  // Organizations / teams
+  listOrgs: () => request("/api/orgs"),
+  getCurrentOrg: () => request("/api/orgs/current"),
+  createOrg: (name) => request("/api/orgs", { method: "POST", body: { name } }),
+  switchOrg: (id) => request(`/api/orgs/switch/${id}`, { method: "POST" }),
+  renameOrg: (name) => request("/api/orgs/current", { method: "PATCH", body: { name } }),
+  inviteMember: (email, role) => request("/api/orgs/current/invitations", { method: "POST", body: { email, role } }),
+  revokeInvite: (id) => request(`/api/orgs/current/invitations/${id}`, { method: "DELETE" }),
+  previewInvite: (token) => request(`/api/orgs/invitations/${token}`),
+  acceptInvite: (token) => request(`/api/orgs/invitations/${token}/accept`, { method: "POST" }),
+  changeRole: (userId, role) => request(`/api/orgs/current/members/${userId}`, { method: "PATCH", body: { role } }),
+  removeMember: (userId) => request(`/api/orgs/current/members/${userId}`, { method: "DELETE" }),
+  auditLog: () => request("/api/orgs/current/audit"),
 };

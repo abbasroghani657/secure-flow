@@ -65,21 +65,22 @@ def _month_start() -> datetime:
     return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
 
-def scans_this_month(session, user_id: int) -> int:
+def scans_this_month(session, org_id: int) -> int:
     return session.exec(
         select(func.count()).select_from(Scan)
-        .where(Scan.owner_id == user_id, Scan.created_at >= _month_start())
+        .where(Scan.org_id == org_id, Scan.created_at >= _month_start())
     ).one()
 
 
-def target_count(session, user_id: int) -> int:
+def target_count(session, org_id: int) -> int:
     return session.exec(
-        select(func.count()).select_from(Target).where(Target.owner_id == user_id)
+        select(func.count()).select_from(Target).where(Target.org_id == org_id)
     ).one()
 
 
 def usage_for(session, user: User) -> dict:
     lim = limits_for(user.plan)
+    oid = user.current_org_id
     return {
         "plan": user.plan or "free",
         "label": lim["label"],
@@ -91,10 +92,11 @@ def usage_for(session, user: User) -> dict:
             "integrations": lim.get("integrations", False),
             "api_access": lim.get("api_access", False),
             "remediation": lim.get("remediation", True),
+            "teams": lim.get("teams", False),
         },
         "usage": {
-            "targets": target_count(session, user.id),
-            "scans_this_month": scans_this_month(session, user.id),
+            "targets": target_count(session, oid) if oid else 0,
+            "scans_this_month": scans_this_month(session, oid) if oid else 0,
         },
     }
 
@@ -106,17 +108,19 @@ def _upgrade(msg: str):
 def check_can_add_target(session, user: User) -> None:
     lim = limits_for(user.plan)
     mx = lim["max_targets"]
-    if mx is not None and target_count(session, user.id) >= mx:
+    if mx is not None and target_count(session, user.current_org_id) >= mx:
         _upgrade(f"Your {lim['label']} plan allows {mx} target{'s' if mx != 1 else ''}. "
                  f"Upgrade to add more.")
 
 
 def check_can_scan(session, user: User, scan_type: str) -> None:
+    from .access import require_write
+    require_write(session, user)   # viewers are read-only
     lim = limits_for(user.plan)
     if scan_type not in lim["scan_types"]:
         _upgrade(f"The '{scan_type}' scanner is a Pro feature. Upgrade to unlock all 15 scan types.")
     cap = lim["scans_per_month"]
-    if cap is not None and scans_this_month(session, user.id) >= cap:
+    if cap is not None and scans_this_month(session, user.current_org_id) >= cap:
         _upgrade(f"You've used all {cap} scans on the {lim['label']} plan this month. "
                  f"Upgrade for more.")
 
@@ -139,3 +143,13 @@ def check_api_access(user: User) -> None:
     if not lim.get("api_access", False):
         _upgrade("API tokens and the CI/CD scanner are a Pro feature. "
                  "Upgrade to run Pentrixa in your pipeline.")
+
+
+def plan_allows_teams(plan: str) -> bool:
+    return limits_for(plan).get("teams", False)
+
+
+def check_can_use_teams(user: User) -> None:
+    if not plan_allows_teams(user.plan):
+        _upgrade("Teams, roles and SSO are a Business feature. "
+                 "Upgrade to invite teammates and share a workspace.")

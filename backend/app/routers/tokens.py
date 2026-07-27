@@ -7,6 +7,7 @@ the GitHub Action. A Pro feature (see ``check_api_access``).
 from fastapi import APIRouter, HTTPException, status
 from sqlmodel import select
 
+from ..access import require_write
 from ..deps import CurrentUser, SessionDep
 from ..models import ApiToken
 from ..plans import check_api_access
@@ -19,15 +20,17 @@ router = APIRouter(prefix="/api/tokens", tags=["tokens"])
 @router.get("", response_model=list[ApiTokenRead])
 def list_tokens(current: CurrentUser, session: SessionDep) -> list[ApiToken]:
     return session.exec(
-        select(ApiToken).where(ApiToken.owner_id == current.id).order_by(ApiToken.created_at)
+        select(ApiToken).where(ApiToken.org_id == current.current_org_id).order_by(ApiToken.created_at)
     ).all()
 
 
 @router.post("", response_model=ApiTokenCreated, status_code=status.HTTP_201_CREATED)
 def create_token(data: ApiTokenCreate, current: CurrentUser, session: SessionDep) -> ApiTokenCreated:
+    require_write(session, current)
     check_api_access(current)
     full, prefix, hashed = generate_api_token()
-    row = ApiToken(owner_id=current.id, name=data.name or "API token",
+    row = ApiToken(owner_id=current.id, org_id=current.current_org_id,
+                   name=data.name or "API token",
                    prefix=prefix, hashed_token=hashed)
     session.add(row)
     session.commit()
@@ -41,8 +44,9 @@ def create_token(data: ApiTokenCreate, current: CurrentUser, session: SessionDep
 
 @router.delete("/{token_id}", status_code=status.HTTP_204_NO_CONTENT)
 def revoke_token(token_id: int, current: CurrentUser, session: SessionDep) -> None:
+    require_write(session, current)
     row = session.get(ApiToken, token_id)
-    if not row or row.owner_id != current.id:
+    if not row or row.org_id != current.current_org_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Token not found")
     row.revoked = True
     session.add(row)

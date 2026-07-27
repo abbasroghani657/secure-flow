@@ -16,6 +16,8 @@ import Targets from "./pages/Targets";
 import Schedules from "./pages/Schedules";
 import Settings from "./pages/Settings";
 import Account from "./pages/Account";
+import Team from "./pages/Team";
+import InviteAccept from "./pages/InviteAccept";
 import NewScan from "./pages/NewScan";
 import ScanResults from "./pages/ScanResults";
 import Report from "./pages/Report";
@@ -66,6 +68,8 @@ export default function App() {
       <Route path="/schedules" element={<Protected><Schedules /></Protected>} />
       <Route path="/settings" element={<Protected><Settings /></Protected>} />
       <Route path="/account" element={<Protected><Account /></Protected>} />
+      <Route path="/team" element={<Protected><Team /></Protected>} />
+      <Route path="/invite/:token" element={<Protected><InviteAccept /></Protected>} />
       <Route path="/scans/new" element={<Protected><NewScan /></Protected>} />
       <Route path="/scans/:id" element={<Protected><ScanResults /></Protected>} />
       <Route path="/scans/:id/report" element={<Protected><Report /></Protected>} />

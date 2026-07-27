@@ -37,11 +37,11 @@ def _effective_priority(priority: int, severity: str) -> int:
 # Register
 # --------------------------------------------------------------------------- #
 
-def _latest_scan_per_target(session, user_id: int) -> list[Scan]:
-    """Most recent completed scan for each distinct target the user owns."""
+def _latest_scan_per_target(session, org_id: int) -> list[Scan]:
+    """Most recent completed scan for each distinct target in the organization."""
     scans = session.exec(
         select(Scan)
-        .where(Scan.owner_id == user_id, Scan.status == ScanStatus.completed)
+        .where(Scan.org_id == org_id, Scan.status == ScanStatus.completed)
         .order_by(Scan.created_at.desc())
     ).all()
     seen: dict[str, Scan] = {}
@@ -68,9 +68,9 @@ def _open_findings(session, scans: list[Scan]) -> list[tuple[Scan, Finding]]:
     return out
 
 
-def build_register(session, user_id: int) -> dict:
+def build_register(session, org_id: int) -> dict:
     """One deduplicated, prioritised row per issue class across every target."""
-    scans = _latest_scan_per_target(session, user_id)
+    scans = _latest_scan_per_target(session, org_id)
     pairs = _open_findings(session, scans)
 
     risks: dict[str, dict] = {}
@@ -271,8 +271,8 @@ _RULES = [
 ]
 
 
-def build_attack_paths(session, user_id: int) -> list[dict]:
-    scans = _latest_scan_per_target(session, user_id)
+def build_attack_paths(session, org_id: int) -> list[dict]:
+    scans = _latest_scan_per_target(session, org_id)
     pairs = _open_findings(session, scans)
 
     # capability -> representative findings (title + target)
@@ -315,7 +315,7 @@ def build_attack_paths(session, user_id: int) -> list[dict]:
     return paths
 
 
-def build_risk_overview(session, user_id: int) -> dict:
-    reg = build_register(session, user_id)
-    reg["attack_paths"] = build_attack_paths(session, user_id)
+def build_risk_overview(session, org_id: int) -> dict:
+    reg = build_register(session, org_id)
+    reg["attack_paths"] = build_attack_paths(session, org_id)
     return reg

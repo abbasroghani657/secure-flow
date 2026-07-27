@@ -12,4 +12,4 @@ router = APIRouter(prefix="/api/risk", tags=["risk"])
 
 @router.get("", response_model=RiskOverview)
 def risk_overview(current: CurrentUser, session: SessionDep) -> RiskOverview:
-    return build_risk_overview(session, current.id)
+    return build_risk_overview(session, current.current_org_id)
