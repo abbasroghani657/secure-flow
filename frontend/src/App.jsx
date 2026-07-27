@@ -6,6 +6,8 @@ import Pricing from "./pages/Pricing";
 import Compare from "./pages/Compare";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
+import InfoPage from "./pages/InfoPage";
+import OAuthCallback from "./pages/OAuthCallback";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Targets from "./pages/Targets";
@@ -48,7 +50,11 @@ export default function App() {
       <Route path="/compare" element={<Compare />} />
       <Route path="/blog" element={<Blog />} />
       <Route path="/blog/:slug" element={<BlogPost />} />
+      {["docs", "about", "security", "privacy", "terms", "changelog"].map((p) => (
+        <Route key={p} path={`/${p}`} element={<InfoPage />} />
+      ))}
       <Route path="/auth" element={<Auth />} />
+      <Route path="/oauth" element={<OAuthCallback />} />
       <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
       <Route path="/targets" element={<Protected><Targets /></Protected>} />
       <Route path="/schedules" element={<Protected><Schedules /></Protected>} />

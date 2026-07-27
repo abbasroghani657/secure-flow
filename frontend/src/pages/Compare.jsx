@@ -10,7 +10,7 @@ export default function Compare() {
       <header style={{ maxWidth: 760, margin: "0 auto", padding: "72px 28px 12px", textAlign: "center" }}>
         <span style={eyebrow}>Compare</span>
         <h1 style={{ fontFamily: T.heading, fontSize: "clamp(34px, 5vw, 52px)", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 16px" }}>How Pentrixa compares</h1>
-        <p style={{ fontSize: 17, color: T.muted, margin: 0 }}>Most tools do one layer well. Pentrixa covers your whole attack surface — and tells you what to fix first.</p>
+        <p style={{ fontSize: 17, color: T.muted, margin: 0 }}>Most tools do one layer well. Pentrixa covers your whole attack surface, and tells you what to fix first.</p>
       </header>
 
       <section style={{ maxWidth: 940, margin: "0 auto", padding: "44px 28px 30px" }}>

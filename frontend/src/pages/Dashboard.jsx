@@ -70,7 +70,7 @@ export default function Dashboard() {
                 <Link key={s.id} to={`/scans/${s.id}`} style={{ display: "block", color: "inherit" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 18, padding: "18px 20px", borderRadius: 14, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.02)" }}>
                     <div style={{ width: 52, height: 52, borderRadius: 12, border: `2px solid ${scoreColor(s.security_score)}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: T.heading, fontWeight: 700, fontSize: 18, color: scoreColor(s.security_score) }}>
-                      {s.security_score ?? "—"}
+                      {s.security_score ?? "-"}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontFamily: T.mono, fontSize: 14.5, color: T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "flex", alignItems: "center", gap: 8 }}>

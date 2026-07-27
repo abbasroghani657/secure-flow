@@ -1,4 +1,4 @@
-// Pentrixa design tokens — dark ground with an electric-cyan accent.
+// Pentrixa design tokens, dark ground with an electric-cyan accent.
 export const T = {
   bg: "#0A0E12",
   panel: "#0F141A",

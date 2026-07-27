@@ -7,16 +7,16 @@ import { T } from "../theme";
 // ---- shared marketing data ------------------------------------------------
 export const FEATURES = [
   { title: "Web & API scanning", tag: "DAST", iconName: "globe",
-    desc: "Injection (SQLi/XSS/SSRF/SSTI…), broken access control, misconfiguration, TLS and exposed services — plus a dedicated OpenAPI/Swagger reviewer for the OWASP API Top 10.",
+    desc: "Injection (SQLi/XSS/SSRF/SSTI…), broken access control, misconfiguration, TLS and exposed services, plus a dedicated OpenAPI/Swagger reviewer for the OWASP API Top 10.",
     points: ["Blind & time-based SQLi", "SSRF, XXE, SSTI, command injection", "Auth, JWT & CORS bypass analysis"] },
-  { title: "Mobile — Android & iOS", tag: "SAST", iconName: "smartphone",
+  { title: "Mobile, Android & iOS", tag: "SAST", iconName: "smartphone",
     desc: "Deep static analysis of an APK or IPA against the OWASP Mobile Top 10: hardcoded secrets, weak crypto, insecure storage, transport security and binary protections.",
     points: ["Secrets & weak crypto (ECB/DES)", "ATS, cert-pinning, WebView issues", "PIE/ASLR & jailbreak checks (iOS)"] },
   { title: "Cloud & containers", tag: "CSPM", iconName: "cloud",
     desc: "AWS posture management, Infrastructure-as-Code (Terraform / CloudFormation / Kubernetes / Docker) and container-image CVE scanning from a docker save tar.",
     points: ["Public buckets, open SGs, IAM", "Root MFA, GuardDuty, KMS rotation", "OS-package CVEs per image layer"] },
   { title: "Source code (SAST)", tag: "10 languages", iconName: "code",
-    desc: "Python via the real AST plus curated rule engines for JS/TS, PHP, Java, Go, Ruby, C#, Kotlin and Swift — injection, deserialization, weak crypto and dangerous sinks.",
+    desc: "Python via the real AST plus curated rule engines for JS/TS, PHP, Java, Go, Ruby, C#, Kotlin and Swift, injection, deserialization, weak crypto and dangerous sinks.",
     points: ["29 JS/TS vulnerability classes", "Low false-positive AST analysis", "Enterprise + native mobile langs"] },
   { title: "Supply chain & secrets", tag: "SCA", iconName: "package",
     desc: "Dependency CVEs across eight ecosystems via OSV, dependency-confusion detection, CI/CD pipeline risks, and 37 leaked-credential detectors across your source.",
@@ -30,7 +30,7 @@ export const PRICING = [
   { name: "Free", price: "$0", period: "forever", blurb: "For a single site you own.", cta: "Start free", featured: false,
     features: ["1 verified target", "Web + headers scan", "OWASP Top 10 scorecard", "PDF report export"] },
   { name: "Pro", price: "$29", period: "/ month", blurb: "For teams that ship.", cta: "Start Pro", featured: true,
-    features: ["10 targets", "All scanners — API, mobile, cloud, SAST, containers", "Daily scheduled scans", "KEV / EPSS prioritization", "Compliance mapping (PCI/SOC2/ISO)"] },
+    features: ["10 targets", "All scanners, API, mobile, cloud, SAST, containers", "Daily scheduled scans", "KEV / EPSS prioritization", "Compliance mapping (PCI/SOC2/ISO)"] },
   { name: "Business", price: "$99", period: "/ month", blurb: "For agencies & security teams.", cta: "Contact us", featured: false,
     features: ["Unlimited targets", "Continuous monitoring + drift alerts", "Teams, roles & SSO", "Auditor-ready compliance reports", "API, CLI & integrations"] },
 ];
@@ -40,8 +40,8 @@ export const COMPARE = [
   ["Mobile (Android + iOS)", true, false, false],
   ["Cloud posture (CSPM) + IaC", true, false, false],
   ["Container image CVEs", true, false, false],
-  ["SAST — 10 languages", true, false, "Partial"],
-  ["Secrets — 37 detectors", true, "Partial", false],
+  ["SAST, 10 languages", true, false, "Partial"],
+  ["Secrets, 37 detectors", true, "Partial", false],
   ["KEV / EPSS fix-first priority", true, "Partial", false],
   ["Compliance mapping (PCI/SOC2/ISO)", true, true, false],
   ["Guided manual-test playbooks", true, false, "Partial"],
@@ -51,14 +51,14 @@ export const COMPARE = [
 export const QUOTES = [
   { text: "One tool replaced our dependency scanner, our DAST and half our cloud-posture checklist. The KEV priority list is what we open first every morning.", initials: "RK", name: "R. Khan", role: "Head of Security, fintech" },
   { text: "We pointed it at a legacy WordPress site and it found an exposed wp-config backup in under a minute. That alone paid for the year.", initials: "AS", name: "A. Silva", role: "Founder, dev agency" },
-  { text: "The OWASP scorecard makes client reports trivial — they see exactly where they stand across all ten categories, green and red.", initials: "MJ", name: "M. Johansson", role: "Independent pentester" },
+  { text: "The OWASP scorecard makes client reports trivial, they see exactly where they stand across all ten categories, green and red.", initials: "MJ", name: "M. Johansson", role: "Independent pentester" },
 ];
 
-// Real findings the engine produces — used instead of fabricated testimonials.
+// Real findings the engine produces, used instead of fabricated testimonials.
 export const SAMPLE_FINDINGS = [
   { sev: "critical", title: "Hardcoded AWS key in a bundled JS file", meta: "A05:2025 · CWE-798", where: "/assets/app.min.js" },
   { sev: "high", title: "Blind time-based SQL injection", meta: "A05:2025 · CWE-89", where: "/search?q=" },
-  { sev: "high", title: "Exposed wp-config backup — DB credentials", meta: "A02:2025 · CWE-538", where: "/wp-config.php.bak" },
+  { sev: "high", title: "Exposed wp-config backup, DB credentials", meta: "A02:2025 · CWE-538", where: "/wp-config.php.bak" },
   { sev: "medium", title: "CORS trusts any subdomain origin", meta: "A01:2025 · CWE-942", where: "api.acme-store.com" },
   { sev: "high", title: "Log4Shell in a transitive dependency", meta: "A03:2025 · CVE-2021-44228", where: "log4j-core 2.14.1" },
   { sev: "medium", title: "S3 bucket without Block Public Access", meta: "A05:2025 · CWE-668", where: "acme-assets (us-east-1)" },
@@ -67,7 +67,7 @@ export const SAMPLE_FINDINGS = [
 export const SEV_COLORS = { critical: "#F87171", high: "#FB923C", medium: "#FBBF24", low: "#60A5FA", info: "#9CA3AF" };
 
 export const NAV_LINKS = [
-  ["/features", "Features"], ["/pricing", "Pricing"], ["/compare", "Compare"], ["/blog", "Blog"],
+  ["/", "Home"], ["/features", "Features"], ["/pricing", "Pricing"], ["/compare", "Compare"], ["/blog", "Blog"],
 ];
 
 // ---- shared components ----------------------------------------------------
@@ -103,8 +103,8 @@ export function MarketingNav() {
 export function MarketingFooter() {
   const cols = [
     ["Product", [["Features", "/features"], ["Pricing", "/pricing"], ["Compare", "/compare"], ["Log in", "/auth"]]],
-    ["Resources", [["Blog", "/blog"], ["Docs", "/blog"], ["OWASP 2025", "/blog"], ["Changelog", "/blog"]]],
-    ["Company", [["About", "/blog"], ["Security", "/blog"], ["Privacy", "/blog"], ["Terms", "/blog"]]],
+    ["Resources", [["Blog", "/blog"], ["Docs", "/docs"], ["Changelog", "/changelog"], ["OWASP 2025", "/blog/owasp-2025-what-changed"]]],
+    ["Company", [["About", "/about"], ["Security", "/security"], ["Privacy", "/privacy"], ["Terms", "/terms"]]],
   ];
   return (
     <footer style={{ borderTop: `1px solid ${T.border}`, background: "rgba(255,255,255,0.015)", marginTop: 40 }}>

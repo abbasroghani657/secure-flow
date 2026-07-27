@@ -54,6 +54,15 @@ class Settings(BaseSettings):
     smtp_starttls: bool = True
     app_base_url: str = "http://localhost:5173"
 
+    # Social login (OAuth). Register apps at Google / GitHub and set these to
+    # enable the "Continue with …" buttons. Empty = the buttons stay disabled.
+    api_base_url: str = "http://127.0.0.1:8077"     # where the OAuth callback lands
+    frontend_url: str = "http://localhost:5173"     # where we hand the token back
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    github_client_id: str = ""
+    github_client_secret: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

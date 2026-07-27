@@ -8,17 +8,17 @@ const SCAN_TYPES = [
   { id: "web", label: "Web application", desc: "Full scan: headers, TLS, cookies, exposed files, and active injection tests." },
   { id: "deep", label: "Deep scan (Nuclei)", desc: "Everything in Web, plus the Nuclei engine's CVE & vulnerability templates. Slower." },
   { id: "llm", label: "LLM app (AI)", desc: "Test an AI/LLM endpoint for prompt injection, jailbreak & data leakage (OWASP LLM Top 10)." },
-  { id: "mobile", label: "Mobile app (APK)", desc: "Upload an Android APK for static analysis — hardcoded secrets & insecure manifest (OWASP Mobile Top 10)." },
-  { id: "sca", label: "Dependencies (SCA)", desc: "Upload a package.json / requirements.txt / lock file — finds known CVEs in your dependencies (OSV database)." },
-  { id: "ios", label: "iOS app (IPA)", desc: "Upload an iOS IPA — secrets, ATS/transport security, URL schemes, and binary protections (OWASP Mobile Top 10)." },
-  { id: "iac", label: "Infrastructure (IaC)", desc: "Upload a Terraform / CloudFormation / Kubernetes / Dockerfile — finds cloud & container misconfigurations." },
-  { id: "secrets", label: "Secrets (source code)", desc: "Upload a source archive (.zip) — finds leaked API keys, tokens & private keys committed in your code." },
-  { id: "cicd", label: "CI/CD pipeline", desc: "Upload a GitHub Actions / GitLab CI workflow — finds supply-chain risks: unpinned actions, script injection, over-broad tokens." },
-  { id: "sast", label: "Source code (SAST)", desc: "Upload a source archive (.zip) — static analysis for injection, command exec, deserialization & weak crypto (Python/JS/PHP/Java/Go/Ruby/C#/Kotlin/Swift)." },
-  { id: "api", label: "API spec (OpenAPI/Swagger)", desc: "Upload an OpenAPI/Swagger file — OWASP API Top 10 review: missing auth, BOLA surface, keys in URL, excessive data exposure." },
-  { id: "container", label: "Container image", desc: "Upload a `docker save` image tar — OS-package CVEs, secrets baked into layers, runs-as-root & config issues." },
-  { id: "cspm", label: "Cloud posture (AWS)", desc: "Scan your AWS account with read-only keys — public buckets, open security groups, IAM/MFA, unencrypted storage, CloudTrail." },
-  { id: "bola", label: "IDOR / BOLA (two accounts)", desc: "Use two accounts to test object-level authorization — can user B read user A's data? (OWASP API #1)." },
+  { id: "mobile", label: "Mobile app (APK)", desc: "Upload an Android APK for static analysis, hardcoded secrets & insecure manifest (OWASP Mobile Top 10)." },
+  { id: "sca", label: "Dependencies (SCA)", desc: "Upload a package.json / requirements.txt / lock file, finds known CVEs in your dependencies (OSV database)." },
+  { id: "ios", label: "iOS app (IPA)", desc: "Upload an iOS IPA, secrets, ATS/transport security, URL schemes, and binary protections (OWASP Mobile Top 10)." },
+  { id: "iac", label: "Infrastructure (IaC)", desc: "Upload a Terraform / CloudFormation / Kubernetes / Dockerfile, finds cloud & container misconfigurations." },
+  { id: "secrets", label: "Secrets (source code)", desc: "Upload a source archive (.zip), finds leaked API keys, tokens & private keys committed in your code." },
+  { id: "cicd", label: "CI/CD pipeline", desc: "Upload a GitHub Actions / GitLab CI workflow, finds supply-chain risks: unpinned actions, script injection, over-broad tokens." },
+  { id: "sast", label: "Source code (SAST)", desc: "Upload a source archive (.zip), static analysis for injection, command exec, deserialization & weak crypto (Python/JS/PHP/Java/Go/Ruby/C#/Kotlin/Swift)." },
+  { id: "api", label: "API spec (OpenAPI/Swagger)", desc: "Upload an OpenAPI/Swagger file, OWASP API Top 10 review: missing auth, BOLA surface, keys in URL, excessive data exposure." },
+  { id: "container", label: "Container image", desc: "Upload a `docker save` image tar, OS-package CVEs, secrets baked into layers, runs-as-root & config issues." },
+  { id: "cspm", label: "Cloud posture (AWS)", desc: "Scan your AWS account with read-only keys, public buckets, open security groups, IAM/MFA, unencrypted storage, CloudTrail." },
+  { id: "bola", label: "IDOR / BOLA (two accounts)", desc: "Use two accounts to test object-level authorization, can user B read user A's data? (OWASP API #1)." },
   { id: "headers", label: "Headers only", desc: "Quick check of security response headers." },
 ];
 
@@ -73,7 +73,7 @@ export default function NewScan() {
   async function submit(e) {
     e.preventDefault();
     setErr("");
-    // File-upload scan types — no verified target needed.
+    // File-upload scan types, no verified target needed.
     if (UPLOAD_TYPES.includes(type)) {
       const fileMap = { mobile: apkFile, sca: depFile, ios: iosFile, iac: iacFile, secrets: secretsFile, cicd: cicdFile, sast: sastFile, api: apiFile, container: containerFile };
       const uploadMap = { mobile: api.uploadMobileScan, sca: api.uploadScaScan, ios: api.uploadIosScan, iac: api.uploadIacScan, secrets: api.uploadSecretsScan, cicd: api.uploadCicdScan, sast: api.uploadSastScan, api: api.uploadApiScan, container: api.uploadContainerScan };
@@ -89,7 +89,7 @@ export default function NewScan() {
       }
       return;
     }
-    // CSPM — scans an AWS account with read-only credentials (no target needed).
+    // CSPM, scans an AWS account with read-only credentials (no target needed).
     if (type === "cspm") {
       if (!awsAccessKey.trim() || !awsSecretKey.trim()) { setErr("Enter your AWS access key and secret key."); return; }
       setBusy(true);
@@ -146,7 +146,7 @@ export default function NewScan() {
           <p style={{ color: T.muted }}>Loading…</p>
         ) : (
           <form onSubmit={submit} style={{ display: "grid", gap: 26 }}>
-            {/* Scan type — always visible */}
+            {/* Scan type, always visible */}
             <div style={{ display: "grid", gap: 10 }}>
               <label style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>Scan type</label>
               <div style={{ display: "grid", gap: 10 }}>
@@ -168,7 +168,7 @@ export default function NewScan() {
             </div>
 
             {UPLOAD_TYPES.includes(type) ? (
-              /* File-upload scan (APK / dependency manifest / IPA / IaC) — no verified target needed */
+              /* File-upload scan (APK / dependency manifest / IPA / IaC), no verified target needed */
               (() => {
                 const cfg = {
                   mobile: { label: "Android APK file", file: apkFile, set: setApkFile, accept: ".apk", prompt: "Click to choose an .apk file", note: "The APK is analysed for hardcoded secrets and insecure manifest settings, then deleted." },
@@ -196,11 +196,11 @@ export default function NewScan() {
                 );
               })()
             ) : type === "cspm" ? (
-              /* CSPM — read-only AWS credentials, no verified target needed */
+              /* CSPM, read-only AWS credentials, no verified target needed */
               <div style={{ display: "grid", gap: 14, padding: "16px 18px", borderRadius: 12, border: `1px solid ${T.accent}`, background: "rgba(6,182,212,0.05)" }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: T.accentHi }}>AWS read-only credentials</div>
                 <p style={{ margin: 0, fontSize: 12.5, color: T.muted, lineHeight: 1.5 }}>
-                  Use an IAM key with the AWS-managed <b style={{ color: T.text }}>SecurityAudit</b> or <b style={{ color: T.text }}>ReadOnlyAccess</b> policy. Credentials are used for this scan only and <b style={{ color: T.text }}>deleted the moment it finishes</b> — never stored.
+                  Use an IAM key with the AWS-managed <b style={{ color: T.text }}>SecurityAudit</b> or <b style={{ color: T.text }}>ReadOnlyAccess</b> policy. Credentials are used for this scan only and <b style={{ color: T.text }}>deleted the moment it finishes</b>, never stored.
                 </p>
                 <div style={{ display: "grid", gap: 6 }}>
                   <label style={{ fontSize: 12.5, fontWeight: 600 }}>Access key ID</label>
@@ -263,7 +263,7 @@ export default function NewScan() {
               </div>
             )}
 
-            {/* BOLA/IDOR — two accounts (required) */}
+            {/* BOLA/IDOR, two accounts (required) */}
             {type === "bola" && (
               <div style={{ display: "grid", gap: 14, padding: "16px 18px", borderRadius: 12, border: `1px solid ${T.accent}`, background: "rgba(6,182,212,0.05)" }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: T.accentHi }}>Two accounts (required)</div>
@@ -280,7 +280,7 @@ export default function NewScan() {
               </div>
             )}
 
-            {/* Optional authenticated scan (single session) — not shown for BOLA */}
+            {/* Optional authenticated scan (single session), not shown for BOLA */}
             {type !== "bola" && (
             <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
               <button type="button" onClick={() => setShowAuth(!showAuth)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: "none", border: "none", cursor: "pointer", padding: "14px 16px", fontFamily: T.body, color: T.text }}>

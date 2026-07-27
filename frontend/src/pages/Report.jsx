@@ -86,8 +86,8 @@ export default function Report() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 28, fontSize: 13.5 }}>
             <Meta label="Target">{scan.target_url}</Meta>
             <Meta label="Scan type">{scan.scan_type}</Meta>
-            <Meta label="Scan started">{scan.started_at ? new Date(scan.started_at).toLocaleString() : "—"}</Meta>
-            <Meta label="Scan completed">{scan.finished_at ? new Date(scan.finished_at).toLocaleString() : "—"}</Meta>
+            <Meta label="Scan started">{scan.started_at ? new Date(scan.started_at).toLocaleString() : "-"}</Meta>
+            <Meta label="Scan completed">{scan.finished_at ? new Date(scan.finished_at).toLocaleString() : "-"}</Meta>
           </div>
 
           {/* Executive summary */}

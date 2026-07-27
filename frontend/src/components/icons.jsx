@@ -1,6 +1,6 @@
 import { T } from "../theme";
 
-// Lucide-style line icons — distinct per concept so nothing looks stamped out.
+// Lucide-style line icons, distinct per concept so nothing looks stamped out.
 const PATHS = {
   globe: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z" /></>,
   smartphone: <><rect x="6" y="2" width="12" height="20" rx="2.5" /><path d="M11 18h2" /></>,

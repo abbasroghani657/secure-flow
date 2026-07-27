@@ -6,7 +6,7 @@ import { T, SEVERITY, scoreColor } from "../theme";
 
 const SEV_ORDER = ["critical", "high", "medium", "low", "info"];
 
-// Confidence chip styling — how sure the scanner is about a finding.
+// Confidence chip styling, how sure the scanner is about a finding.
 const CONF = {
   confirmed: { label: "Confirmed", color: "#34d399", border: "rgba(52,211,153,0.35)", bg: "rgba(52,211,153,0.10)", hint: "Proven with an exploit marker, timing, error, or exact match" },
   firm: { label: "Firm", color: "#60a5fa", border: "rgba(96,165,250,0.35)", bg: "rgba(96,165,250,0.10)", hint: "A directly observed configuration fact" },
@@ -26,7 +26,7 @@ const OWASP_NAMES = {
   "A10:2025": "Mishandling of Exceptional Conditions",
 };
 
-// The OWASP standard a scan is measured against — a full scorecard of every
+// The OWASP standard a scan is measured against, a full scorecard of every
 // category, so the user sees where they stand across the whole Top 10.
 const OWASP_STANDARDS = {
   web: { label: "OWASP Top 10:2025", cats: Object.entries(OWASP_NAMES) },
@@ -89,7 +89,7 @@ export default function ScanResults() {
     [issues, sevFilter]
   );
 
-  // Full OWASP scorecard — every category of the relevant standard, with the
+  // Full OWASP scorecard, every category of the relevant standard, with the
   // issues found in each (clean categories are shown too, so coverage is visible).
   const scorecard = useMemo(() => {
     const std = owaspStandardFor(scan?.scan_type);
@@ -207,7 +207,7 @@ export default function ScanResults() {
             <div style={{ display: "grid", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 4, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 13.5, color: T.muted }}>
-                  Coverage against <b style={{ color: T.text }}>{scorecard.label}</b> — every category, with the issues found in each.
+                  Coverage against <b style={{ color: T.text }}>{scorecard.label}</b>, every category, with the issues found in each.
                 </span>
                 <span style={{ fontSize: 12.5, color: scorecard.flagged ? SEVERITY.high.color : T.accent, fontWeight: 600, whiteSpace: "nowrap" }}>
                   {scorecard.flagged} of {scorecard.total} categories affected
@@ -309,7 +309,7 @@ function ScoreRing({ score }) {
         <circle cx="60" cy="60" r={r} fill="none" stroke={c} strokeWidth="9" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={off} style={{ transition: "stroke-dashoffset 0.8s ease" }} />
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontFamily: T.heading, fontSize: 34, fontWeight: 800, color: c }}>{score ?? "—"}</span>
+        <span style={{ fontFamily: T.heading, fontSize: 34, fontWeight: 800, color: c }}>{score ?? "-"}</span>
         <span style={{ fontSize: 11, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Score</span>
       </div>
     </div>
@@ -336,7 +336,7 @@ function FindingCard({ f, open, onToggle }) {
         </span>
         <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {!f.passed && f.confidence && (() => { const c = CONF[f.confidence] || CONF.firm; return (
-            <span title={`${c.label} — ${c.hint}`} style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", fontFamily: T.mono, color: c.color, border: `1px solid ${c.border}`, background: c.bg, borderRadius: 6, padding: "2px 6px" }}>{c.label}</span>
+            <span title={`${c.label}, ${c.hint}`} style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", fontFamily: T.mono, color: c.color, border: `1px solid ${c.border}`, background: c.bg, borderRadius: 6, padding: "2px 6px" }}>{c.label}</span>
           ); })()}
           {f.owasp && <span style={{ fontSize: 10.5, fontWeight: 700, fontFamily: T.mono, color: T.accentHi, border: "1px solid rgba(6,182,212,0.3)", borderRadius: 6, padding: "2px 6px" }}>{f.owasp.split(":")[0]}</span>}
           {f.cwe && <span style={{ fontSize: 10.5, color: T.faint, fontFamily: T.mono }}>{f.cwe}</span>}

@@ -10,7 +10,7 @@ from .config import settings
 from .database import init_db
 from .middleware import SecurityHeadersMiddleware
 from .ratelimit import limiter
-from .routers import auth, scans, schedules, targets
+from .routers import auth, oauth, scans, schedules, targets
 from .worker import worker
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -58,6 +58,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(oauth.router)
 app.include_router(targets.router)
 app.include_router(scans.router)
 app.include_router(schedules.router)

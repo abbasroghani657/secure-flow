@@ -22,7 +22,7 @@ export default function Landing() {
     <div>
       <MarketingNav />
 
-      {/* Hero — two column: pitch on the left, live scan on the right */}
+      {/* Hero, two column: pitch on the left, live scan on the right */}
       <header style={{ position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 50% 40% at 20% -5%, rgba(6,182,212,0.16), transparent 65%), radial-gradient(ellipse 40% 50% at 90% 10%, rgba(6,182,212,0.10), transparent 65%)", pointerEvents: "none" }} />
         <div style={{ position: "relative", maxWidth: 1200, margin: "0 auto", padding: "72px 28px 64px", display: "grid", gridTemplateColumns: "1.05fr 0.95fr", gap: 56, alignItems: "center" }} className="hero-grid">
@@ -35,7 +35,7 @@ export default function Landing() {
               Find vulnerabilities before <span style={{ color: T.accent, textShadow: "0 0 40px rgba(6,182,212,0.4)" }}>hackers do</span>
             </h1>
             <p style={{ fontSize: 17.5, lineHeight: 1.6, color: T.muted, maxWidth: 520, margin: "0 0 32px" }}>
-              Pentrixa scans your websites, APIs, mobile apps, cloud and source code for real, exploitable issues — then ranks them by what's being attacked in the wild and tells you exactly how to fix each one.
+              Pentrixa scans your websites, APIs, mobile apps, cloud and source code for real, exploitable issues, then ranks them by what's being attacked in the wild and tells you exactly how to fix each one.
             </p>
             <form onSubmit={start} style={{ display: "flex", gap: 10, maxWidth: 500, flexWrap: "wrap" }}>
               <input value={url} onChange={(e) => setUrl(e.target.value)} type="text" placeholder="https://your-website.com" aria-label="Website URL" style={{ flex: 1, minWidth: 230, padding: "14px 16px", borderRadius: 12, border: `1px solid ${T.borderStrong}`, background: "rgba(255,255,255,0.05)", color: T.text, fontSize: 15, fontFamily: T.body }} />
@@ -80,7 +80,7 @@ export default function Landing() {
         <div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 48px" }}>
           <span style={eyebrow}>One platform</span>
           <h2 style={sectionTitle}>Your entire attack surface, covered</h2>
-          <p style={{ color: T.muted, fontSize: 16, lineHeight: 1.6, margin: 0 }}>From a live web app to a cloud account to the source code itself — scanned, prioritised and fixable in one place.</p>
+          <p style={{ color: T.muted, fontSize: 16, lineHeight: 1.6, margin: 0 }}>From a live web app to a cloud account to the source code itself, scanned, prioritised and fixable in one place.</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 18 }}>
           {FEATURES.slice(0, 3).map((f) => (
@@ -102,15 +102,36 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* How it works */}
+      <section style={{ maxWidth: 1080, margin: "0 auto", padding: "40px 28px 20px" }}>
+        <div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 48px" }}>
+          <span style={eyebrow}>How it works</span>
+          <h2 style={sectionTitle}>From URL to fixable report in three steps</h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+          {[
+            ["Add and verify", "Add a domain you own and prove control with a DNS record, a meta tag or a file. Or just upload an APK, a source archive or a container image.", "01"],
+            ["Run the scan", "Pentrixa crawls, probes and analyses across web, API, cloud, mobile and code, using safe, non-destructive checks on targets you own.", "02"],
+            ["Fix by priority", "Get a ranked, deduplicated report. Confidence and CISA-KEV / EPSS put the handful that matter at the top, each with a concrete fix.", "03"],
+          ].map(([h, d, n]) => (
+            <div key={n} style={{ position: "relative", padding: "30px 28px 28px", borderRadius: 18, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.02)" }}>
+              <div style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.accent, letterSpacing: "0.1em", marginBottom: 14 }}>{n}</div>
+              <h3 style={{ fontFamily: T.heading, fontSize: 19, fontWeight: 600, margin: "0 0 10px" }}>{h}</h3>
+              <p style={{ fontSize: 14, lineHeight: 1.6, color: T.muted, margin: 0 }}>{d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Score showcase */}
-      <section style={{ maxWidth: 1040, margin: "0 auto", padding: "40px 28px 72px" }}>
+      <section style={{ maxWidth: 1040, margin: "0 auto", padding: "56px 28px 72px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 48, alignItems: "center" }} className="score-grid">
           <div>
             <span style={eyebrow}>Fix-first, not noise-first</span>
             <h2 style={sectionTitle}>One score. Total clarity.</h2>
-            <p style={{ color: T.muted, fontSize: 16, lineHeight: 1.6, margin: "0 0 22px" }}>Every scan produces a Security Score from 0–100, weighted by real exploitability — not raw finding counts. Watch it climb as you ship fixes.</p>
+            <p style={{ color: T.muted, fontSize: 16, lineHeight: 1.6, margin: "0 0 22px" }}>Every scan produces a Security Score from 0–100, weighted by real exploitability, not raw finding counts. Watch it climb as you ship fixes.</p>
             <div style={{ display: "grid", gap: 12 }}>
-              {["Severity × confidence × CISA-KEV / EPSS", "Full OWASP Top 10 scorecard — every category", "Shareable PDF reports for clients and auditors"].map((t) => (
+              {["Severity × confidence × CISA-KEV / EPSS", "Full OWASP Top 10 scorecard, every category", "Shareable PDF reports for clients and auditors"].map((t) => (
                 <div key={t} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 14.5, color: T.text }}>
                   <span style={{ width: 22, height: 22, borderRadius: 7, background: "rgba(6,182,212,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
@@ -129,18 +150,18 @@ export default function Landing() {
                   <span key={i} title={`A${String(i+1).padStart(2,"0")}`} style={{ width: 9, height: 20, borderRadius: 3, background: s === "ok" ? T.accent : s === "high" ? "#FB923C" : s === "med" ? "#FBBF24" : "#60A5FA", opacity: s === "ok" ? 0.85 : 1 }} />
                 ))}
               </div>
-              <div style={{ fontSize: 12.5, color: T.muted }}>OWASP Top 10 — <span style={{ color: T.text }}>7 clean</span>, 3 to fix</div>
+              <div style={{ fontSize: 12.5, color: T.muted }}>OWASP Top 10, <span style={{ color: T.text }}>7 clean</span>, 3 to fix</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Real findings showcase — honest, not fabricated testimonials */}
+      {/* Real findings showcase, honest, not fabricated testimonials */}
       <section style={{ maxWidth: 1080, margin: "0 auto", padding: "20px 28px 84px" }}>
         <div style={{ maxWidth: 620, marginBottom: 40 }}>
           <span style={eyebrow}>Real output</span>
           <h2 style={sectionTitle}>The kind of thing a scan surfaces</h2>
-          <p style={{ color: T.muted, fontSize: 16, lineHeight: 1.6, margin: 0 }}>Actual check types from the engine — each with its severity, OWASP category, CWE and exactly where it was found.</p>
+          <p style={{ color: T.muted, fontSize: 16, lineHeight: 1.6, margin: 0 }}>Actual check types from the engine, each with its severity, OWASP category, CWE and exactly where it was found.</p>
         </div>
         <div style={{ borderRadius: 16, border: `1px solid ${T.border}`, overflow: "hidden", background: "rgba(255,255,255,0.015)" }}>
           {SAMPLE_FINDINGS.map((f, i) => (
@@ -151,6 +172,53 @@ export default function Landing() {
                 <div style={{ fontFamily: T.mono, fontSize: 12, color: T.faint, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.where}</div>
               </div>
               <span style={{ flex: "none", fontFamily: T.mono, fontSize: 11.5, color: T.muted }} className="finding-meta">{f.meta}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Security & privacy */}
+      <section style={{ maxWidth: 1080, margin: "0 auto", padding: "20px 28px 60px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "0.9fr 1.1fr", gap: 48, alignItems: "center" }} className="score-grid">
+          <div style={{ padding: "40px", borderRadius: 20, border: `1px solid ${T.border}`, background: "linear-gradient(160deg, rgba(6,182,212,0.06), rgba(255,255,255,0.02))", display: "flex", justifyContent: "center" }}>
+            <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.85 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
+          </div>
+          <div>
+            <span style={eyebrow}>Authorised use only</span>
+            <h2 style={sectionTitle}>Security and privacy, by default</h2>
+            <p style={{ color: T.muted, fontSize: 16, lineHeight: 1.6, margin: "0 0 22px" }}>Pentrixa is built to be safe to run and defensible to own. You can only scan what you prove you control, and nothing you upload sticks around.</p>
+            <div style={{ display: "grid", gap: 12 }}>
+              {[
+                "Domain ownership is verified before any scan runs",
+                "Uploaded files and cloud keys are deleted right after the scan",
+                "Active tests are non-destructive: no data changes, no brute force, no DoS",
+                "Every finding maps to PCI DSS, SOC 2, ISO 27001, HIPAA and GDPR",
+              ].map((t) => (
+                <div key={t} style={{ display: "flex", gap: 11, alignItems: "flex-start", fontSize: 14.5, color: T.text }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none", marginTop: 2 }}><path d="M20 6L9 17l-5-5" /></svg>{t}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section style={{ maxWidth: 780, margin: "0 auto", padding: "40px 28px 70px" }}>
+        <div style={{ textAlign: "center", marginBottom: 34 }}>
+          <span style={eyebrow}>Questions</span>
+          <h2 style={sectionTitle}>Good to know</h2>
+        </div>
+        <div style={{ display: "grid", gap: 12 }}>
+          {[
+            ["Do I need to install anything?", "No. Point Pentrixa at a URL, or upload a file (APK, IPA, source archive, IaC, container image). Everything runs in the cloud."],
+            ["Is it safe to run on production?", "Yes. Active tests use crafted but harmless inputs, and only run on targets whose ownership you have verified. There is no brute force and no denial of service."],
+            ["Which stacks does it support?", "The web scan works on any stack (Node, PHP, Python, Ruby, Java, Go, .NET). SAST covers ten languages, and dependency scanning covers eight package ecosystems."],
+            ["Will it drown me in false positives?", "Every finding carries a confidence level, and the report is ranked by real exploitability, so the noise sinks and the five things that matter rise to the top."],
+          ].map(([q, a]) => (
+            <div key={q} style={{ padding: "22px 24px", borderRadius: 14, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.02)" }}>
+              <div style={{ fontSize: 15.5, fontWeight: 600, marginBottom: 8 }}>{q}</div>
+              <p style={{ fontSize: 14, lineHeight: 1.6, color: T.muted, margin: 0 }}>{a}</p>
             </div>
           ))}
         </div>

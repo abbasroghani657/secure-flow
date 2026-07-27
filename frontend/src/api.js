@@ -1,4 +1,5 @@
 const BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8077";
+export const API_BASE = BASE;
 const TOKEN_KEY = "sf_token";
 
 export function getToken() {

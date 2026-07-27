@@ -2,7 +2,27 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Logo, primaryBtn, Spinner } from "../components/ui";
 import { useAuth } from "../auth";
+import { API_BASE } from "../api";
 import { T } from "../theme";
+
+const OAUTH_ERRORS = {
+  oauth_unconfigured: "Social login isn't enabled yet on this instance. Use email and password for now.",
+  oauth_failed: "Social sign-in didn't complete. Please try again.",
+  oauth_state: "Social sign-in expired. Please try again.",
+  oauth_token: "Couldn't verify with the provider. Please try again.",
+  oauth_no_email: "That account didn't share a verified email. Use email and password instead.",
+};
+
+function GoogleMark() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z" /><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" /><path fill="#4CAF50" d="M24 44c5.5 0 10.4-2.1 14.1-5.5l-6.5-5.5C29.6 34.6 26.9 36 24 36c-5.2 0-9.6-3.3-11.2-8l-6.5 5C9.6 39.6 16.2 44 24 44z" /><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.5 5.5C41.9 35.7 44 30.3 44 24c0-1.3-.1-2.3-.4-3.5z" /></svg>
+  );
+}
+function GithubMark() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2 1-.3 2-.4 3-.4s2 .1 3 .4C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z" /></svg>
+  );
+}
 
 function strength(pw) {
   let s = 0;
@@ -16,7 +36,7 @@ function strength(pw) {
 }
 
 const PANEL_POINTS = [
-  ["Scan what you own", "Prove domain ownership first — every scan is authorised and defensible."],
+  ["Scan what you own", "Prove domain ownership first, every scan is authorised and defensible."],
   ["310+ checks, one report", "Web, API, mobile, cloud, containers and source code in a single pass."],
   ["Fix-first prioritisation", "Ranked by CISA-KEV and EPSS, so you patch what's actually being attacked."],
 ];
@@ -36,6 +56,7 @@ export default function Auth() {
 
   const isLogin = mode === "login";
   const st = strength(password);
+  const oauthErr = OAUTH_ERRORS[new URLSearchParams(loc.search).get("error")];
 
   async function submit(e) {
     e.preventDefault();
@@ -64,7 +85,7 @@ export default function Auth() {
 
         <div style={{ position: "relative", maxWidth: 400 }}>
           <h2 style={{ fontFamily: T.heading, fontSize: 34, fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.1, margin: "0 0 14px" }}>Secure. Scan. Ship.</h2>
-          <p style={{ color: T.muted, fontSize: 15.5, lineHeight: 1.6, margin: "0 0 30px" }}>Catch the misconfigurations, leaked secrets and injectable inputs that turn into breaches — before they do.</p>
+          <p style={{ color: T.muted, fontSize: 15.5, lineHeight: 1.6, margin: "0 0 30px" }}>Catch the misconfigurations, leaked secrets and injectable inputs that turn into breaches, before they do.</p>
           <div style={{ display: "grid", gap: 18 }}>
             {PANEL_POINTS.map(([h, d]) => (
               <div key={h} style={{ display: "flex", gap: 13 }}>
@@ -95,6 +116,22 @@ export default function Auth() {
           <p style={{ color: T.muted, fontSize: 14.5, margin: "0 0 26px" }}>
             {isLogin ? "Log in to view your scans and reports." : "Free tier, no credit card. Start scanning in seconds."}
           </p>
+
+          {oauthErr && (
+            <div style={{ fontSize: 13, color: "#FBBF24", background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 10, padding: "10px 12px", marginBottom: 18 }}>{oauthErr}</div>
+          )}
+
+          <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
+            <a href={`${API_BASE}/api/auth/oauth/google`} className="btn-ghost" style={{ ...socialBtn }}>
+              <GoogleMark /> Continue with Google
+            </a>
+            <a href={`${API_BASE}/api/auth/oauth/github`} className="btn-ghost" style={{ ...socialBtn }}>
+              <GithubMark /> Continue with GitHub
+            </a>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 18px", color: T.faint, fontSize: 12.5 }}>
+            <span style={{ flex: 1, height: 1, background: T.border }} /> or with email <span style={{ flex: 1, height: 1, background: T.border }} />
+          </div>
 
           <div style={{ display: "flex", padding: 4, background: "rgba(255,255,255,0.04)", borderRadius: 12, marginBottom: 22 }}>
             {["login", "signup"].map((m) => {
@@ -164,4 +201,11 @@ const input = {
   width: "100%", padding: "13px 15px", borderRadius: 11,
   border: `1px solid ${T.borderStrong}`, background: "rgba(255,255,255,0.05)",
   color: T.text, fontSize: 14.5, fontFamily: T.body, boxSizing: "border-box",
+};
+
+const socialBtn = {
+  display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+  padding: "11px 16px", borderRadius: 11, border: `1px solid ${T.borderStrong}`,
+  background: "rgba(255,255,255,0.03)", color: T.text, fontSize: 14, fontWeight: 600,
+  fontFamily: T.body, cursor: "pointer",
 };

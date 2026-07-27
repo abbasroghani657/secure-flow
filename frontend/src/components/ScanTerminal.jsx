@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { T } from "../theme";
 
-// Tag palette — semantic, matches the findings colours used across the app.
+// Tag palette, semantic, matches the findings colours used across the app.
 const TAG = {
   INFO: "#60A5FA",
   PASS: T.accent,
@@ -13,13 +13,13 @@ const TAG = {
 
 // A realistic scan transcript that streams line by line.
 const LINES = [
-  ["INFO", "Fingerprinting stack — nginx 1.24, Next.js 14, PostgreSQL"],
+  ["INFO", "Fingerprinting stack, nginx 1.24, Next.js 14, PostgreSQL"],
   ["PASS", "TLS 1.3 configured, HSTS present"],
   ["INFO", "Crawled 214 endpoints, 38 forms, 12 API routes"],
   ["MED", "Missing Content-Security-Policy header on 214 pages"],
   ["PASS", "No exposed .git / .env directories"],
   ["HIGH", "SQL injection in /search?q= (error-based)"],
-  ["INFO", "Checking dependencies against OSV — 8 ecosystems"],
+  ["INFO", "Checking dependencies against OSV, 8 ecosystems"],
   ["LOW", "Cookie 'sid' missing SameSite attribute"],
   ["CRIT", "Hardcoded AWS key in /assets/app.min.js"],
   ["INFO", "Cross-referencing CISA KEV + EPSS for priority"],
@@ -74,7 +74,7 @@ export default function ScanTerminal() {
         <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#FF5F57" }} />
         <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#FEBC2E" }} />
         <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#28C840" }} />
-        <span style={{ marginLeft: 10, fontSize: 12.5, color: T.muted }}>pentrixa scan — acme-store.com</span>
+        <span style={{ marginLeft: 10, fontSize: 12.5, color: T.muted }}>pentrixa scan, acme-store.com</span>
         <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.08em", color: done ? T.accent : T.accentHi }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: done ? T.accent : T.accentHi, animation: done ? "none" : "blink 1.2s infinite" }} />
           {done ? "COMPLETE" : "SCANNING"}

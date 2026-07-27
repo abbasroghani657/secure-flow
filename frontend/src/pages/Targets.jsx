@@ -107,7 +107,7 @@ function TargetRow({ t, open, onOpen, onChange, onRemove }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: T.mono, fontSize: 15, color: T.text }}>{t.host}</div>
           <div style={{ fontSize: 12.5, color: t.verified ? T.accent : T.muted, marginTop: 3 }}>
-            {t.verified ? `Verified via ${t.verification_method}` : "Not verified — prove ownership to scan"}
+            {t.verified ? `Verified via ${t.verification_method}` : "Not verified, prove ownership to scan"}
           </div>
         </div>
         {!t.verified && (

@@ -134,7 +134,7 @@ export default function Schedules() {
                     {s.alert_email && " · email alerts on"}
                   </div>
                   <div style={{ fontSize: 12, color: s.enabled ? T.accent : T.faint, marginTop: 4 }}>
-                    {s.enabled ? `Next run: ${s.next_run_at ? new Date(s.next_run_at + "Z").toLocaleString() : "—"}` : "Paused"}
+                    {s.enabled ? `Next run: ${s.next_run_at ? new Date(s.next_run_at + "Z").toLocaleString() : "-"}` : "Paused"}
                     {s.last_run_at && ` · Last: ${new Date(s.last_run_at + "Z").toLocaleString()}`}
                   </div>
                 </div>

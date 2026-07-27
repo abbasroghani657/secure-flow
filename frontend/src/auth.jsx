@@ -31,13 +31,19 @@ export function AuthProvider({ children }) {
     setUser(res.user);
     return res.user;
   }
+  async function loginWithToken(token) {
+    setToken(token);
+    const u = await api.me();
+    setUser(u);
+    return u;
+  }
   function logout() {
     setToken(null);
     setUser(null);
   }
 
   return (
-    <AuthCtx.Provider value={{ user, loading, login, register, logout }}>
+    <AuthCtx.Provider value={{ user, loading, login, register, logout, loginWithToken }}>
       {children}
     </AuthCtx.Provider>
   );
