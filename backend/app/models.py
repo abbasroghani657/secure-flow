@@ -65,6 +65,7 @@ class Scan(SQLModel, table=True):
     trigger: str = Field(default="manual")  # manual | scheduled
     schedule_id: Optional[int] = Field(default=None, foreign_key="schedule.id", index=True)
     new_findings_count: int = Field(default=0)  # issues not present in the previous scan of this target
+    resolved_count: int = Field(default=0)      # issues from the previous scan that are gone now (fix verified)
 
     authenticated: bool = Field(default=False)  # was this scan run with credentials?
     # User-supplied session headers (JSON) for authenticated scanning. Sensitive:
@@ -124,6 +125,8 @@ class Finding(SQLModel, table=True):
     passed: bool = Field(default=False)
     # True when this issue did not appear in the previous completed scan of the target.
     is_new: bool = Field(default=False)
+    # Triage state set by the owner: open | false_positive | accepted | fixed.
+    status: str = Field(default="open")
 
     scan: Optional[Scan] = Relationship(back_populates="findings")
 

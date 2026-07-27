@@ -88,6 +88,8 @@ export const api = {
   getPlan: () => request("/api/billing/plan"),
   listScans: () => request("/api/scans"),
   getScan: (id) => request(`/api/scans/${id}`),
+  setFindingStatus: (scanId, findingId, status) =>
+    request(`/api/scans/${scanId}/findings/${findingId}`, { method: "PATCH", body: { status } }),
   deleteScan: (id) => request(`/api/scans/${id}`, { method: "DELETE" }),
 
   // Targets

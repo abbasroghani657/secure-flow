@@ -8,7 +8,7 @@ from sqlmodel import select
 from ..config import settings
 from ..deps import CurrentUser, SessionDep
 from ..models import Finding, Scan, ScanStatus, Target
-from ..schemas import CSPMScanCreate, FindingRead, ScanCreate, ScanDetail, ScanRead
+from ..schemas import CSPMScanCreate, FindingRead, FindingStatusUpdate, ScanCreate, ScanDetail, ScanRead
 from ..scanner.checks import normalize_url
 from ..plans import check_can_scan, plan_shows_remediation
 
@@ -416,6 +416,40 @@ def get_scan(scan_id: int, current: CurrentUser, session: SessionDep) -> ScanDet
                 r.locked = True
     detail.findings = reads
     return detail
+
+
+_TRIAGE_STATES = {"open", "false_positive", "accepted", "fixed"}
+
+
+@router.patch("/{scan_id}/findings/{finding_id}", response_model=FindingRead)
+def set_finding_status(
+    scan_id: int, finding_id: int, data: FindingStatusUpdate,
+    current: CurrentUser, session: SessionDep,
+) -> FindingRead:
+    """Triage a finding: mark it a false positive, accepted risk, or fixed.
+
+    Lets a team work findings down over time instead of re-reading the same list
+    on every scan. Available to anyone who owns the scan.
+    """
+    if data.status not in _TRIAGE_STATES:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                            f"status must be one of {sorted(_TRIAGE_STATES)}")
+    scan = session.get(Scan, scan_id)
+    if not scan or scan.owner_id != current.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Scan not found")
+    finding = session.get(Finding, finding_id)
+    if not finding or finding.scan_id != scan_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Finding not found")
+    finding.status = data.status
+    session.add(finding)
+    session.commit()
+    session.refresh(finding)
+    read = FindingRead.model_validate(finding, from_attributes=True)
+    if not finding.passed and not plan_shows_remediation(current.plan):
+        read.remediation = ""
+        read.evidence = ""
+        read.locked = True
+    return read
 
 
 @router.delete("/{scan_id}", status_code=status.HTTP_204_NO_CONTENT)

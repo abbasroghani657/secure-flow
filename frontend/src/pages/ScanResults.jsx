@@ -13,6 +13,20 @@ const CONF = {
   tentative: { label: "Tentative", color: "#fbbf24", border: "rgba(251,191,36,0.35)", bg: "rgba(251,191,36,0.10)", hint: "A heuristic that may need manual review" },
 };
 
+// Triage lifecycle: how the owner has classified a finding.
+const STATUS = {
+  open: { label: "Open", color: "#A3B1C2" },
+  false_positive: { label: "False positive", color: "#60a5fa" },
+  accepted: { label: "Accepted risk", color: "#fbbf24" },
+  fixed: { label: "Fixed", color: "#34d399" },
+};
+const TRIAGE_ACTIONS = [
+  ["open", "Reopen"],
+  ["fixed", "Mark fixed"],
+  ["false_positive", "False positive"],
+  ["accepted", "Accept risk"],
+];
+
 const OWASP_NAMES = {
   "A01:2025": "Broken Access Control",
   "A02:2025": "Security Misconfiguration",
@@ -80,6 +94,19 @@ export default function ScanResults() {
     return () => { alive = false; clearTimeout(timer); };
   }, [id]);
 
+  async function triage(findingId, status) {
+    // Optimistic: update the card immediately, then persist.
+    setScan((prev) => prev && ({
+      ...prev,
+      findings: prev.findings.map((f) => (f.id === findingId ? { ...f, status } : f)),
+    }));
+    try {
+      await api.setFindingStatus(id, findingId, status);
+    } catch (e) {
+      setErr(e.message);
+    }
+  }
+
   const findings = scan?.findings || [];
   const issues = useMemo(() => findings.filter((f) => !f.passed), [findings]);
   const passed = useMemo(() => findings.filter((f) => f.passed), [findings]);
@@ -132,6 +159,9 @@ export default function ScanResults() {
         {scan.status === "completed" && scan.new_findings_count > 0 && (
           <span style={{ fontSize: 11, fontWeight: 700, color: T.accentInk, background: T.accent, borderRadius: 999, padding: "2px 9px" }}>{scan.new_findings_count} new since last scan</span>
         )}
+        {scan.status === "completed" && scan.resolved_count > 0 && (
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#34d399", border: "1px solid rgba(52,211,153,0.4)", background: "rgba(52,211,153,0.1)", borderRadius: 999, padding: "2px 9px" }}>{scan.resolved_count} resolved since last scan</span>
+        )}
         {scan.status === "failed" && <span style={{ color: "#F87171" }}> · {scan.error}</span>}
       </p>
 
@@ -179,7 +209,7 @@ export default function ScanResults() {
               ) : (
                 <div style={{ display: "grid", gap: 12 }}>
                   {visibleIssues.map((f) => (
-                    <FindingCard key={f.id} f={f} open={!!open[f.id]} onToggle={() => setOpen((o) => ({ ...o, [f.id]: !o[f.id] }))} />
+                    <FindingCard key={f.id} f={f} open={!!open[f.id]} onToggle={() => setOpen((o) => ({ ...o, [f.id]: !o[f.id] }))} onTriage={triage} />
                   ))}
                 </div>
               )}
@@ -324,15 +354,18 @@ function FilterChip({ active, onClick, label, color }) {
   );
 }
 
-function FindingCard({ f, open, onToggle }) {
+function FindingCard({ f, open, onToggle, onTriage }) {
   const s = SEVERITY[f.severity];
+  const triaged = f.status && f.status !== "open";
+  const st = STATUS[f.status] || STATUS.open;
   return (
-    <div style={{ borderRadius: 14, border: `1px solid ${open ? s.border : T.border}`, background: "rgba(255,255,255,0.02)", overflow: "hidden" }}>
+    <div style={{ borderRadius: 14, border: `1px solid ${open ? s.border : T.border}`, background: "rgba(255,255,255,0.02)", overflow: "hidden", opacity: triaged && !open ? 0.6 : 1 }}>
       <button onClick={onToggle} style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "16px 18px", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: T.body }}>
         <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "3px 9px", borderRadius: 999, color: s.color, border: `1px solid ${s.border}`, background: s.bg, minWidth: 60, textAlign: "center" }}>{s.label}</span>
-        <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600, color: T.text }}>
+        <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600, color: T.text, textDecoration: f.status === "fixed" || f.status === "false_positive" ? "line-through" : "none", textDecorationColor: st.color }}>
           {f.title}
           {f.is_new && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "2px 7px", borderRadius: 999, color: T.accentInk, background: T.accent }}>New</span>}
+          {triaged && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", padding: "2px 7px", borderRadius: 999, color: st.color, border: `1px solid ${st.color}55`, background: `${st.color}18` }}>{st.label}</span>}
         </span>
         <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {!f.passed && f.confidence && (() => { const c = CONF[f.confidence] || CONF.firm; return (
@@ -377,6 +410,20 @@ function FindingCard({ f, open, onToggle }) {
             </Row>
           ) : (
             f.remediation && <Row label="How to fix"><p style={{ ...txt, color: T.accentHi }}>{f.remediation}</p></Row>
+          )}
+          {onTriage && (
+            <Row label="Triage">
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {TRIAGE_ACTIONS.filter(([v]) => v !== f.status).filter(([v]) => v !== "open" || f.status !== "open").map(([v, lbl]) => {
+                  const c = STATUS[v];
+                  return (
+                    <button key={v} onClick={() => onTriage(f.id, v)} style={{ fontSize: 12, fontWeight: 600, fontFamily: T.body, cursor: "pointer", padding: "6px 12px", borderRadius: 8, border: `1px solid ${c.color}55`, background: `${c.color}12`, color: c.color }}>
+                      {lbl}
+                    </button>
+                  );
+                })}
+              </div>
+            </Row>
           )}
         </div>
       )}

@@ -62,6 +62,7 @@ def finalize_scan(scan_id: int) -> None:
         ).all()
 
         new_count = 0
+        resolved_count = 0
         if prev is not None:
             prev_ids = {
                 f.check_id
@@ -69,14 +70,18 @@ def finalize_scan(scan_id: int) -> None:
                     select(Finding).where(Finding.scan_id == prev.id, Finding.passed == False)  # noqa: E712
                 ).all()
             }
+            current_ids = {f.check_id for f in current}
             for f in current:
                 if f.check_id not in prev_ids:
                     f.is_new = True
                     s.add(f)
                     new_count += 1
-        # First scan of a target is the baseline: nothing is "new".
+            # Issues that were present last time and are gone now: fixes verified.
+            resolved_count = len(prev_ids - current_ids)
+        # First scan of a target is the baseline: nothing is "new" or "resolved".
 
         scan.new_findings_count = new_count
+        scan.resolved_count = resolved_count
         s.add(scan)
         s.commit()
 

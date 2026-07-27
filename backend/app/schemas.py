@@ -119,6 +119,7 @@ class FindingRead(BaseModel):
     confidence: str = "firm"
     priority: int = 0
     locked: bool = False   # remediation/evidence hidden on the Free plan
+    status: str = "open"   # open | false_positive | accepted | fixed
 
 
 class ScanRead(BaseModel):
@@ -136,6 +137,7 @@ class ScanRead(BaseModel):
     passed_count: int
     trigger: str = "manual"
     new_findings_count: int = 0
+    resolved_count: int = 0
     authenticated: bool = False
     llm_endpoint: Optional[str] = None
     error: Optional[str]
@@ -146,6 +148,10 @@ class ScanRead(BaseModel):
 
 class ScanDetail(ScanRead):
     findings: list[FindingRead]
+
+
+class FindingStatusUpdate(BaseModel):
+    status: str  # open | false_positive | accepted | fixed
 
 
 # ---- Integrations ----
