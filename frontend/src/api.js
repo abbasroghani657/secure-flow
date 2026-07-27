@@ -90,6 +90,7 @@ export const api = {
     return request("/api/scans/container", { method: "POST", body: fd, isForm: true });
   },
   getPlan: () => request("/api/billing/plan"),
+  getRisk: () => request("/api/risk"),
   listScans: () => request("/api/scans"),
   getScan: (id) => request(`/api/scans/${id}`),
   setFindingStatus: (scanId, findingId, status) =>

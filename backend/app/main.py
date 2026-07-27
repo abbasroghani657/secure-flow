@@ -11,7 +11,7 @@ from .config import settings
 from .database import init_db
 from .middleware import SecurityHeadersMiddleware
 from .ratelimit import limiter
-from .routers import auth, billing, integrations, oauth, scans, schedules, targets, tokens
+from .routers import auth, billing, integrations, oauth, risk, scans, schedules, targets, tokens
 from .worker import worker
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -85,6 +85,7 @@ app.include_router(scans.router)
 app.include_router(schedules.router)
 app.include_router(integrations.router)
 app.include_router(tokens.router)
+app.include_router(risk.router)
 
 
 @app.get("/api/health", tags=["meta"])

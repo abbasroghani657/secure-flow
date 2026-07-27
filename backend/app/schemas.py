@@ -181,6 +181,50 @@ class FindingStatusUpdate(BaseModel):
     status: str  # open | false_positive | accepted | fixed
 
 
+# ---- Risk register (ASPM) ----
+class RiskRow(BaseModel):
+    check_id: str
+    title: str
+    severity: str
+    priority: int = 0
+    owasp: str = ""
+    cwe: str = ""
+    layer: str = ""
+    confidence: str = "firm"
+    count: int = 0
+    targets: list[str] = []
+    target_count: int = 0
+    accepted: bool = False
+
+
+class AttackStepEvidence(BaseModel):
+    title: str
+    target: str
+    severity: str
+
+
+class AttackStep(BaseModel):
+    label: str
+    evidence: AttackStepEvidence
+
+
+class AttackPath(BaseModel):
+    id: str
+    title: str
+    severity: str
+    story: str
+    steps: list[AttackStep]
+
+
+class RiskOverview(BaseModel):
+    targets_covered: int
+    scans_considered: int
+    total_risks: int
+    by_severity: dict[str, int]
+    risks: list[RiskRow]
+    attack_paths: list[AttackPath]
+
+
 # ---- Integrations ----
 class IntegrationCreate(BaseModel):
     kind: str = "slack"          # slack | teams | discord | webhook
