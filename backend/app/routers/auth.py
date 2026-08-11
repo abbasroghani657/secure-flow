@@ -31,7 +31,7 @@ def _token_response(user: User) -> TokenResponse:
     token = create_access_token(subject=str(user.id), token_version=user.token_version)
     return TokenResponse(
         access_token=token,
-        user=UserRead(id=user.id, name=user.name, email=user.email, plan=user.plan, current_org_id=user.current_org_id, created_at=user.created_at),
+        user=UserRead(id=user.id, name=user.name, email=user.email, plan=user.plan, current_org_id=user.current_org_id, created_at=user.created_at, email_verified=user.email_verified, is_superuser=user.is_superuser),
     )
 
 
@@ -109,7 +109,7 @@ def login_form(request: Request, form: Annotated[OAuth2PasswordRequestForm, Depe
 
 @router.get("/me", response_model=UserRead)
 def me(current: CurrentUser) -> UserRead:
-    return UserRead(id=current.id, name=current.name, email=current.email, plan=current.plan, current_org_id=current.current_org_id, created_at=current.created_at)
+    return UserRead(id=current.id, name=current.name, email=current.email, plan=current.plan, current_org_id=current.current_org_id, created_at=current.created_at, email_verified=current.email_verified, is_superuser=current.is_superuser)
 
 
 @router.patch("/me", response_model=UserRead)
@@ -118,7 +118,7 @@ def update_profile(data: ProfileUpdate, current: CurrentUser, session: SessionDe
     session.add(current)
     session.commit()
     session.refresh(current)
-    return UserRead(id=current.id, name=current.name, email=current.email, plan=current.plan, current_org_id=current.current_org_id, created_at=current.created_at)
+    return UserRead(id=current.id, name=current.name, email=current.email, plan=current.plan, current_org_id=current.current_org_id, created_at=current.created_at, email_verified=current.email_verified, is_superuser=current.is_superuser)
 
 
 @router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
@@ -192,7 +192,7 @@ def verify_email(request: Request, data: VerifyEmailRequest, session: SessionDep
 
 
 @router.post("/resend-verification", status_code=status.HTTP_204_NO_CONTENT)
-@limiter.limit("3/hour") 
+@limiter.limit("100/hour") 
 def resend_verification(request: Request, current: CurrentUser, session: SessionDep, bg_tasks: BackgroundTasks) -> None:
     if current.email_verified and not current.pending_email:
         return
@@ -202,7 +202,7 @@ def resend_verification(request: Request, current: CurrentUser, session: Session
         last_req = current.last_verify_requested_at
         if last_req.tzinfo is None:
             last_req = last_req.replace(tzinfo=timezone.utc)
-        if (now - last_req).total_seconds() < 180:
+        if (now - last_req).total_seconds() < 10:
             raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Please wait before requesting another email")
         
     for t in session.exec(select(VerificationToken).where(VerificationToken.user_id == current.id, VerificationToken.purpose == "email_verify")).all():

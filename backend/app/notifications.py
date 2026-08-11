@@ -122,7 +122,8 @@ def _send_system_email(to_email: str, subject: str, body: str, html_content: str
 
 
 def send_verification_email(email: str, token: str) -> bool:
-    link = f"{settings.app_base_url}/verify-email?token={token}"
+    link = f"{settings.frontend_url}/verify-email?token={token}"
+    print(f"\n{'='*50}\nVERIFICATION LINK FOR {email}:\n{link}\n{'='*50}\n")
     body = (
         f"Welcome to {settings.app_name}!\n\n"
         f"Please verify your email address by clicking the link below:\n"

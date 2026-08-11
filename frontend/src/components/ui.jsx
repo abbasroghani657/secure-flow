@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 import { api } from "../api";
 import { T } from "../theme";
+import { toast } from "../toast";
 
 export function Logo({ size = 20 }) {
   return (
@@ -30,9 +31,9 @@ export function AppNav() {
              onClick={async () => {
                try { 
                  await api.resendVerification(); 
-                 alert('Verification email sent!'); 
+                 toast.success('Verification email sent! Please check your inbox.'); 
                } catch (e) { 
-                 alert(e.response?.data?.detail || 'Please wait before trying again'); 
+                 toast.error(e.response?.data?.detail || 'Please wait before trying again'); 
                }
              }} 
              style={{ background: "rgba(245, 158, 11, 0.2)", border: "1px solid rgba(245, 158, 11, 0.4)", color: "#FBBF24", marginLeft: 12, padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 12, transition: "background 0.2s" }}

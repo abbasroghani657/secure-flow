@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import { primaryBtn } from '../components/ui';
+import { T } from '../theme';
+
+const localInputStyle = { width: "100%", padding: "12px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.2)", color: "#fff", fontSize: 15, boxSizing: "border-box", outline: "none" };
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -44,21 +48,18 @@ export default function ResetPassword() {
 
   if (status === 'success') {
     return (
-      <div className="min-h-screen bg-black/95 flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl p-8 shadow-2xl text-center">
-          <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, background: "radial-gradient(circle at top, rgba(6, 182, 212, 0.05), transparent 60%)" }}>
+        <div style={{ width: "100%", maxWidth: 440, background: "rgba(0,0,0,0.4)", border: `1px solid ${T.borderStrong}`, borderRadius: 16, padding: "40px 32px", boxShadow: "0 20px 40px rgba(0,0,0,0.4)", textAlign: "center", backdropFilter: "blur(10px)" }}>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(34, 197, 94, 0.15)", color: "#22c55e", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path>
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">Password Reset Successful</h2>
-          <p className="text-zinc-400 text-sm mb-6">
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: "0 0 8px" }}>Password Reset Successful</h2>
+          <p style={{ color: T.faint, fontSize: 14, margin: "0 0 24px", lineHeight: 1.5 }}>
             Your password has been securely updated. All other active sessions have been signed out.
           </p>
-          <button
-            onClick={() => navigate('/auth')}
-            className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-          >
+          <button onClick={() => navigate('/auth')} style={{ ...primaryBtn, width: "100%", padding: "14px", fontSize: 15 }}>
             Log in with new password
           </button>
         </div>
@@ -67,36 +68,36 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-black/95 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="flex justify-center mb-6">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-              <div className="w-4 h-4 text-indigo-400">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-              </div>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, background: "radial-gradient(circle at top, rgba(6, 182, 212, 0.05), transparent 60%)" }}>
+      <div style={{ width: "100%", maxWidth: 440 }}>
+        
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 32 }}>
+          <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(6, 182, 212, 0.1)", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(6, 182, 212, 0.2)" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="m9 12 2 2 4-4" />
+              </svg>
             </div>
-            <span className="text-xl font-bold text-white tracking-tight">Pentrixa</span>
+            <span style={{ fontSize: 24, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px" }}>Pentrixa</span>
           </Link>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white mb-2">Create New Password</h2>
-          <p className="text-zinc-400 text-sm mb-6">
+        <div style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${T.borderStrong}`, borderRadius: 16, padding: "40px 32px", boxShadow: "0 20px 40px rgba(0,0,0,0.4)", backdropFilter: "blur(10px)" }}>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: "#fff", margin: "0 0 8px" }}>Create New Password</h2>
+          <p style={{ color: T.faint, fontSize: 14, margin: "0 0 24px", lineHeight: 1.5 }}>
             Please enter your new password below.
           </p>
 
           {errorMsg && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-6">
-              <p className="text-sm text-red-400 font-medium">{errorMsg}</p>
+            <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: 8, padding: 12, marginBottom: 24 }}>
+              <p style={{ color: "#ef4444", fontSize: 14, fontWeight: 500, margin: 0 }}>{errorMsg}</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-zinc-400 mb-1">
+              <label htmlFor="password" style={{ display: "block", fontSize: 14, fontWeight: 500, color: T.muted, marginBottom: 6 }}>
                 New Password
               </label>
               <input
@@ -105,24 +106,20 @@ export default function ResetPassword() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-shadow"
+                style={localInputStyle}
                 placeholder="••••••••"
                 minLength={8}
                 disabled={!token}
               />
-              <p className="text-xs text-zinc-500 mt-2">Must be at least 8 characters long.</p>
+              <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 8 }}>Must be at least 8 characters long.</p>
             </div>
 
             <button
               type="submit"
               disabled={status === 'loading' || !token}
-              className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center mt-6"
+              style={{ ...primaryBtn, width: "100%", padding: "14px", marginTop: 8, opacity: (status === 'loading' || !token) ? 0.7 : 1 }}
             >
-              {status === 'loading' ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              ) : (
-                'Securely Update Password'
-              )}
+              {status === 'loading' ? 'Updating...' : 'Securely Update Password'}
             </button>
           </form>
         </div>
