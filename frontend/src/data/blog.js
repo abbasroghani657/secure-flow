@@ -50,6 +50,38 @@ export const POSTS = [
       ["p", "Better still, catch it before it merges. Wire a secrets scan into your pipeline and a leaked key becomes a failed check instead of an incident."],
     ],
   },
+  {
+    slug: "continuous-scanning-cicd",
+    title: "Why security needs to live in the CI/CD pipeline, not after deploy",
+    excerpt: "Catching vulnerabilities in staging costs 10x less than fixing them in production. A deep dive into shifting left without slowing down your engineering velocity.",
+    category: "DevSecOps",
+    date: "2026-08-05", read: "8 min", author: "Pentrixa Research", initials: "PR",
+    body: [
+      ["p", "For years, security was a gatekeeper at the end of the software development lifecycle. You write code, test it, deploy to staging, and then—right before launch—security runs a massive, slow scan that generates a 300-page PDF report. Development freezes, releases are delayed, and engineers hate security."],
+      ["h", "The velocity problem"],
+      ["p", "Modern engineering moves too fast for point-in-time scanning. If you deploy 50 times a day, a weekly scan leaves you vulnerable for exactly 168 hours. The only way to secure high-velocity teams is to bake security directly into the pipeline."],
+      ["h", "Shift left, but do it right"],
+      ["p", "Pentrixa integrates directly into GitHub Actions, GitLab CI, and Jenkins. Instead of a detached PDF, vulnerabilities are flagged as inline pull request comments. The scan runs in minutes, testing the specific diff rather than the entire universe. If a developer accidentally introduces a SQL injection or a leaked API key, the build fails before the code ever reaches the main branch."],
+      ["quote", "Security shouldn't be a speed bump. It should be a guardrail."],
+      ["p", "By moving security into the developer's native workflow, you reduce friction, cut remediation costs, and build a culture where security is everyone's responsibility—not just an afterthought."],
+    ],
+  },
+  {
+    slug: "dast-evolution-2026",
+    title: "DAST in 2026: Why dynamic testing still matters in an AI world",
+    excerpt: "With AI writing code and SAST getting smarter, some claim DAST is dead. Here is why testing applications from the outside-in remains your ultimate reality check.",
+    category: "AppSec",
+    date: "2026-08-11", read: "6 min", author: "Pentrixa Research", initials: "PR",
+    body: [
+      ["p", "Static Analysis (SAST) tells you what might be wrong with your code. Dynamic Analysis (DAST) tells you what is actually exploitable in your running application. As AI models become better at generating code—and inevitably, generating subtle vulnerabilities—testing the running state is more critical than ever."],
+      ["h", "The limits of static analysis"],
+      ["p", "A SAST tool looks at a single repository. But modern applications are complex amalgams of microservices, third-party APIs, reverse proxies, and cloud infrastructure. A vulnerability often doesn't exist in the code itself, but in how those components interact. An exposed AWS bucket or a misconfigured Nginx proxy won't show up in a code scan."],
+      ["h", "The ultimate reality check"],
+      ["p", "Pentrixa's next-generation DAST engine doesn't just crawl links; it understands single-page applications, executes JavaScript, and models complex state flows like a human attacker would. It sends real payloads and observes the actual HTTP responses. If Pentrixa says you are vulnerable to XSS, it's not a theory—it means the payload successfully executed in the browser."],
+      ["quote", "SAST is reading the blueprint. DAST is kicking the tires."],
+      ["p", "You need both. But when it comes to prioritizing what to fix first, the proof of exploitability that DAST provides is unmatched. It cuts through the theoretical noise and shows you the actual attack surface your adversaries see."],
+    ],
+  },
 ];
 
 export const getPost = (slug) => POSTS.find((p) => p.slug === slug);
