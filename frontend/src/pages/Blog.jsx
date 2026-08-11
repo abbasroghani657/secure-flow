@@ -46,7 +46,7 @@ export default function Blog() {
         {/* Rest grid */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
           {rest.map((p, i) => (
-            <Link key={p.slug} to={`/blog/${p.slug}`} style={{ display: "flex", flexDirection: "column", borderRadius: 16, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.02)", padding: "26px 24px", gap: 12, animationDelay: \`\${0.25 + i * 0.1}s\` }} className="blog-card">
+            <Link key={p.slug} to={`/blog/${p.slug}`} style={{ display: "flex", flexDirection: "column", borderRadius: 16, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.02)", padding: "26px 24px", gap: 12, animationDelay: `${0.25 + i * 0.1}s` }} className="blog-card">
               <span style={{ fontFamily: T.mono, fontSize: 11, color: T.accentHi, letterSpacing: "0.05em" }}>{p.category.toUpperCase()} · {p.read}</span>
               <h3 style={{ fontFamily: T.heading, fontSize: 19, fontWeight: 700, lineHeight: 1.25, margin: 0, letterSpacing: "-0.01em" }}>{p.title}</h3>
               <p style={{ fontSize: 13.5, lineHeight: 1.55, color: T.muted, margin: 0, flex: 1 }}>{p.excerpt}</p>
