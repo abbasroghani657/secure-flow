@@ -109,7 +109,13 @@ def oauth_callback(provider: str, session: SessionDep, code: str = "", state: st
     user = session.exec(select(User).where(User.email == email)).first()
     if not user:
         user = User(email=email, name=str(name).strip()[:120] or "User",
-                    hashed_password=hash_password(_secrets.token_urlsafe(32)))
+                    hashed_password=hash_password(_secrets.token_urlsafe(32)),
+                    email_verified=True)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+    elif not user.email_verified:
+        user.email_verified = True
         session.add(user)
         session.commit()
         session.refresh(user)
