@@ -78,7 +78,8 @@ def oauth_callback(provider: str, session: SessionDep, code: str = "", state: st
     conf = _PROVIDERS.get(provider)
     if not conf or not code:
         return RedirectResponse(_fe("/auth?error=oauth_failed"))
-    if decode_access_token(state) != f"oauthstate:{provider}":
+    payload = decode_access_token(state)
+    if not payload or payload.get("sub") != f"oauthstate:{provider}":
         return RedirectResponse(_fe("/auth?error=oauth_state"))
     cid, secret = _creds(provider)
 
