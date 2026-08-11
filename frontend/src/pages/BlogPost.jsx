@@ -16,9 +16,11 @@ export default function BlogPost() {
     <div>
       <MarketingNav />
       <article style={{ maxWidth: 720, margin: "0 auto", padding: "56px 28px 20px" }}>
-        <Link to="/blog" style={{ fontSize: 13.5, color: T.muted, display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 24 }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>All articles
-        </Link>
+        <div style={{ marginBottom: 24 }}>
+          <Link to="/blog" style={{ fontSize: 13.5, color: T.muted, display: "inline-flex", alignItems: "center", gap: 6, transition: "color 0.2s" }} onMouseOver={(e) => e.currentTarget.style.color = T.text} onMouseOut={(e) => e.currentTarget.style.color = T.muted}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>All articles
+          </Link>
+        </div>
         <span style={{ fontFamily: T.mono, fontSize: 12, color: T.accentHi, letterSpacing: "0.06em" }}>{post.category.toUpperCase()} · {post.read} read</span>
         <h1 style={{ fontFamily: T.heading, fontSize: "clamp(30px, 4.5vw, 44px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.1, margin: "14px 0 20px" }}>{post.title}</h1>
         <div style={{ display: "flex", alignItems: "center", gap: 12, paddingBottom: 26, borderBottom: `1px solid ${T.border}`, marginBottom: 34 }}>
