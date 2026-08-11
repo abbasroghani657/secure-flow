@@ -82,6 +82,27 @@ export const POSTS = [
       ["p", "You need both. But when it comes to prioritizing what to fix first, the proof of exploitability that DAST provides is unmatched. It cuts through the theoretical noise and shows you the actual attack surface your adversaries see."],
     ],
   },
+  {
+    slug: "xz-utils-backdoor-supply-chain",
+    title: "The XZ Utils Backdoor: How 500ms saved the internet",
+    excerpt: "A multi-year social engineering campaign almost compromised every Linux server on Earth. Here is the true story of CVE-2024-3094, and what it means for the open-source supply chain.",
+    category: "Supply Chain",
+    date: "2026-08-12", read: "9 min", author: "Pentrixa Research", initials: "PR",
+    body: [
+      ["p", "In late March 2024, a Microsoft developer named Andres Freund was doing some routine micro-benchmarking on a pre-release Debian system. He noticed something incredibly subtle: SSH logins were taking about 500 milliseconds longer than they should, and were consuming an unusual amount of CPU. Most developers would have blamed a network glitch or a heavy background process. Freund started digging."],
+      ["p", "What he uncovered was arguably the most sophisticated supply chain attack in the history of open-source software: a meticulously engineered backdoor in XZ Utils (CVE-2024-3094), a ubiquitous data compression library present in almost every modern Linux distribution."],
+      ["h", "A multi-year social engineering masterclass"],
+      ["p", "The technical payload was terrifying, but the human element is what makes this story legendary. The attacker, using the persona 'Jia Tan', didn't just hack a server. Starting in late 2021, Jia Tan began making legitimate, helpful contributions to the XZ Utils project. At the same time, a coordinated network of sock-puppet accounts began relentlessly pressuring the original, burnt-out maintainer to hand over control to Jia Tan."],
+      ["p", "Over two years, Jia Tan earned trust, became the release manager, and carefully modified the build infrastructure. The malicious code wasn't even in the public GitHub repository—it was injected exclusively into the distribution tarballs during the build process, hidden inside innocent-looking test files using heavily obfuscated M4 macros."],
+      ["h", "The technical payload: Unprecedented sophistication"],
+      ["p", "When an infected system started up, the backdoor hooked into the `sshd` process. If an attacker connected using a specific, mathematically verifiable cryptographic private key, the backdoor bypassed standard authentication entirely, granting immediate, silent, remote code execution (RCE) with root privileges."],
+      ["p", "Had this code made it into the stable releases of Debian, Ubuntu, and Red Hat, the attackers would have possessed a master key to the global internet infrastructure. A CVSS 10.0 doesn't quite do it justice; it was an existential threat to global security."],
+      ["h", "The lesson for the future"],
+      ["p", "We narrowly escaped disaster because one curious engineer refused to ignore a 500ms anomaly. But we cannot rely on luck. The XZ Utils incident proved that our software supply chain is built on a fragile foundation of unpaid, overwhelmed maintainers. It also proved that attackers are no longer just looking for zero-days—they are playing the long game, infiltrating the human trust networks that build our digital world."],
+      ["quote", "Trust in open source is our greatest strength, but blind trust is our greatest vulnerability."],
+      ["p", "At Pentrixa, this incident changed how we think about supply chain security. It's no longer enough to just scan your direct dependencies for known CVEs. You have to monitor the behavioral health of your packages, track sudden changes in maintainership, and implement zero-trust architectures that limit blast radius. The internet survived XZ Utils, but the next Jia Tan is already contributing to a repository near you."],
+    ],
+  },
 ];
 
 export const getPost = (slug) => POSTS.find((p) => p.slug === slug);
