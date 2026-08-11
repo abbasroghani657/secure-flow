@@ -125,12 +125,50 @@ class ScanWorker:
         self._stop.set()
 
     def _loop(self) -> None:
+        last_intel_fetch = 0
         while not self._stop.wait(settings.worker_poll_seconds):
             try:
                 self.enqueue_due_schedules()
                 self.dispatch()
+                
+                # Pre-Crime AI Ingestion (run every 60 seconds)
+                if time.time() - last_intel_fetch > 60:
+                    self.ingest_threat_intel()
+                    last_intel_fetch = time.time()
+                    
             except Exception:  # noqa: BLE001
                 logger.exception("worker loop error")
+
+    # -- threat intel --
+    def ingest_threat_intel(self) -> None:
+        """Simulates Pre-Crime AI fetching latest CISA KEVs or Zero-Days."""
+        import random
+        from .models import ThreatIntelFeed, AuditEvent
+        
+        cve_id = f"CVE-{datetime.now().year}-{random.randint(1000, 9999)}"
+        names = ["Nginx Deep-Link RCE", "React-DOM XSS 0-Day", "SQLi in Login Flow", "Deserialization Flaw", "Auth Bypass via JWT"]
+        desc = random.choice(names)
+        
+        with Session(engine) as s:
+            # Check if we already have it
+            existing = s.exec(select(ThreatIntelFeed).where(ThreatIntelFeed.cve_id == cve_id)).first()
+            if not existing:
+                intel = ThreatIntelFeed(
+                    cve_id=cve_id,
+                    description=desc,
+                    published_date=datetime.now(timezone.utc)
+                )
+                s.add(intel)
+                # Log to firehose
+                evt = AuditEvent(
+                    org_id=1,
+                    actor_email="pre-crime-ai",
+                    action="THREAT_INTEL_INGESTED",
+                    detail=f"New Zero-Day tracking: {cve_id} ({desc})"
+                )
+                s.add(evt)
+                s.commit()
+                logger.info(f"Ingested Threat Intel: {cve_id}")
 
     # -- recovery --
     def recover_stale(self) -> None:

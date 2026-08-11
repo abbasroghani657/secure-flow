@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -15,6 +16,14 @@ class UserCreate(BaseModel):
     def password_strength(cls, v: str) -> str:
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Password must contain at least one special character")
         return v
 
 
@@ -29,6 +38,8 @@ class UserRead(BaseModel):
     email: EmailStr
     plan: str = "free"
     current_org_id: Optional[int] = None
+    email_verified: bool = False
+    is_superuser: bool = False
     created_at: datetime
 
 
@@ -52,11 +63,47 @@ class PasswordChange(BaseModel):
     def strength(cls, v: str) -> str:
         if len(v) < 8:
             raise ValueError("New password must be at least 8 characters")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("New password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("New password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("New password must contain at least one digit")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("New password must contain at least one special character")
         return v
 
 
 class AccountDelete(BaseModel):
     password: str
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("New password must be at least 8 characters")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("New password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("New password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("New password must contain at least one digit")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("New password must contain at least one special character")
+        return v
 
 
 class TokenResponse(BaseModel):

@@ -47,12 +47,20 @@ def get_current_user(
             raise credentials_exc
         return user
 
-    subject = decode_access_token(token)
-    if subject is None:
+    payload = decode_access_token(token)
+    if payload is None:
         raise credentials_exc
+        
+    subject = payload["sub"]
+    token_version = payload["v"]
+    
     user = session.get(User, int(subject)) if subject.isdigit() else None
     if user is None:
         raise credentials_exc
+        
+    if user.is_locked or user.token_version != token_version:
+        raise credentials_exc
+        
     return user
 
 

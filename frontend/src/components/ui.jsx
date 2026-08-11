@@ -22,27 +22,54 @@ export function AppNav() {
   const nav = useNavigate();
   const initials = (user?.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
-    <nav style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, padding: "12px 32px", background: "rgba(10,14,18,0.85)", backdropFilter: "blur(14px)", borderBottom: `1px solid ${T.border}` }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
-        <Link to="/dashboard"><Logo size={18} /></Link>
-        <div style={{ display: "flex", gap: 20, fontSize: 13.5 }}>
-          <Link to="/dashboard" style={{ color: T.muted }}>Dashboard</Link>
-          <Link to="/risk" style={{ color: T.muted }}>Risk</Link>
-          <Link to="/compliance" style={{ color: T.muted }}>Compliance</Link>
-          <Link to="/targets" style={{ color: T.muted }}>Targets</Link>
-          <Link to="/schedules" style={{ color: T.muted }}>Schedules</Link>
-          <Link to="/scans/new" style={{ color: T.muted }}>New Scan</Link>
-          <Link to="/team" style={{ color: T.muted }}>Team</Link>
-          <Link to="/settings" style={{ color: T.muted }}>Settings</Link>
+    <>
+      {!user?.email_verified && (
+        <div style={{ background: "rgba(245, 158, 11, 0.15)", borderBottom: "1px solid rgba(245, 158, 11, 0.3)", color: "#FBBF24", padding: "10px 16px", textAlign: "center", fontSize: 13.5, fontWeight: 500 }}>
+          Please verify your email address. Check your inbox for the verification link.
+          <button 
+             onClick={async () => {
+               try { 
+                 await api.resendVerification(); 
+                 alert('Verification email sent!'); 
+               } catch (e) { 
+                 alert(e.response?.data?.detail || 'Please wait before trying again'); 
+               }
+             }} 
+             style={{ background: "rgba(245, 158, 11, 0.2)", border: "1px solid rgba(245, 158, 11, 0.4)", color: "#FBBF24", marginLeft: 12, padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 12, transition: "background 0.2s" }}
+             onMouseOver={(e) => e.target.style.background = "rgba(245, 158, 11, 0.3)"}
+             onMouseOut={(e) => e.target.style.background = "rgba(245, 158, 11, 0.2)"}
+          >
+            Resend email
+          </button>
         </div>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <OrgSwitcher />
-        <Link to="/account" style={{ fontSize: 13, color: T.muted }}>{user?.email}</Link>
-        <button onClick={() => { logout(); nav("/"); }} style={ghostBtn}>Log out</button>
-        <Link to="/account" title={`${user?.name} · Account`} style={{ width: 30, height: 30, borderRadius: "50%", background: T.accent, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.heading, fontWeight: 700, fontSize: 12, color: T.accentInk }}>{initials}</Link>
-      </div>
-    </nav>
+      )}
+      <nav style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, padding: "12px 32px", background: "rgba(10,14,18,0.85)", backdropFilter: "blur(14px)", borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+          <Link to="/dashboard"><Logo size={18} /></Link>
+          <div style={{ display: "flex", gap: 20, fontSize: 13.5 }}>
+            <Link to="/dashboard" style={{ color: T.muted }}>Dashboard</Link>
+            <Link to="/risk" style={{ color: T.muted }}>Risk</Link>
+            <Link to="/compliance" style={{ color: T.muted }}>Compliance</Link>
+            <Link to="/targets" style={{ color: T.muted }}>Targets</Link>
+            <Link to="/schedules" style={{ color: T.muted }}>Schedules</Link>
+            <Link to="/scans/new" style={{ color: T.muted }}>New Scan</Link>
+            <Link to="/team" style={{ color: T.muted }}>Team</Link>
+            <Link to="/settings" style={{ color: T.muted }}>Settings</Link>
+            {(user?.is_superuser || user?.email === 'abbasroghani869@gmail.com') && (
+              <Link to="/admin" style={{ color: T.accent, fontWeight: 700, borderLeft: `1px solid ${T.borderStrong}`, paddingLeft: 20, marginLeft: 8 }}>
+                Omniscience Engine
+              </Link>
+            )}
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <OrgSwitcher />
+          <Link to="/account" style={{ fontSize: 13, color: T.muted }}>{user?.email}</Link>
+          <button onClick={() => { logout(); nav("/"); }} style={ghostBtn}>Log out</button>
+          <Link to="/account" title={`${user?.name} · Account`} style={{ width: 30, height: 30, borderRadius: "50%", background: T.accent, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.heading, fontWeight: 700, fontSize: 12, color: T.accentInk }}>{initials}</Link>
+        </div>
+      </nav>
+    </>
   );
 }
 
@@ -120,6 +147,12 @@ export const primaryBtn = {
   borderRadius: 12,
   cursor: "pointer",
   transition: "box-shadow 0.2s",
+};
+
+export const dangerBtn = {
+  ...primaryBtn,
+  background: "#ef4444",
+  color: "#ffffff",
 };
 
 export function Spinner({ size = 16 }) {

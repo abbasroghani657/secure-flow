@@ -20,12 +20,11 @@ def ensure_personal_org(session, user) -> Organization:
         return session.get(Organization, user.current_org_id)
     org = Organization(name=f"{user.name}'s workspace", personal=True, created_by_id=user.id)
     session.add(org)
-    session.commit()
-    session.refresh(org)
+    session.flush()
     session.add(Membership(org_id=org.id, user_id=user.id, role="owner"))
     user.current_org_id = org.id
     session.add(user)
-    session.commit()
+    session.flush()
     session.refresh(user)
     return org
 
@@ -62,6 +61,11 @@ def require_role(session, user, min_role: str, org_id: int | None = None) -> str
 
 def require_write(session, user, org_id: int | None = None) -> str:
     """Creating or changing resources needs at least member (viewers are read-only)."""
+    if not user.email_verified:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, 
+            "Please verify your email address to perform write actions (like starting scans)."
+        )
     return require_role(session, user, "member", org_id)
 
 

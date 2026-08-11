@@ -38,8 +38,75 @@ class User(SQLModel, table=True):
     current_org_id: Optional[int] = Field(default=None, foreign_key="organization.id", index=True)
     created_at: datetime = Field(default_factory=utcnow)
 
+    # Apex-Tier Auth Fields
+    email_verified: bool = Field(default=False)
+    pending_email: Optional[str] = None
+    token_version: int = Field(default=1)
+    last_reset_requested_at: Optional[datetime] = None
+    last_verify_requested_at: Optional[datetime] = None
+    is_locked: bool = Field(default=False)
+
+    # Supreme-Tier Admin Fields
+    is_superuser: bool = Field(default=False)
+    admin_role: str = Field(default="superadmin")  # support | billing | superadmin
+
     targets: list["Target"] = Relationship(back_populates="owner")
     scans: list["Scan"] = Relationship(back_populates="owner")
+
+class PlatformConfig(SQLModel, table=True):
+    """Global toggles and settings for the platform (Maintenance mode, Signups, etc.)"""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    key: str = Field(unique=True, index=True)
+    value: str = ""
+    updated_at: datetime = Field(default_factory=utcnow)
+    updated_by_id: Optional[int] = Field(default=None, foreign_key="user.id")
+
+class GlobalBlacklist(SQLModel, table=True):
+    """Platform-wide blocked IPs, TLDs, or domains to prevent rogue scanning (.gov, .mil)."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    pattern: str = Field(unique=True, index=True)  # e.g., "*.gov", "192.168.0.0/16"
+    reason: str = ""
+    created_at: datetime = Field(default_factory=utcnow)
+    created_by_id: Optional[int] = Field(default=None, foreign_key="user.id")
+
+class CustomRule(SQLModel, table=True):
+    """Zero-Day engine: custom vulnerability signatures injected by Admin."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    rule_name: str = Field(unique=True, index=True)
+    rule_content: str  # JSON or YAML
+    enabled: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=utcnow)
+    created_by_id: Optional[int] = Field(default=None, foreign_key="user.id")
+
+class HoneypotHit(SQLModel, table=True):
+    """Logs when a user scans a designated decoy target."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: Optional[int] = Field(default=None, foreign_key="user.id", index=True)
+    honeypot_url: str
+    ip_address: str
+    headers: str = ""
+    created_at: datetime = Field(default_factory=utcnow)
+
+class ThreatIntelFeed(SQLModel, table=True):
+    """Pre-Crime AI ingested zero-day threat feeds."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    cve_id: str = Field(unique=True, index=True)
+    description: str = ""
+    published_date: datetime
+    auto_remediation_script: str = ""
+    created_at: datetime = Field(default_factory=utcnow)
+
+class VerificationToken(SQLModel, table=True):
+    """Secure tokens for email verification, password resets, and account freezes."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    token_hash: str = Field(index=True, unique=True)
+    purpose: str = Field(index=True)  # email_verify | password_reset | account_freeze
+    expires_at: datetime
+    request_ip: str = ""
+    created_at: datetime = Field(default_factory=utcnow)
+
 
 
 class Organization(SQLModel, table=True):
@@ -183,6 +250,16 @@ class Finding(SQLModel, table=True):
     status: str = Field(default="open")
 
     scan: Optional[Scan] = Relationship(back_populates="findings")
+
+
+class PaymentLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    amount: float
+    currency: str = "USD"
+    status: str = "success" # success, failed, refunded
+    stripe_charge_id: str
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class Integration(SQLModel, table=True):

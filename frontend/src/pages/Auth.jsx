@@ -48,6 +48,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
+  const [aupConsent, setAupConsent] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const { login, register } = useAuth();
@@ -60,6 +61,10 @@ export default function Auth() {
 
   async function submit(e) {
     e.preventDefault();
+    if (!isLogin && !aupConsent) {
+      setErr("You must agree to the Acceptable Use Policy to create an account.");
+      return;
+    }
     setErr(""); setBusy(true);
     try {
       if (isLogin) await login(email, password);
@@ -162,6 +167,11 @@ export default function Auth() {
                 </button>
               </div>
             </Field>
+            {isLogin && (
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -10 }}>
+                <Link to="/forgot-password" style={{ fontSize: 12.5, color: T.accent, textDecoration: "none" }}>Forgot password?</Link>
+              </div>
+            )}
             {!isLogin && password && (
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: -4 }}>
                 <div style={{ flex: 1, height: 5, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
@@ -171,16 +181,31 @@ export default function Auth() {
               </div>
             )}
 
+            {!isLogin && (
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginTop: 4 }}>
+                <input 
+                  type="checkbox" 
+                  id="aup" 
+                  checked={aupConsent} 
+                  onChange={(e) => setAupConsent(e.target.checked)} 
+                  style={{ marginTop: 3, accentColor: T.accent }}
+                />
+                <label htmlFor="aup" style={{ fontSize: 13, color: T.muted, lineHeight: 1.5, cursor: "pointer" }}>
+                  I agree to the <Link to="/legal/aup" style={{ color: T.accent, textDecoration: "none" }} target="_blank">Acceptable Use Policy (AUP)</Link> and <Link to="/legal/terms" style={{ color: T.accent, textDecoration: "none" }} target="_blank">Terms of Service</Link>. I confirm I will only scan infrastructure I own or have explicit authorization to test.
+                </label>
+              </div>
+            )}
+
             {err && <div style={{ fontSize: 13, color: "#F87171", background: "rgba(220,38,38,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 10, padding: "10px 12px" }}>{err}</div>}
 
-            <button type="submit" disabled={busy} style={{ ...primaryBtn, width: "100%", marginTop: 4, opacity: busy ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <button type="submit" disabled={busy || (!isLogin && !aupConsent)} style={{ ...primaryBtn, width: "100%", marginTop: 4, opacity: (busy || (!isLogin && !aupConsent)) ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
               {busy && <Spinner />}
               {isLogin ? "Log in" : "Create account"}
             </button>
           </form>
 
           <p style={{ textAlign: "center", color: T.faint, fontSize: 12.5, marginTop: 20, lineHeight: 1.5 }}>
-            By continuing you agree to only scan websites you own or are authorised to test.
+            Enterprise-grade security scanning for developers and security teams.
           </p>
         </div>
       </main>

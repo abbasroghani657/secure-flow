@@ -19,17 +19,19 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-def create_access_token(subject: str, expires_minutes: Optional[int] = None) -> str:
+def create_access_token(subject: str, expires_minutes: Optional[int] = None, token_version: int = 1) -> str:
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=expires_minutes or settings.access_token_expire_minutes
     )
-    payload = {"sub": subject, "exp": expire}
+    payload = {"sub": subject, "exp": expire, "v": token_version}
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
-def decode_access_token(token: str) -> Optional[str]:
+def decode_access_token(token: str) -> Optional[dict]:
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-        return payload.get("sub")
+        if "sub" not in payload:
+            return None
+        return {"sub": payload["sub"], "v": payload.get("v", 1)}
     except JWTError:
         return None

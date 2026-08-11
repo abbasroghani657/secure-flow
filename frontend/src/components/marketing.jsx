@@ -104,7 +104,8 @@ export function MarketingFooter() {
   const cols = [
     ["Product", [["How it works", "/how-it-works"], ["Features", "/features"], ["Pricing", "/pricing"], ["Compare", "/compare"]]],
     ["Resources", [["Blog", "/blog"], ["Docs", "/docs"], ["Changelog", "/changelog"], ["OWASP 2025", "/blog/owasp-2025-what-changed"]]],
-    ["Company", [["About", "/about"], ["Security", "/security"], ["Privacy", "/privacy"], ["Terms", "/terms"]]],
+    ["Developers", [["API Docs", "/docs"], ["GitHub", "https://github.com"]]],
+    ["Company", [["About", "/about"], ["Security", "/security"], ["Privacy", "/legal/privacy"], ["Terms", "/legal/terms"], ["AUP", "/legal/aup"]]],
   ];
   return (
     <footer style={{ borderTop: `1px solid ${T.border}`, background: "rgba(255,255,255,0.015)", marginTop: 40 }}>
